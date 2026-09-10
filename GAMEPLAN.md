@@ -56,7 +56,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 
 **Action Required:**
 
-- [ ] 1. `uv init`, `pyproject.toml` with deps: fastapi, uvicorn, httpx, pydantic-settings, sqlalchemy[asyncio], aiosqlite, alembic, apscheduler, polars, seaborn, matplotlib, plotext, aiogram, openai, google-auth, ruff, pytest, pytest-asyncio. Python 3.12. — `chore(p00): project skeleton with uv and deps`
+- [x] 1. `uv init`, `pyproject.toml` with deps: fastapi, uvicorn, httpx, pydantic-settings, sqlalchemy[asyncio], aiosqlite, alembic, apscheduler, polars, seaborn, matplotlib, plotext, aiogram, openai, google-auth, ruff, pytest, pytest-asyncio. Python 3.12. — `chore(p00): project skeleton with uv and deps`
 - [ ] 2. `ruff` config (line length 100), `pytest` config, `.gitignore` (`data/`, `.env`), `.env.example` with every variable from CLAUDE.md. — `chore(p00): lint, test and env config`
 - [ ] 3. `app/config.py` (pydantic-settings), `app/db/engine.py` (async engine, WAL pragma, session factory), `alembic/` initialised in batch mode with an empty first migration. — `feat(p00): config and sqlite engine`
 - [ ] 4. `app/main.py`: FastAPI app, `GET /health` returns `{"ok": true, "db": true}` after a `SELECT 1`. `scripts/dev.sh`: migrate + run with `TELEGRAM_MODE=polling`. — `feat(p00): fastapi app with health endpoint`
