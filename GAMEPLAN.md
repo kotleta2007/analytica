@@ -64,7 +64,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 
 **Tests**
 
-- [ ] `tests/conftest.py` with a temp-file SQLite fixture and migrated schema; `tests/test_health.py`. — `test(p00): health endpoint on a temp db`
+- [x] `tests/conftest.py` with a temp-file SQLite fixture and migrated schema; `tests/test_health.py`. — `test(p00): health endpoint on a temp db`
 - [ ] `tests/test_config.py` — settings load from env, missing required var raises clearly. — `test(p00): config loading`
 
 **Acceptance**
