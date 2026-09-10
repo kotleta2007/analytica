@@ -81,7 +81,7 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 
 - `app/db/models.py` is created in this phase, empty except for the `Base` declarative class, so `alembic/env.py` has a metadata object to autogenerate against. The tables themselves still arrive in P01.
 - `ruff` excludes `*.md`: newer ruff formats Python code blocks inside Markdown, which would rewrite the code in `CLAUDE.md` and `GAMEPLAN.md`.
-- `.env.example` puts each explanatory comment on its own line rather than inline after the value, as CLAUDE.md shows it. dotenv keeps everything after `=` as the value, so the inline form makes `cp .env.example .env` fail to boot (`TELEGRAM_MODE` and `TELEGRAM_ALLOWED_USER_IDS` both reject it). Every variable and every comment is still there. `tests/test_config.py` now loads the file to keep it that way.
+- `.env.example` puts each explanatory comment on its own line rather than inline after the value. dotenv keeps everything after `=` as the value, so the inline form CLAUDE.md originally showed makes `cp .env.example .env` fail to boot (`TELEGRAM_MODE` and `TELEGRAM_ALLOWED_USER_IDS` both reject it). Every variable and every comment is still there. CLAUDE.md's configuration block was amended by the operator's instruction to hold `.env.example` verbatim, so the two can no longer drift; `tests/test_config.py` loads the file to keep it loadable.
 
 ---
 
