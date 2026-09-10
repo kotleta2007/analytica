@@ -56,16 +56,16 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 
 **Action Required:**
 
-- [ ] 1. `uv init`, `pyproject.toml` with deps: fastapi, uvicorn, httpx, pydantic-settings, sqlalchemy[asyncio], aiosqlite, alembic, apscheduler, polars, seaborn, matplotlib, plotext, aiogram, openai, google-auth, ruff, pytest, pytest-asyncio. Python 3.12. — `chore(p00): project skeleton with uv and deps`
-- [ ] 2. `ruff` config (line length 100), `pytest` config, `.gitignore` (`data/`, `.env`), `.env.example` with every variable from CLAUDE.md. — `chore(p00): lint, test and env config`
-- [ ] 3. `app/config.py` (pydantic-settings), `app/db/engine.py` (async engine, WAL pragma, session factory), `alembic/` initialised in batch mode with an empty first migration. — `feat(p00): config and sqlite engine`
-- [ ] 4. `app/main.py`: FastAPI app, `GET /health` returns `{"ok": true, "db": true}` after a `SELECT 1`. `scripts/dev.sh`: migrate + run with `TELEGRAM_MODE=polling`. — `feat(p00): fastapi app with health endpoint`
-- [ ] 5. `README.md`: what this is — including the thesis diagram (aspiration → todo → habit → daily → second nature) — how to run locally, how to test. Short. — `docs(p00): readme`
+- [x] 1. `uv init`, `pyproject.toml` with deps: fastapi, uvicorn, httpx, pydantic-settings, sqlalchemy[asyncio], aiosqlite, alembic, apscheduler, polars, seaborn, matplotlib, plotext, aiogram, openai, google-auth, ruff, pytest, pytest-asyncio. Python 3.12. — `chore(p00): project skeleton with uv and deps`
+- [x] 2. `ruff` config (line length 100), `pytest` config, `.gitignore` (`data/`, `.env`), `.env.example` with every variable from CLAUDE.md. — `chore(p00): lint, test and env config`
+- [x] 3. `app/config.py` (pydantic-settings), `app/db/engine.py` (async engine, WAL pragma, session factory), `alembic/` initialised in batch mode with an empty first migration. — `feat(p00): config and sqlite engine`
+- [x] 4. `app/main.py`: FastAPI app, `GET /health` returns `{"ok": true, "db": true}` after a `SELECT 1`. `scripts/dev.sh`: migrate + run with `TELEGRAM_MODE=polling`. — `feat(p00): fastapi app with health endpoint`
+- [x] 5. `README.md`: what this is — including the thesis diagram (aspiration → todo → habit → daily → second nature) — how to run locally, how to test. Short. — `docs(p00): readme`
 
 **Tests**
 
-- [ ] `tests/conftest.py` with a temp-file SQLite fixture and migrated schema; `tests/test_health.py`. — `test(p00): health endpoint on a temp db`
-- [ ] `tests/test_config.py` — settings load from env, missing required var raises clearly. — `test(p00): config loading`
+- [x] `tests/conftest.py` with a temp-file SQLite fixture and migrated schema; `tests/test_health.py`. — `test(p00): health endpoint on a temp db`
+- [x] `tests/test_config.py` — settings load from env, missing required var raises clearly. — `test(p00): config loading`
 
 **Acceptance**
 
@@ -77,7 +77,11 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 
 **Done when**: all boxes ticked · `ruff check` + `ruff format --check` + `pytest` green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- `app/db/models.py` is created in this phase, empty except for the `Base` declarative class, so `alembic/env.py` has a metadata object to autogenerate against. The tables themselves still arrive in P01.
+- `ruff` excludes `*.md`: newer ruff formats Python code blocks inside Markdown, which would rewrite the code in `CLAUDE.md` and `GAMEPLAN.md`.
+- `.env.example` puts each explanatory comment on its own line rather than inline after the value. dotenv keeps everything after `=` as the value, so the inline form CLAUDE.md originally showed makes `cp .env.example .env` fail to boot (`TELEGRAM_MODE` and `TELEGRAM_ALLOWED_USER_IDS` both reject it). Every variable and every comment is still there. CLAUDE.md's configuration block was amended by the operator's instruction to hold `.env.example` verbatim, so the two can no longer drift; `tests/test_config.py` loads the file to keep it loadable.
 
 ---
 
