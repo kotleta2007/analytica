@@ -6,10 +6,10 @@ time code that actually needs those credentials runs.
 """
 
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class MissingSettings(RuntimeError):
@@ -35,7 +35,8 @@ class Settings(BaseSettings):
 
     # ---- Telegram (phase 02) ----
     telegram_bot_token: str = ""
-    telegram_allowed_user_ids: list[int] = []
+    # NoDecode: the value in .env is comma-separated, not JSON.
+    telegram_allowed_user_ids: Annotated[list[int], NoDecode] = []
     telegram_mode: Literal["polling", "webhook"] = "polling"
 
     # ---- public URL + webhooks ----
