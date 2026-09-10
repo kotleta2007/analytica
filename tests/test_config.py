@@ -1,7 +1,11 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from app.config import MissingSettings, Settings, get_settings
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def make_settings(**overrides: object) -> Settings:
@@ -91,3 +95,16 @@ def test_get_settings_is_cached() -> None:
         assert get_settings() is get_settings()
     finally:
         get_settings.cache_clear()
+
+
+def test_env_example_is_loadable_as_is(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`cp .env.example .env` must boot: dotenv keeps inline `#` as part of the value."""
+    for name in ("TELEGRAM_MODE", "TELEGRAM_ALLOWED_USER_IDS", "TIMEZONE", "TTS_VOICE"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(_env_file=str(PROJECT_ROOT / ".env.example"))
+
+    assert settings.telegram_mode == "polling"
+    assert settings.telegram_allowed_user_ids == []
+    assert settings.timezone == "Europe/Zurich"
+    assert settings.tts_voice == "b347db033a6549378b48d00acb0d06cd"
