@@ -62,14 +62,22 @@ class SnapshotOutcome:
     events: list[TaskEvent]
 
 
+@dataclass
+class CollectOutcome:
+    user: UserSnapshot
+    tasks: SnapshotOutcome
+    cron_ran: bool
+
+
 async def collect(
     client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
-) -> SnapshotOutcome:
+) -> CollectOutcome:
     """One collection round: user first, then tasks. What the scheduler calls."""
     last_cron_before = await latest_last_cron(session, user_id)
     user_snapshot = await snapshot_user(client, session, user_id, now)
     cron_ran = user_snapshot.raw.get("lastCron") != last_cron_before
-    return await snapshot_tasks(client, session, user_id, now, reset_by_cron=cron_ran)
+    tasks = await snapshot_tasks(client, session, user_id, now, reset_by_cron=cron_ran)
+    return CollectOutcome(user=user_snapshot, tasks=tasks, cron_ran=cron_ran)
 
 
 async def latest_last_cron(session: AsyncSession, user_id: str) -> str | None:

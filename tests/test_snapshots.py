@@ -203,7 +203,8 @@ async def test_collect_detects_cron_from_the_user_snapshot(db_path: Path) -> Non
     async with session_scope() as session:
         outcome = await collect(client, session, USER, T1)
 
-    assert [event.kind for event in outcome.events] == []
+    assert outcome.cron_ran is True
+    assert outcome.tasks.events == []
     assert await events_by_kind() == [("created", None, "Floss")]
 
     # no cron this time, so the same transition is the user un-ticking
@@ -214,4 +215,5 @@ async def test_collect_detects_cron_from_the_user_snapshot(db_path: Path) -> Non
     async with session_scope() as session:
         outcome = await collect(client, session, USER, T1 + timedelta(minutes=60))
 
-    assert [event.kind for event in outcome.events] == ["uncompleted"]
+    assert outcome.cron_ran is False
+    assert [event.kind for event in outcome.tasks.events] == ["uncompleted"]
