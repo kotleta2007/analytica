@@ -110,7 +110,7 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 - [x] Client: rate-limit sleep and 5xx retry via httpx `MockTransport`. — `test(p01): client rate limit and retry`
 - [x] Snapshot diff: two fake task lists → expected `task_events` (completed, uncompleted, created, deleted, habit counter change). — `test(p01): snapshot diff events`
 - [x] Day-close: correct `was_due`/`completed` rows; running twice doesn't duplicate; Habitica-day boundary at 11:00 Zurich handled across DST. — `test(p01): day close and day math`
-- [ ] Backfill idempotent. — `test(p01): backfill idempotent`
+- [x] Backfill idempotent. — `test(p01): backfill idempotent`
 - [ ] Webhook: sample `scored` payload → `task_events` row + raw row; bad secret → 403. — `test(p01): webhook handling`
 
 **Acceptance**
