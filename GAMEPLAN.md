@@ -98,7 +98,7 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 - [x] 2. `app/habitica/client.py`: async client with required headers, rate-limit awareness (`X-RateLimit-Remaining`/`Reset`, sleep when exhausted), one retry on 5xx. Methods: `get_user`, `get_tasks`, `get_completed_todos`, `score_task`, `create_task`, `update_task`, `delete_task`, `equip`, `run_cron`, `get_content` (disk-cached), `create_webhook`, `list_webhooks`. — `feat(p01): habitica rest client`
 - [x] 3. `scripts/record_fixture.py`: hit the real API once, scrub ids/tokens, write `tests/fixtures/habitica/user.json`, `tasks.json`, `content.json`. Commit the fixtures. — `chore(p01): record scrubbed habitica fixtures`
 - [x] 4. Alembic migration + models: `user_snapshots`, `tasks`, `task_snapshots`, `task_events`, `daily_records`, `webhook_deliveries`, `user_settings`. Every table has `user_id`; every table that stores an API response has `raw`. — `feat(p01): telemetry tables`
-- [ ] 5. `app/collector/snapshots.py`: `snapshot_user()`, `snapshot_tasks()` (upsert `tasks`, insert `task_snapshots`, diff vs previous → `task_events` with `source=snapshot_diff`). — `feat(p01): snapshot collectors`
+- [x] 5. `app/collector/snapshots.py`: `snapshot_user()`, `snapshot_tasks()` (upsert `tasks`, insert `task_snapshots`, diff vs previous → `task_events` with `source=snapshot_diff`). — `feat(p01): snapshot collectors`
 - [ ] 6. `app/collector/day_close.py`: `close_day()` writes `daily_records` for the Habitica day ending now; `run_cron()` calls `POST /cron` then snapshots. Habitica-day math from `day_start` + `timezone_offset`. — `feat(p01): day close and explicit cron`
 - [ ] 7. `app/collector/backfill.py`: on first run, import each daily's and habit's `history[]` into `daily_records` / `task_events`, `source=backfill`. Idempotent. — `feat(p01): backfill from habitica task history`
 - [ ] 8. `app/collector/webhooks.py`: `POST /webhooks/habitica/{secret}`; wrong secret → 403; store `webhook_deliveries` raw; map `taskActivity` payloads to `task_events` with `source=webhook`. `scripts/register_webhook.py` registers `PUBLIC_BASE_URL/webhooks/habitica/<secret>` for scored/created/updated/deleted, skipping if already registered. **If `PUBLIC_BASE_URL` is empty it logs one line and exits 0 — do not stop and ask for a URL; the VPS does not exist until P05.** Until then the receiver is exercised by tests only and snapshots carry the load. — `feat(p01): habitica webhook receiver and registration`
@@ -125,7 +125,14 @@ And cron was triggered by us at 11:01, not by a random collector call
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- Operator's `dayStart` is 11 (checked against the API), not 12; every derived clock time in this plan and in `CLAUDE.md` was moved back an hour.
+- `user_snapshots.raw` keeps the game-state part of `GET /user` (`stats`, `preferences`, `items.gear`, `lastCron`, `needsCron`, `tasksOrder`), not the whole object: the full response is 42 KB with the inbox, pets and notifications in it, which is 700 MB/year at 48 snapshots a day and private messages in a bot database.
+- A `task_snapshots` row is written only when the task's JSON changed since its previous snapshot. The last row before any instant is still the state at that instant, so nothing is lost; `tasks.last_seen_at` still moves every round.
+- `snapshot_tasks` also reads `?type=completedTodos`, otherwise a completed todo (which leaves `/tasks/user`) would look deleted.
+- Cron resets every daily to not-completed. `collect()` snapshots the user first, notices when `lastCron` moved, and then does not record those resets as `uncompleted` events; a daily un-ticked by hand between two ordinary snapshots still is one.
+- Habit `scored` events from snapshot diffs use the `counterUp`/`counterDown` deltas (one event per count); when the counters were reset by Habitica's daily/weekly/monthly counter reset, the sign of the value change decides one event. Webhooks (task 8) carry the exact events; the diff is the safety net.
 
 ---
 
