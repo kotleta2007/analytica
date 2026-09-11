@@ -18,7 +18,12 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.collector.snapshots import CollectOutcome, collect, load_latest_snapshots
+from app.collector.snapshots import (
+    CollectOutcome,
+    collect,
+    latest_user_snapshot,
+    load_latest_snapshots,
+)
 from app.db.models import DailyRecord, TaskRow, UserSnapshot
 from app.habitica.client import HabiticaClient
 
@@ -121,12 +126,7 @@ async def run_cron(
     client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
 ) -> CronOutcome:
     """Trigger the day reset ourselves, then record the state right after it."""
-    before = await session.scalar(
-        select(UserSnapshot)
-        .where(UserSnapshot.user_id == user_id)
-        .order_by(UserSnapshot.id.desc())
-        .limit(1)
-    )
+    before = await latest_user_snapshot(session, user_id)
     await client.run_cron()
     after = await collect(client, session, user_id, now)
     logger.info(

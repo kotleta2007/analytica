@@ -80,13 +80,17 @@ async def collect(
     return CollectOutcome(user=user_snapshot, tasks=tasks, cron_ran=cron_ran)
 
 
-async def latest_last_cron(session: AsyncSession, user_id: str) -> str | None:
-    snapshot = await session.scalar(
+async def latest_user_snapshot(session: AsyncSession, user_id: str) -> UserSnapshot | None:
+    return await session.scalar(
         select(UserSnapshot)
         .where(UserSnapshot.user_id == user_id)
         .order_by(UserSnapshot.id.desc())
         .limit(1)
     )
+
+
+async def latest_last_cron(session: AsyncSession, user_id: str) -> str | None:
+    snapshot = await latest_user_snapshot(session, user_id)
     return None if snapshot is None else snapshot.raw.get("lastCron")
 
 
