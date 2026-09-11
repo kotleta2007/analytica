@@ -1,0 +1,2137 @@
+{
+ "data": [
+  {
+   "_id": "a4e67807-ecee-56cd-98da-3f397977cdd0",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-07T18:58:37.610Z",
+   "down": false,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "a4e67807-ecee-56cd-98da-3f397977cdd0",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Listen to an album",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-07T21:17:27.060Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "10b16c29-0e5d-549e-9c5d-61484d20daae",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-04T15:07:57.141Z",
+   "down": false,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "10b16c29-0e5d-549e-9c5d-61484d20daae",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Mentally rehearse your biggest wins",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T15:07:57.141Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "a5acb2b7-3b0f-5cf9-a2ac-48fd8747493f",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-04T13:57:25.423Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "a5acb2b7-3b0f-5cf9-a2ac-48fd8747493f",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Small prayer",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T13:57:29.438Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "b074a2d5-f05e-5944-acd9-96fc22e24bc8",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-04T13:56:58.433Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "b074a2d5-f05e-5944-acd9-96fc22e24bc8",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Yoga session",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T13:57:31.657Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "48f496e0-e506-533c-8998-b08c0624ba7c",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-04T13:56:43.264Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "48f496e0-e506-533c-8998-b08c0624ba7c",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Bible reading session",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T13:57:33.603Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "f41c686c-ff5f-52b7-8497-8f3d6b31bac7",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-04T13:56:33.017Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "f41c686c-ff5f-52b7-8497-8f3d6b31bac7",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "AM1 session",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T13:57:35.901Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "3cdc2149-8869-5c2d-8744-6ebc6676401c",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-03T15:49:18.409Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "date": 1788450563724,
+     "scoredDown": 0,
+     "scoredUp": 1,
+     "value": 1
+    }
+   ],
+   "id": "3cdc2149-8869-5c2d-8744-6ebc6676401c",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "1h of sun exposure",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-08T09:21:38.444Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "6ae24794-aed3-5225-8065-b92372b587ff",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2026-09-03T12:03:03.647Z",
+   "down": false,
+   "frequency": "monthly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "6ae24794-aed3-5225-8065-b92372b587ff",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Take charcoal",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-04T13:57:40.852Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "2d32304d-505e-5644-8d65-be0d3d637010",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "e756d291-60e9-57f1-bb2a-e2ffb20e6b4f",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 0,
+   "createdAt": "2023-11-06T12:05:27.917Z",
+   "down": true,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [],
+   "id": "2d32304d-505e-5644-8d65-be0d3d637010",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": "*Check into our Server for more accountability and [links to other challenges!](https://discord.com/channels/823926369519140885/1136297021251276902)!!*",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2023-11-06T12:05:27.917Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0
+  },
+  {
+   "_id": "7d1b9694-82f7-5db8-8d84-e16c218cd84d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b",
+    "shortName": "b9e6a938-9427-570a-beef-049893159909",
+    "taskId": "16861cc1-e273-56c9-a170-95c9c10099d1",
+    "winner": "617767ca-d9ba-5b92-bda3-ffaca23a4c88"
+   },
+   "checklist": [],
+   "counterDown": 0,
+   "counterUp": 6,
+   "createdAt": "2023-11-06T12:13:32.753Z",
+   "down": false,
+   "frequency": "weekly",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "date": 1699310814037,
+     "scoredDown": 0,
+     "scoredUp": 5,
+     "value": 4.759112700885761
+    },
+    {
+     "date": 1699740482824,
+     "scoredDown": 0,
+     "scoredUp": 3,
+     "value": 5.135902184642918
+    },
+    {
+     "date": 1699869150534,
+     "scoredDown": 0,
+     "scoredUp": 1,
+     "value": 3.504264376627418
+    },
+    {
+     "date": 1700001152744,
+     "scoredDown": 0,
+     "scoredUp": 2,
+     "value": 3.641179536103247
+    },
+    {
+     "date": 1702327993284,
+     "scoredDown": 0,
+     "scoredUp": 33,
+     "value": 24.69302781324458
+    },
+    {
+     "date": 1705873823239,
+     "scoredDown": 0,
+     "scoredUp": 17,
+     "value": 23.217687880878692
+    },
+    {
+     "date": 1715099436751,
+     "scoredDown": 0,
+     "scoredUp": 4,
+     "value": 3.853133245658556
+    },
+    {
+     "date": 1788373798103,
+     "scoredDown": 0,
+     "scoredUp": 8,
+     "value": 7.355994112832055
+    },
+    {
+     "date": 1788714339018,
+     "scoredDown": 0,
+     "scoredUp": 5,
+     "value": 5.1657461786398455
+    },
+    {
+     "date": 1788859869487,
+     "scoredDown": 0,
+     "scoredUp": 3,
+     "value": 4.123850673048633
+    },
+    {
+     "date": 1788985684328,
+     "scoredDown": 0,
+     "scoredUp": 1,
+     "value": 3.0104590313218536
+    },
+    {
+     "date": 1789109667933,
+     "scoredDown": 0,
+     "scoredUp": 1,
+     "value": 2.4673916240623592
+    },
+    {
+     "date": 1789109670111,
+     "scoredDown": 0,
+     "scoredUp": 1,
+     "value": 3.4061207974650523
+    }
+   ],
+   "id": "7d1b9694-82f7-5db8-8d84-e16c218cd84d",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b"
+   ],
+   "text": "Complete a :tomato:!",
+   "type": "habit",
+   "up": true,
+   "updatedAt": "2026-09-11T10:07:31.690Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1.7030603987325261
+  },
+  {
+   "_id": "00a38244-8b47-5ace-8ebc-63d99ee8e9db",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-08-13T12:09:39.634Z",
+   "daysOfMonth": [],
+   "everyX": 1,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "completed": true,
+     "date": 1786624086138,
+     "isDue": true,
+     "value": 1
+    },
+    {
+     "completed": true,
+     "date": 1786855768091,
+     "isDue": true,
+     "value": 1.9747
+    },
+    {
+     "completed": true,
+     "date": 1786855774803,
+     "isDue": true,
+     "value": 2.9253562257358428
+    },
+    {
+     "completed": true,
+     "date": 1786899617181,
+     "isDue": true,
+     "value": 3.853133245658556
+    },
+    {
+     "completed": true,
+     "date": 1787060427558,
+     "isDue": true,
+     "value": 4.759112700885761
+    },
+    {
+     "completed": true,
+     "date": 1787143077623,
+     "isDue": true,
+     "value": 5.6443010177121415
+    },
+    {
+     "completed": true,
+     "date": 1787227136521,
+     "isDue": true,
+     "value": 6.5096362419810205
+    },
+    {
+     "completed": true,
+     "date": 1787228525793,
+     "isDue": true,
+     "value": 7.355994112832055
+    },
+    {
+     "completed": true,
+     "date": 1787312711760,
+     "isDue": true,
+     "value": 8.184193475367
+    },
+    {
+     "completed": true,
+     "date": 1787397352817,
+     "isDue": true,
+     "value": 8.995001116880612
+    },
+    {
+     "completed": true,
+     "date": 1787485209334,
+     "isDue": true,
+     "value": 9.789136098905757
+    },
+    {
+     "completed": true,
+     "date": 1787579850597,
+     "isDue": true,
+     "value": 10.567273646958993
+    },
+    {
+     "completed": true,
+     "date": 1787818560523,
+     "isDue": true,
+     "value": 11.330048651176607
+    },
+    {
+     "completed": true,
+     "date": 1787818587063,
+     "isDue": true,
+     "value": 12.07805882370548
+    },
+    {
+     "completed": true,
+     "date": 1787868332759,
+     "isDue": true,
+     "value": 12.811867552519566
+    },
+    {
+     "completed": true,
+     "date": 1788093416317,
+     "isDue": true,
+     "value": 13.53200648607811
+    },
+    {
+     "completed": true,
+     "date": 1788094532500,
+     "isDue": true,
+     "value": 14.23897787876845
+    },
+    {
+     "completed": true,
+     "date": 1788179901341,
+     "isDue": true,
+     "value": 14.933256723256155
+    },
+    {
+     "completed": true,
+     "date": 1788258338291,
+     "isDue": true,
+     "value": 15.615292692592663
+    },
+    {
+     "completed": true,
+     "date": 1788343155977,
+     "isDue": true,
+     "value": 16.28551191211884
+    },
+    {
+     "completed": true,
+     "date": 1788434094755,
+     "isDue": true,
+     "value": 16.94431857878008
+    },
+    {
+     "completed": true,
+     "date": 1788521726840,
+     "isDue": true,
+     "value": 17.59209644337522
+    },
+    {
+     "completed": true,
+     "date": 1788605031796,
+     "isDue": true,
+     "value": 18.229210169447946
+    },
+    {
+     "completed": true,
+     "date": 1788691854987,
+     "isDue": true,
+     "value": 18.856006580954404
+    },
+    {
+     "completed": true,
+     "date": 1788774589909,
+     "isDue": true,
+     "value": 19.472815809469076
+    },
+    {
+     "completed": true,
+     "date": 1788860967010,
+     "isDue": true,
+     "value": 20.07995235049423
+    },
+    {
+     "completed": true,
+     "date": 1788985434604,
+     "isDue": true,
+     "value": 20.677716037391143
+    },
+    {
+     "completed": true,
+     "date": 1789032565715,
+     "isDue": true,
+     "value": 21.2663929405333
+    },
+    {
+     "completed": true,
+     "date": 1789131488668,
+     "isDue": true,
+     "value": 21.84625619847539
+    }
+   ],
+   "id": "00a38244-8b47-5ace-8ebc-63d99ee8e9db",
+   "isDue": true,
+   "nextDue": [
+    "2026-09-11T22:00:00.000Z",
+    "2026-09-12T22:00:00.000Z",
+    "2026-09-13T22:00:00.000Z",
+    "2026-09-14T22:00:00.000Z",
+    "2026-09-15T22:00:00.000Z",
+    "2026-09-16T22:00:00.000Z"
+   ],
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "repeat": {
+    "f": true,
+    "m": true,
+    "s": true,
+    "su": true,
+    "t": true,
+    "th": true,
+    "w": true
+   },
+   "startDate": "2026-08-12T22:00:00.000Z",
+   "streak": 29,
+   "tags": [],
+   "text": "Morning supplements",
+   "type": "daily",
+   "updatedAt": "2026-09-11T12:58:08.671Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 21.84625619847539,
+   "weeksOfMonth": [],
+   "yesterDaily": true
+  },
+  {
+   "_id": "19405773-25e4-5af7-bb76-05d8d4141d30",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-13T12:11:35.220Z",
+   "daysOfMonth": [],
+   "everyX": 1,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "completed": true,
+     "date": 1786626422524,
+     "isDue": true,
+     "value": 1
+    },
+    {
+     "completed": true,
+     "date": 1786855768093,
+     "isDue": true,
+     "value": 1.9747
+    },
+    {
+     "completed": true,
+     "date": 1786855777288,
+     "isDue": true,
+     "value": 2.9253562257358428
+    },
+    {
+     "completed": true,
+     "date": 1786899621836,
+     "isDue": true,
+     "value": 3.853133245658556
+    },
+    {
+     "completed": true,
+     "date": 1787060428191,
+     "isDue": true,
+     "value": 4.759112700885761
+    },
+    {
+     "completed": false,
+     "date": 1787143078029,
+     "isDue": true,
+     "value": 3.8739243840593804
+    },
+    {
+     "completed": true,
+     "date": 1787227136525,
+     "isDue": true,
+     "value": 4.779421276212302
+    },
+    {
+     "completed": true,
+     "date": 1787241064409,
+     "isDue": true,
+     "value": 5.664149044631875
+    },
+    {
+     "completed": false,
+     "date": 1787397294825,
+     "isDue": true,
+     "value": 4.799253832279307
+    },
+    {
+     "completed": true,
+     "date": 1787420500425,
+     "isDue": true,
+     "value": 5.683532078492619
+    },
+    {
+     "completed": true,
+     "date": 1787507279191,
+     "isDue": true,
+     "value": 6.547997803323729
+    },
+    {
+     "completed": true,
+     "date": 1787587570512,
+     "isDue": true,
+     "value": 7.393524082713006
+    },
+    {
+     "completed": true,
+     "date": 1787818560526,
+     "isDue": true,
+     "value": 8.220927327247148
+    },
+    {
+     "completed": true,
+     "date": 1787833400059,
+     "isDue": true,
+     "value": 9.030972094312542
+    },
+    {
+     "completed": false,
+     "date": 1788011382469,
+     "isDue": true,
+     "value": 8.237568789578166
+    },
+    {
+     "completed": false,
+     "date": 1788093416791,
+     "isDue": true,
+     "value": 7.427869389692428
+    },
+    {
+     "completed": true,
+     "date": 1788115778559,
+     "isDue": true,
+     "value": 8.25454474267879
+    },
+    {
+     "completed": true,
+     "date": 1788258334028,
+     "isDue": true,
+     "value": 9.0638919852771
+    },
+    {
+     "completed": true,
+     "date": 1788270769981,
+     "isDue": true,
+     "value": 9.856626264963008
+    },
+    {
+     "completed": true,
+     "date": 1788427622895,
+     "isDue": true,
+     "value": 10.633419208615837
+    },
+    {
+     "completed": true,
+     "date": 1788450549514,
+     "isDue": true,
+     "value": 11.394902391950794
+    },
+    {
+     "completed": true,
+     "date": 1788536136223,
+     "isDue": true,
+     "value": 12.141670469343905
+    },
+    {
+     "completed": true,
+     "date": 1788673555039,
+     "isDue": true,
+     "value": 12.874284003234534
+    },
+    {
+     "completed": true,
+     "date": 1788691859760,
+     "isDue": true,
+     "value": 13.593272027108405
+    },
+    {
+     "completed": true,
+     "date": 1788822259353,
+     "isDue": true,
+     "value": 14.299134371651771
+    },
+    {
+     "completed": true,
+     "date": 1788886938206,
+     "isDue": true,
+     "value": 14.992343779898006
+    },
+    {
+     "completed": true,
+     "date": 1789031124717,
+     "isDue": true,
+     "value": 15.673347833958228
+    },
+    {
+     "completed": true,
+     "date": 1789109421311,
+     "isDue": true,
+     "value": 16.342570713151776
+    }
+   ],
+   "id": "19405773-25e4-5af7-bb76-05d8d4141d30",
+   "isDue": true,
+   "nextDue": [
+    "2026-09-11T22:00:00.000Z",
+    "2026-09-12T22:00:00.000Z",
+    "2026-09-13T22:00:00.000Z",
+    "2026-09-14T22:00:00.000Z",
+    "2026-09-15T22:00:00.000Z",
+    "2026-09-16T22:00:00.000Z"
+   ],
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "repeat": {
+    "f": true,
+    "m": true,
+    "s": true,
+    "su": true,
+    "t": true,
+    "th": true,
+    "w": true
+   },
+   "startDate": "2026-08-12T22:00:00.000Z",
+   "streak": 12,
+   "tags": [],
+   "text": "Reading session",
+   "type": "daily",
+   "updatedAt": "2026-09-11T10:07:31.721Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 16.342570713151776,
+   "weeksOfMonth": [],
+   "yesterDaily": true
+  },
+  {
+   "_id": "5a546800-bcf1-5350-81c1-ed0d3696e038",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-13T12:09:47.754Z",
+   "daysOfMonth": [],
+   "everyX": 1,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "completed": false,
+     "date": 1786709707128,
+     "isDue": true,
+     "value": -1
+    },
+    {
+     "completed": true,
+     "date": 1786855768096,
+     "isDue": true,
+     "value": 0.025956704627064786
+    },
+    {
+     "completed": true,
+     "date": 1786855778644,
+     "isDue": true,
+     "value": 1.0252917710224885
+    },
+    {
+     "completed": true,
+     "date": 1786943220844,
+     "isDue": true,
+     "value": 1.999360257529945
+    },
+    {
+     "completed": false,
+     "date": 1787060429358,
+     "isDue": true,
+     "value": 1.0493045926814688
+    },
+    {
+     "completed": true,
+     "date": 1787143077626,
+     "isDue": true,
+     "value": 2.022773878600755
+    },
+    {
+     "completed": false,
+     "date": 1787227136743,
+     "isDue": true,
+     "value": 1.0732880637011641
+    },
+    {
+     "completed": true,
+     "date": 1787312700653,
+     "isDue": true,
+     "value": 2.046159249353611
+    },
+    {
+     "completed": false,
+     "date": 1787397294824,
+     "isDue": true,
+     "value": 1.0972422556538641
+    },
+    {
+     "completed": true,
+     "date": 1787484381314,
+     "isDue": true,
+     "value": 2.0695164380021183
+    },
+    {
+     "completed": false,
+     "date": 1787564945253,
+     "isDue": true,
+     "value": 1.1211672398505335
+    },
+    {
+     "completed": true,
+     "date": 1787644348085,
+     "isDue": true,
+     "value": 2.0928455125128824
+    },
+    {
+     "completed": true,
+     "date": 1787818560528,
+     "isDue": true,
+     "value": 3.0406279376836833
+    },
+    {
+     "completed": true,
+     "date": 1787833400062,
+     "isDue": true,
+     "value": 3.965668440065575
+    },
+    {
+     "completed": true,
+     "date": 1788011382250,
+     "isDue": true,
+     "value": 4.869039017014838
+    },
+    {
+     "completed": false,
+     "date": 1788093416789,
+     "isDue": true,
+     "value": 3.9863406979658413
+    },
+    {
+     "completed": false,
+     "date": 1788174918547,
+     "isDue": true,
+     "value": 3.083448543945125
+    },
+    {
+     "completed": true,
+     "date": 1788213885656,
+     "isDue": true,
+     "value": 4.0074745547128074
+    },
+    {
+     "completed": false,
+     "date": 1788342561014,
+     "isDue": true,
+     "value": 3.105071244591117
+    },
+    {
+     "completed": true,
+     "date": 1788385382084,
+     "isDue": true,
+     "value": 4.0285854003312505
+    },
+    {
+     "completed": true,
+     "date": 1788516954464,
+     "isDue": true,
+     "value": 4.93050066305851
+    },
+    {
+     "completed": true,
+     "date": 1788560119907,
+     "isDue": true,
+     "value": 5.811809836779452
+    },
+    {
+     "completed": true,
+     "date": 1788647021683,
+     "isDue": true,
+     "value": 6.673438565844757
+    },
+    {
+     "completed": true,
+     "date": 1788728230394,
+     "isDue": true,
+     "value": 7.516251274662768
+    },
+    {
+     "completed": true,
+     "date": 1788815851307,
+     "isDue": true,
+     "value": 8.341056463639427
+    },
+    {
+     "completed": true,
+     "date": 1788941880584,
+     "isDue": true,
+     "value": 9.148611443435486
+    },
+    {
+     "completed": true,
+     "date": 1788985442120,
+     "isDue": true,
+     "value": 9.939626577656924
+    },
+    {
+     "completed": true,
+     "date": 1789076535579,
+     "isDue": true,
+     "value": 10.714769094077461
+    }
+   ],
+   "id": "5a546800-bcf1-5350-81c1-ed0d3696e038",
+   "isDue": true,
+   "nextDue": [
+    "2026-09-11T22:00:00.000Z",
+    "2026-09-12T22:00:00.000Z",
+    "2026-09-13T22:00:00.000Z",
+    "2026-09-14T22:00:00.000Z",
+    "2026-09-15T22:00:00.000Z",
+    "2026-09-16T22:00:00.000Z"
+   ],
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "repeat": {
+    "f": true,
+    "m": true,
+    "s": true,
+    "su": true,
+    "t": true,
+    "th": true,
+    "w": true
+   },
+   "startDate": "2026-08-12T22:00:00.000Z",
+   "streak": 9,
+   "tags": [],
+   "text": "Glass of milk",
+   "type": "daily",
+   "updatedAt": "2026-09-11T10:07:31.712Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 10.714769094077461,
+   "weeksOfMonth": [],
+   "yesterDaily": true
+  },
+  {
+   "_id": "f709888d-98f4-5e5c-8182-9f2abb6308d1",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-13T12:09:44.049Z",
+   "daysOfMonth": [],
+   "everyX": 1,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "completed": true,
+     "date": 1786709706900,
+     "isDue": true,
+     "value": 1
+    },
+    {
+     "completed": true,
+     "date": 1786855768099,
+     "isDue": true,
+     "value": 1.9747
+    },
+    {
+     "completed": true,
+     "date": 1786855780639,
+     "isDue": true,
+     "value": 2.9253562257358428
+    },
+    {
+     "completed": true,
+     "date": 1786943222536,
+     "isDue": true,
+     "value": 3.853133245658556
+    },
+    {
+     "completed": true,
+     "date": 1787060428652,
+     "isDue": true,
+     "value": 4.759112700885761
+    },
+    {
+     "completed": true,
+     "date": 1787143077630,
+     "isDue": true,
+     "value": 5.6443010177121415
+    },
+    {
+     "completed": false,
+     "date": 1787227136743,
+     "isDue": true,
+     "value": 4.7789657934432626
+    },
+    {
+     "completed": true,
+     "date": 1787312700660,
+     "isDue": true,
+     "value": 5.6637038884615425
+    },
+    {
+     "completed": false,
+     "date": 1787397294822,
+     "isDue": true,
+     "value": 4.798798809872441
+    },
+    {
+     "completed": true,
+     "date": 1787484381317,
+     "isDue": true,
+     "value": 5.683087367005626
+    },
+    {
+     "completed": true,
+     "date": 1787564945026,
+     "isDue": true,
+     "value": 6.547562943323
+    },
+    {
+     "completed": false,
+     "date": 1787685147934,
+     "isDue": true,
+     "value": 5.70202724173743
+    },
+    {
+     "completed": true,
+     "date": 1787818560533,
+     "isDue": true,
+     "value": 6.5660833512494445
+    },
+    {
+     "completed": true,
+     "date": 1787818588930,
+     "isDue": true,
+     "value": 7.411217860524691
+    },
+    {
+     "completed": true,
+     "date": 1788011382252,
+     "isDue": true,
+     "value": 8.238246034918708
+    },
+    {
+     "completed": false,
+     "date": 1788093416788,
+     "isDue": true,
+     "value": 7.428560687068202
+    },
+    {
+     "completed": false,
+     "date": 1788174918546,
+     "isDue": true,
+     "value": 6.601899978401709
+    },
+    {
+     "completed": true,
+     "date": 1788213887794,
+     "isDue": true,
+     "value": 7.446259161602016
+    },
+    {
+     "completed": false,
+     "date": 1788342561014,
+     "isDue": true,
+     "value": 6.619973285925267
+    },
+    {
+     "completed": true,
+     "date": 1788385386320,
+     "isDue": true,
+     "value": 7.463941504504313
+    },
+    {
+     "completed": true,
+     "date": 1788516954789,
+     "isDue": true,
+     "value": 8.289853058568752
+    },
+    {
+     "completed": true,
+     "date": 1788560122943,
+     "isDue": true,
+     "value": 9.098468339072362
+    },
+    {
+     "completed": true,
+     "date": 1788647026690,
+     "isDue": true,
+     "value": 9.890500537142913
+    },
+    {
+     "completed": true,
+     "date": 1788728232685,
+     "isDue": true,
+     "value": 10.666619480759888
+    },
+    {
+     "completed": true,
+     "date": 1788815853724,
+     "isDue": true,
+     "value": 11.427455088630785
+    },
+    {
+     "completed": true,
+     "date": 1788941883203,
+     "isDue": true,
+     "value": 12.173600486271447
+    },
+    {
+     "completed": true,
+     "date": 1788988171887,
+     "isDue": true,
+     "value": 12.905614823233591
+    },
+    {
+     "completed": true,
+     "date": 1789076542205,
+     "isDue": true,
+     "value": 13.624025825277009
+    }
+   ],
+   "id": "f709888d-98f4-5e5c-8182-9f2abb6308d1",
+   "isDue": true,
+   "nextDue": [
+    "2026-09-11T22:00:00.000Z",
+    "2026-09-12T22:00:00.000Z",
+    "2026-09-13T22:00:00.000Z",
+    "2026-09-14T22:00:00.000Z",
+    "2026-09-15T22:00:00.000Z",
+    "2026-09-16T22:00:00.000Z"
+   ],
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "repeat": {
+    "f": true,
+    "m": true,
+    "s": true,
+    "su": true,
+    "t": true,
+    "th": true,
+    "w": true
+   },
+   "startDate": "2026-08-12T22:00:00.000Z",
+   "streak": 9,
+   "tags": [],
+   "text": "Evening supplements",
+   "type": "daily",
+   "updatedAt": "2026-09-11T10:07:31.710Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 13.624025825277009,
+   "weeksOfMonth": [],
+   "yesterDaily": true
+  },
+  {
+   "_id": "333bd3cb-a77d-5bfa-8c40-da5ac11c8c45",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-13T12:09:57.182Z",
+   "daysOfMonth": [],
+   "everyX": 1,
+   "frequency": "daily",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "history": [
+    {
+     "completed": true,
+     "date": 1786709706903,
+     "isDue": true,
+     "value": 1
+    },
+    {
+     "completed": true,
+     "date": 1786855768102,
+     "isDue": true,
+     "value": 1.9747
+    },
+    {
+     "completed": true,
+     "date": 1786855782181,
+     "isDue": true,
+     "value": 2.9253562257358428
+    },
+    {
+     "completed": true,
+     "date": 1786943225124,
+     "isDue": true,
+     "value": 3.853133245658556
+    },
+    {
+     "completed": true,
+     "date": 1787060428995,
+     "isDue": true,
+     "value": 4.759112700885761
+    },
+    {
+     "completed": true,
+     "date": 1787143077634,
+     "isDue": true,
+     "value": 5.6443010177121415
+    },
+    {
+     "completed": false,
+     "date": 1787227136744,
+     "isDue": true,
+     "value": 4.7789657934432626
+    },
+    {
+     "completed": true,
+     "date": 1787312700664,
+     "isDue": true,
+     "value": 5.6637038884615425
+    },
+    {
+     "completed": true,
+     "date": 1787397294585,
+     "isDue": true,
+     "value": 6.528608967050644
+    },
+    {
+     "completed": true,
+     "date": 1787484381320,
+     "isDue": true,
+     "value": 7.374555450169675
+    },
+    {
+     "completed": true,
+     "date": 1787564945028,
+     "isDue": true,
+     "value": 8.20236097795751
+    },
+    {
+     "completed": false,
+     "date": 1787685147935,
+     "isDue": true,
+     "value": 7.39193072187458
+    },
+    {
+     "completed": true,
+     "date": 1787818560537,
+     "isDue": true,
+     "value": 8.219367750588555
+    },
+    {
+     "completed": true,
+     "date": 1787833400065,
+     "isDue": true,
+     "value": 9.029444891744804
+    },
+    {
+     "completed": false,
+     "date": 1788011382468,
+     "isDue": true,
+     "value": 8.23601053624544
+    },
+    {
+     "completed": false,
+     "date": 1788093416790,
+     "isDue": true,
+     "value": 7.426278803530495
+    },
+    {
+     "completed": false,
+     "date": 1788174918548,
+     "isDue": true,
+     "value": 6.599569754866429
+    },
+    {
+     "completed": true,
+     "date": 1788233902178,
+     "isDue": true,
+     "value": 7.443979359006673
+    },
+    {
+     "completed": false,
+     "date": 1788342561015,
+     "isDue": true,
+     "value": 6.617645209315676
+    },
+    {
+     "completed": true,
+     "date": 1788427623204,
+     "isDue": true,
+     "value": 7.461663779053542
+    },
+    {
+     "completed": false,
+     "date": 1788516955329,
+     "isDue": true,
+     "value": 6.635704016807969
+    },
+    {
+     "completed": true,
+     "date": 1788561870962,
+     "isDue": true,
+     "value": 7.479332093107098
+    },
+    {
+     "completed": true,
+     "date": 1788673558745,
+     "isDue": true,
+     "value": 8.304917978270854
+    },
+    {
+     "completed": true,
+     "date": 1788768864056,
+     "isDue": true,
+     "value": 9.113221155665922
+    },
+    {
+     "completed": true,
+     "date": 1788822262777,
+     "isDue": true,
+     "value": 9.904953983344424
+    },
+    {
+     "completed": false,
+     "date": 1788945191768,
+     "isDue": true,
+     "value": 9.129122443474229
+    },
+    {
+     "completed": true,
+     "date": 1789031127200,
+     "isDue": true,
+     "value": 9.920532722207417
+    },
+    {
+     "completed": true,
+     "date": 1789109423245,
+     "isDue": true,
+     "value": 10.696054601300979
+    }
+   ],
+   "id": "333bd3cb-a77d-5bfa-8c40-da5ac11c8c45",
+   "isDue": true,
+   "nextDue": [
+    "2026-09-11T22:00:00.000Z",
+    "2026-09-12T22:00:00.000Z",
+    "2026-09-13T22:00:00.000Z",
+    "2026-09-14T22:00:00.000Z",
+    "2026-09-15T22:00:00.000Z",
+    "2026-09-16T22:00:00.000Z"
+   ],
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "repeat": {
+    "f": true,
+    "m": true,
+    "s": true,
+    "su": true,
+    "t": true,
+    "th": true,
+    "w": true
+   },
+   "startDate": "2026-08-12T22:00:00.000Z",
+   "streak": 2,
+   "tags": [],
+   "text": "Brush teeth at night",
+   "type": "daily",
+   "updatedAt": "2026-09-11T10:07:31.718Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 10.696054601300979,
+   "weeksOfMonth": [],
+   "yesterDaily": true
+  },
+  {
+   "_id": "8cc13da4-8304-55ec-adfe-ece996d345fa",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-27T12:47:32.884Z",
+   "date": "2026-09-05T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "8cc13da4-8304-55ec-adfe-ece996d345fa",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Refresh knowledge on how Habitica works",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.724Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -17.005239516672432
+  },
+  {
+   "_id": "20b5b629-fe1c-51c7-9148-982d72c2e773",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T11:24:08.913Z",
+   "date": "2026-09-12T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "20b5b629-fe1c-51c7-9148-982d72c2e773",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Write email to Atupri",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.729Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "c89d9885-d1b2-5c85-b360-f9d5662c46f6",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-04T21:46:37.092Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "c89d9885-d1b2-5c85-b360-f9d5662c46f6",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Read Dehoarder GAMEPLAN.md up to Phase 2",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.805Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -7.597361948942557
+  },
+  {
+   "_id": "62c2735e-cd2a-57cd-8d65-fc24f99b4af0",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-04T21:46:16.924Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "62c2735e-cd2a-57cd-8d65-fc24f99b4af0",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Finish reading commits in Dehoarder up to Phase 1",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.797Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -7.597361948942557
+  },
+  {
+   "_id": "3837ec9d-ffcb-547d-b176-a9bc5e745755",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-03T13:36:24.650Z",
+   "date": null,
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "3837ec9d-ffcb-547d-b176-a9bc5e745755",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [],
+   "text": "Transfer 100 USDT from Binance to Revolut",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.792Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -8.812292068721371
+  },
+  {
+   "_id": "b740b77c-c889-507b-9024-25da783651ed",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [
+    {
+     "completed": true,
+     "id": "b050668d-b37c-5eaf-bae6-1f9b96297ae0",
+     "text": "Throw out all trash: paper and regular"
+    },
+    {
+     "completed": true,
+     "id": "ebe78540-aff0-581e-939b-bfacba8725fb",
+     "text": "Remove animals from kitchen/hallway"
+    },
+    {
+     "completed": true,
+     "id": "4a1995c7-02fe-5432-aded-de275d7e2b5b",
+     "text": "Vacuum the floors"
+    },
+    {
+     "completed": true,
+     "id": "7ebc435e-1b50-5d0d-926d-606a7074d83a",
+     "text": "Wash the sink with cleaner"
+    },
+    {
+     "completed": true,
+     "id": "a2fc209a-824a-5fad-85a3-06f26bd33135",
+     "text": "Clean the toilet \ud83d\udebd"
+    },
+    {
+     "completed": false,
+     "id": "3afdbe4e-2b2a-5da6-87c8-ae39bf10c63d",
+     "text": "Clean the bathtub with product"
+    },
+    {
+     "completed": false,
+     "id": "5db54d88-0d53-54fe-9f0c-310fd9722536",
+     "text": "Wash the dishes"
+    },
+    {
+     "completed": true,
+     "id": "9a9070b2-938b-5bfb-8e42-4859638986c7",
+     "text": "Take out empty bottles"
+    },
+    {
+     "completed": true,
+     "id": "6ccf0d3b-9ace-5c38-a40a-65f9d18ee929",
+     "text": "Buy sparkling water"
+    },
+    {
+     "completed": true,
+     "id": "bb48fd6c-9526-5b5d-93c3-1acf6bcbd4dc",
+     "text": "Buy toilet paper"
+    },
+    {
+     "completed": false,
+     "id": "6254cd1f-33e1-5318-b9a1-5c2cadc18230",
+     "text": "Wash the kitchen surfaces"
+    },
+    {
+     "completed": false,
+     "id": "38d9b9a1-dbba-5c48-857e-1354bf4e5cad",
+     "text": "Dust the surfaces"
+    },
+    {
+     "completed": false,
+     "id": "770f99e2-2e8a-5349-8baa-3bcd29817042",
+     "text": "Put summer clothes into suitcase"
+    }
+   ],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-04T21:24:22.003Z",
+   "date": "2026-09-07T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "b740b77c-c889-507b-9024-25da783651ed",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [],
+   "text": "Cleaning for Veronika",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.794Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -7.597361948942557
+  },
+  {
+   "_id": "a8b40b3e-276d-5e2f-8d5b-200782396b41",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T18:29:42.260Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "a8b40b3e-276d-5e2f-8d5b-200782396b41",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Finish reading the astronomy newspaper",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.790Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "3512c7a1-e361-571f-b00d-67d316caf6c8",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T11:28:15.831Z",
+   "date": "2026-09-01T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "3512c7a1-e361-571f-b00d-67d316caf6c8",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Finish reading the book of Judith",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.744Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "3da75dd9-e5f0-53b6-a8ca-c1f066698a35",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T15:18:21.486Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "3da75dd9-e5f0-53b6-a8ca-c1f066698a35",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Write to Misha, ask about when he was fired",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.786Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "74100d9d-3671-5389-b9b1-2981ae3b5972",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T15:18:13.215Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "74100d9d-3671-5389-b9b1-2981ae3b5972",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Write to German",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.784Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "4f274928-ff1c-50df-9417-d238f5ef8b84",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T14:43:14.159Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "4f274928-ff1c-50df-9417-d238f5ef8b84",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "\u0417\u0430\u0434\u0430\u0442\u044c \u0432\u043e\u043f\u0440\u043e\u0441 \u0410\u0440\u0442\u0451\u043c\u0443 \u0421\u0435\u043d\u0430\u0442\u043e\u0440\u043e\u0432\u0443: \u0440\u0430\u0437\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0438\u0434\u0435\u043e \u043f\u0440\u043e wouldn't you like to know, weather boy. \u0427\u0442\u043e \u0433\u043e\u0432\u043e\u0440\u0438\u0442\u044c \u0432 \u0442\u0430\u043a\u043e\u0439 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u0438?",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.776Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "0140d370-9b22-5653-ad9a-99cd2efe0b85",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T14:31:31.762Z",
+   "date": "2026-09-12T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "0140d370-9b22-5653-ad9a-99cd2efe0b85",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Free disk space on laptop",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.772Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "51e5dd4b-e1b6-5694-aceb-15b0a8bb6f8b",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T14:30:49.901Z",
+   "date": "2026-09-12T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "51e5dd4b-e1b6-5694-aceb-15b0a8bb6f8b",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [],
+   "text": "Free disk space on phone",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.770Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "814ac90c-ecab-57b8-ac71-7c39a081cd2d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T14:30:21.779Z",
+   "date": "2026-09-26T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "814ac90c-ecab-57b8-ac71-7c39a081cd2d",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Study Soulseek, maybe there's some stuff you can find that's not on torrents",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.767Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "88ed2183-e1b2-5e8b-a652-ec6db239d337",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T12:44:36.457Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "88ed2183-e1b2-5e8b-a652-ec6db239d337",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Ask parents to buy Tarot book",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.749Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "30658d7a-aabb-5e70-9179-18fed70f58cc",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-09-01T12:12:20.629Z",
+   "date": "2026-09-12T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "30658d7a-aabb-5e70-9179-18fed70f58cc",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Download OKRAA 1994 from Amazon Music with DoubleDouble",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.747Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.3598999082337
+  },
+  {
+   "_id": "f5e75493-3d25-5fbe-bd29-cef3dd7754ae",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2026-08-31T14:26:14.400Z",
+   "date": "2026-09-05T22:00:00.000Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "f5e75493-3d25-5fbe-bd29-cef3dd7754ae",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Post question about lactose-free milk to energy maxxing",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.726Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -12.697803167060998
+  },
+  {
+   "_id": "0a727a98-d01b-5441-8d2b-07ceaaf34d47",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "038078fe-c52f-56c7-8162-8d688171d37d",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2023-11-06T12:05:27.912Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "0a727a98-d01b-5441-8d2b-07ceaaf34d47",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 80 :tomato:",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.660Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -121.1499693189606
+  },
+  {
+   "_id": "048467bd-901f-58d9-87b5-1c54bd4010cd",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "7fdde222-c84a-5b1c-93b3-7430b88edc74",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2023-11-06T12:05:27.914Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "048467bd-901f-58d9-87b5-1c54bd4010cd",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 90 :tomato:",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.680Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -121.1499693189606
+  },
+  {
+   "_id": "b30fb2b2-fb4d-58bf-a8d5-a2c386b68513",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "eaf7b4dd-7c94-5bf4-b3df-b62e235f68d5",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2023-11-06T12:05:27.914Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "b30fb2b2-fb4d-58bf-a8d5-a2c386b68513",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 100!! :tomato:",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.672Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -121.1499693189606
+  },
+  {
+   "_id": "05fcbcc7-6447-5285-a5bf-5cc665580daf",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b",
+    "shortName": "b9e6a938-9427-570a-beef-049893159909",
+    "taskId": "86d8a51c-e7da-57e8-afef-fa5d86f631c1",
+    "winner": "617767ca-d9ba-5b92-bda3-ffaca23a4c88"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2023-11-06T12:13:32.752Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "05fcbcc7-6447-5285-a5bf-5cc665580daf",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b"
+   ],
+   "text": ":tomato: Write in the extra notes how many poms you completed this week!",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.687Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -121.1499693189606
+  },
+  {
+   "_id": "2ce10cb0-f549-5999-a04c-17c9413af88f",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "fa950f50-7aee-59c8-837a-054398aec2b6",
+    "shortName": "c64027d1-2f4e-5bc4-b6ae-30e32b6ba4db",
+    "taskId": "c10bbbe1-91d7-5117-8667-a82d00cd81e7",
+    "winner": "e34325d7-6987-5ef2-a716-66a407cebe9a"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": false,
+   "createdAt": "2021-12-19T03:08:18.998Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "2ce10cb0-f549-5999-a04c-17c9413af88f",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "fa950f50-7aee-59c8-837a-054398aec2b6"
+   ],
+   "text": "**NY Countdown Day 19:** Try something new",
+   "type": "todo",
+   "updatedAt": "2026-09-11T10:07:31.657Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -675.2056070349296
+  }
+ ],
+ "success": true
+}
