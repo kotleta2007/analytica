@@ -179,6 +179,20 @@ async def test_completed_todos_are_not_mistaken_for_deleted(db_path: Path) -> No
     assert await events_by_kind() == [("created", None, "Essay"), ("completed", None, "Essay")]
 
 
+async def test_a_purged_completed_todo_is_gone_but_not_deleted(db_path: Path) -> None:
+    essay = make_task("todo", "Essay", completed=True)
+    client = FakeHabiticaClient(completed_todos=[essay])
+    await run_snapshot(client, T0)
+
+    client.completed_todos = []
+    await run_snapshot(client, T1)
+
+    async with session_scope() as session:
+        row = await session.scalar(select(TaskRow))
+    assert row is not None and row.deleted_at == T1
+    assert await events_by_kind() == [("created", None, "Essay")]
+
+
 async def test_daily_reset_by_cron_is_not_an_uncomplete(db_path: Path) -> None:
     floss = make_task("daily", "Floss", completed=True, streak=3)
     client = FakeHabiticaClient(tasks=[floss])

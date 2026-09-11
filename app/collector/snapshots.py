@@ -139,13 +139,17 @@ async def snapshot_tasks(
             outcome.changed += 1
 
     for habitica_id, row in rows.items():
-        if habitica_id not in seen_ids and row.deleted_at is None:
-            row.deleted_at = now
-            outcome.events.append(
-                TaskEvent(
-                    user_id=user_id, task_id=row.id, at=now, kind="deleted", source=SOURCE, raw=None
-                )
+        if habitica_id in seen_ids or row.deleted_at is not None:
+            continue
+        row.deleted_at = now
+        before = previous.get(row.id)
+        if row.type == "todo" and before is not None and before.completed:
+            continue  # Habitica purges old completed todos; that is not the user deleting one
+        outcome.events.append(
+            TaskEvent(
+                user_id=user_id, task_id=row.id, at=now, kind="deleted", source=SOURCE, raw=None
             )
+        )
 
     session.add_all(outcome.events)
     await session.flush()
