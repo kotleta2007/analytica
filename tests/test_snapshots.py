@@ -32,7 +32,7 @@ async def events_by_kind() -> list[tuple[str, str | None, str]]:
         return [(event.kind, event.direction, text) for event, text in rows]
 
 
-async def test_user_snapshot_keeps_the_game_state_only(db_path: Path) -> None:
+async def test_user_snapshot_keeps_the_whole_response(db_path: Path) -> None:
     client = FakeHabiticaClient()
 
     async with session_scope() as session:
@@ -45,8 +45,7 @@ async def test_user_snapshot_keeps_the_game_state_only(db_path: Path) -> None:
     assert (snapshot.hp, snapshot.mp, snapshot.lvl, snapshot.class_name) == (49, 242, 120, "wizard")
     assert snapshot.raw["preferences"]["dayStart"] == 11
     assert snapshot.raw["lastCron"] == "2026-09-11T10:07:31.619Z"
-    assert set(snapshot.raw["items"]) == {"gear"}
-    assert "inbox" not in snapshot.raw
+    assert snapshot.raw == load_data("user")
 
 
 async def test_first_snapshot_records_every_task_as_created(db_path: Path) -> None:
@@ -127,15 +126,15 @@ async def test_habit_score_falls_back_to_value_when_counters_reset(db_path: Path
     assert events[-1] == ("scored", "up", "Run")
 
 
-async def test_unchanged_tasks_do_not_get_new_snapshot_rows(db_path: Path) -> None:
+async def test_unchanged_tasks_still_get_a_snapshot_row_but_no_events(db_path: Path) -> None:
     client = FakeHabiticaClient(tasks=[make_task("daily", "Floss")])
     await run_snapshot(client, T0)
     await run_snapshot(client, T1)
 
     async with session_scope() as session:
-        snapshots = list(await session.scalars(select(TaskSnapshot)))
+        snapshots = list(await session.scalars(select(TaskSnapshot).order_by(TaskSnapshot.id)))
         row = await session.scalar(select(TaskRow))
-    assert len(snapshots) == 1
+    assert [s.taken_at for s in snapshots] == [T0, T1]
     assert row is not None and row.last_seen_at == T1
     assert await events_by_kind() == [("created", None, "Floss")]
 

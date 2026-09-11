@@ -1,12 +1,8 @@
 """Pull the account and its tasks, write snapshot rows, diff → task_events.
 
-Two deliberate economies, both recorded in GAMEPLAN's deviations:
-
-- `user_snapshots.raw` holds the game-state part of `/user` (stats,
-  preferences, gear, cron), not the whole 40 KB object with the inbox in it.
-- A `task_snapshots` row is written only when the task's JSON changed since
-  the previous snapshot. The last row before any instant is still the state
-  at that instant, so nothing is lost and the file stays copyable.
+Every round writes one `user_snapshots` row and one `task_snapshots` row per
+task, each with the full JSON the API returned. Collect everything; decide
+what to use later.
 """
 
 import logging
@@ -19,18 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import TaskEvent, TaskRow, TaskSnapshot, UserSnapshot
 from app.habitica.client import HabiticaClient
-from app.habitica.types import Task, UserStats
+from app.habitica.types import Task
 
 logger = logging.getLogger(__name__)
 
 SOURCE = "snapshot_diff"
-USER_RAW_KEYS = ("stats", "preferences", "lastCron", "needsCron", "tasksOrder")
-
-
-def user_raw_for_snapshot(user: UserStats) -> dict[str, Any]:
-    raw = {key: user.raw[key] for key in USER_RAW_KEYS if key in user.raw}
-    raw["items"] = {"gear": user.raw.get("items", {}).get("gear", {})}
-    return raw
 
 
 async def snapshot_user(
@@ -47,7 +36,7 @@ async def snapshot_user(
         lvl=user.lvl,
         class_name=user.class_name,
         to_next_level=user.to_next_level,
-        raw=user_raw_for_snapshot(user),
+        raw=user.raw,
     )
     session.add(snapshot)
     await session.flush()
@@ -102,7 +91,7 @@ async def snapshot_tasks(
     *,
     reset_by_cron: bool = False,
 ) -> SnapshotOutcome:
-    """Upsert `tasks`, write `task_snapshots` for what changed, diff into `task_events`.
+    """Upsert `tasks`, write a `task_snapshots` row per task, diff into `task_events`.
 
     `reset_by_cron`: cron ran since the previous snapshot, so a daily going from
     completed to not completed is the daily reset, not the user un-ticking it.
@@ -134,8 +123,8 @@ async def snapshot_tasks(
         before = previous.get(row.id)
         if before is not None:
             outcome.events.extend(diff_events(row, before, task, now, reset_by_cron))
+        session.add(task_snapshot(row, task, user_id, now))
         if before is None or before.raw != task.raw:
-            session.add(task_snapshot(row, task, user_id, now))
             outcome.changed += 1
 
     for habitica_id, row in rows.items():
