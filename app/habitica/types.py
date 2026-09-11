@@ -243,3 +243,49 @@ def gear_from_content(content: dict[str, Any]) -> dict[str, GearItem]:
     """`content` is the object under `"data"` in a `GET /content` response."""
     flat = content["gear"]["flat"]
     return {key: gear_item_from_json(item) for key, item in flat.items()}
+
+
+@dataclass(frozen=True)
+class ScoreResult:
+    """What `POST /tasks/{id}/score/{direction}` returns: the stats after scoring."""
+
+    delta: float
+    hp: float
+    mp: float
+    exp: float
+    gp: float
+    lvl: int
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+
+def score_result_from_json(data: dict[str, Any]) -> ScoreResult:
+    return ScoreResult(
+        delta=float(data.get("delta", 0.0)),
+        hp=float(data["hp"]),
+        mp=float(data["mp"]),
+        exp=float(data["exp"]),
+        gp=float(data["gp"]),
+        lvl=int(data["lvl"]),
+        raw=data,
+    )
+
+
+@dataclass(frozen=True)
+class Webhook:
+    id: str
+    url: str
+    type: str
+    enabled: bool
+    options: dict[str, bool]
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+
+def webhook_from_json(data: dict[str, Any]) -> Webhook:
+    return Webhook(
+        id=data["id"],
+        url=data["url"],
+        type=data["type"],
+        enabled=bool(data.get("enabled", True)),
+        options=dict(data.get("options", {})),
+        raw=data,
+    )
