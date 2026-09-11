@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.collector import webhooks
 from app.config import get_settings
 from app.db.engine import dispose_engine, session_scope
 
@@ -34,6 +35,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Habitica Analytica", lifespan=lifespan)
+app.include_router(webhooks.router)
 
 
 async def database_reachable() -> bool:
