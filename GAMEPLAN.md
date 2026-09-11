@@ -94,7 +94,7 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 
 **Action Required:**
 
-- [ ] 1. `app/habitica/types.py`: dataclasses `UserStats` (incl. `day_start`, `timezone_offset`), `Task` (with `history` entries), `GearItem`. Small `from_json` functions. — `feat(p01): habitica types`
+- [x] 1. `app/habitica/types.py`: dataclasses `UserStats` (incl. `day_start`, `timezone_offset`), `Task` (with `history` entries), `GearItem`. Small `from_json` functions. — `feat(p01): habitica types`
 - [ ] 2. `app/habitica/client.py`: async client with required headers, rate-limit awareness (`X-RateLimit-Remaining`/`Reset`, sleep when exhausted), one retry on 5xx. Methods: `get_user`, `get_tasks`, `get_completed_todos`, `score_task`, `create_task`, `update_task`, `delete_task`, `equip`, `run_cron`, `get_content` (disk-cached), `create_webhook`, `list_webhooks`. — `feat(p01): habitica rest client`
 - [ ] 3. `scripts/record_fixture.py`: hit the real API once, scrub ids/tokens, write `tests/fixtures/habitica/user.json`, `tasks.json`, `content.json`. Commit the fixtures. — `chore(p01): record scrubbed habitica fixtures`
 - [ ] 4. Alembic migration + models: `user_snapshots`, `tasks`, `task_snapshots`, `task_events`, `daily_records`, `webhook_deliveries`, `user_settings`. Every table has `user_id`; every table that stores an API response has `raw`. — `feat(p01): telemetry tables`
