@@ -281,7 +281,7 @@ Single user per deployment. Still: every table has a `user_id`, and the Telegram
 
 ### Habitica day, timezone, and cron — read this twice
 
-Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 12) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs *lazily*: on the first authenticated request after `dayStart`. That includes *our* collector's requests, so once the day has turned, any snapshot we take fires the reset. There is no way to keep collecting and not trigger it. So we make it deterministic:
+Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 11) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs *lazily*: on the first authenticated request after `dayStart`. That includes *our* collector's requests, so once the day has turned, any snapshot we take fires the reset. There is no way to keep collecting and not trigger it. So we make it deterministic:
 
 ```
 dayStart − 30 min   gear job: incomplete due dailies? → equip CON set, else → equip INT set

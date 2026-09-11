@@ -21,7 +21,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 - Everything model-related goes through OpenRouter with one key: LLM, ASR (Qwen3-ASR-Flash), TTS (Fish Audio S2.1 Pro, voice Selene `b347db033a6549378b48d00acb0d06cd` for all languages). Verify ids and the TTS voice parameter at build time; STOP and ask if OpenRouter can't do TTS with that voice.
 - Voice replies: `/tts on|off`, default off. Speaking to the bot does not make it speak.
 - Gear: INT before day start (max mana at cron), CON instead if dailies are incomplete, PER during the day. Because any API read after `dayStart` triggers the reset, the bot triggers it itself at `dayStart + 1` with the right gear on, then sends a "new day" message (damage, mana, dailies due). No manual mode; the operator never has to open the app for the reset.
-- Timezone `Europe/Zurich`; Habitica `dayStart` = 12 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
+- Timezone `Europe/Zurich`; Habitica `dayStart` = 11 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
 - Calendar: Habitica → Calendar for tasks/events; `(done)` is isomorphic with completion in both directions, but only undone → done. Nothing is ever un-done by the bot. Main calendar. Free/busy drives scheduling of todos.
 - KanbanFlow: dropped (API needs a paid board).
 - Destructive or externally visible actions always get a confirm button.
@@ -109,7 +109,7 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 - [ ] Parsers against fixtures: stats incl. dayStart/offset, dailies with history, gear. — `test(p01): habitica parsers`
 - [ ] Client: rate-limit sleep and 5xx retry via httpx `MockTransport`. — `test(p01): client rate limit and retry`
 - [ ] Snapshot diff: two fake task lists → expected `task_events` (completed, uncompleted, created, deleted, habit counter change). — `test(p01): snapshot diff events`
-- [ ] Day-close: correct `was_due`/`completed` rows; running twice doesn't duplicate; Habitica-day boundary at 12:00 Zurich handled across DST. — `test(p01): day close and day math`
+- [ ] Day-close: correct `was_due`/`completed` rows; running twice doesn't duplicate; Habitica-day boundary at 11:00 Zurich handled across DST. — `test(p01): day close and day math`
 - [ ] Backfill idempotent. — `test(p01): backfill idempotent`
 - [ ] Webhook: sample `scored` payload → `task_events` row + raw row; bad secret → 403. — `test(p01): webhook handling`
 
@@ -119,8 +119,8 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 Given valid Habitica credentials and a registered webhook
 When I complete a task in the Habitica app
 Then task_events has a webhook-sourced row within seconds
-And after 12:00 Zurich there is one daily_records row per daily for the day that ended
-And cron was triggered by us at 12:01, not by a random collector call
+And after 11:00 Zurich there is one daily_records row per daily for the day that ended
+And cron was triggered by us at 11:01, not by a random collector call
 ```
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
@@ -305,10 +305,10 @@ And a backup exists the next morning
 
 ```gherkin
 Given one due daily is incomplete at 11:30 Zurich
-Then the CON set is equipped, and at 12:01 the PER set is
+Then the CON set is equipped, and at 11:01 the PER set is
 Given all dailies are done at 11:30
 Then the INT set is equipped instead
-And at 12:01 I get one message with the damage taken and today's dailies
+And at 11:01 I get one message with the damage taken and today's dailies
 Given two dailies are due and one is incomplete at 21:00
 Then I receive exactly one message listing the incomplete one
 ```
