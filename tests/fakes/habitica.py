@@ -1,0 +1,129 @@
+"""An in-memory stand-in for HabiticaClient with the same method signatures.
+
+Tests set `user` and `tasks` directly and read `calls` to see what the code
+under test asked Habitica to do.
+"""
+
+import copy
+import uuid
+from dataclasses import replace
+from datetime import UTC, datetime
+from typing import Any
+
+from app.habitica.types import (
+    ScoreResult,
+    Task,
+    UserStats,
+    Webhook,
+    task_from_json,
+    user_stats_from_json,
+)
+from tests.habitica_fixtures import load_data
+
+
+class FakeHabiticaClient:
+    def __init__(
+        self,
+        user: UserStats | None = None,
+        tasks: list[Task] | None = None,
+        completed_todos: list[Task] | None = None,
+        content: dict[str, Any] | None = None,
+    ) -> None:
+        self.user = user if user is not None else user_stats_from_json(load_data("user"))
+        self.tasks = list(tasks) if tasks is not None else []
+        self.completed_todos = list(completed_todos) if completed_todos is not None else []
+        self.content = content if content is not None else load_data("content")
+        self.webhooks: list[Webhook] = []
+        self.calls: list[tuple[str, Any]] = []
+        self.now = datetime(2026, 9, 11, 12, 0, tzinfo=UTC)
+
+    # ---- the client's interface ----
+
+    async def get_user(self) -> UserStats:
+        self.calls.append(("get_user", None))
+        return self.user
+
+    async def get_tasks(self) -> list[Task]:
+        self.calls.append(("get_tasks", None))
+        return list(self.tasks)
+
+    async def get_completed_todos(self) -> list[Task]:
+        self.calls.append(("get_completed_todos", None))
+        return list(self.completed_todos)
+
+    async def score_task(self, task_id: str, direction: str) -> ScoreResult:
+        self.calls.append(("score_task", (task_id, direction)))
+        task = self.find(task_id)
+        if task.type in ("daily", "todo"):
+            self.replace_task(replace(task, completed=direction == "up"))
+        return ScoreResult(
+            delta=1.0,
+            hp=self.user.hp,
+            mp=self.user.mp,
+            exp=self.user.exp,
+            gp=self.user.gp,
+            lvl=self.user.lvl,
+        )
+
+    async def create_task(self, payload: dict[str, Any]) -> Task:
+        self.calls.append(("create_task", payload))
+        task = task_from_json(
+            {
+                "id": str(uuid.uuid4()),
+                "createdAt": self.now.isoformat(),
+                "updatedAt": self.now.isoformat(),
+                "completed": False,
+                **payload,
+            }
+        )
+        self.tasks.append(task)
+        return task
+
+    async def update_task(self, task_id: str, payload: dict[str, Any]) -> Task:
+        self.calls.append(("update_task", (task_id, payload)))
+        task = self.find(task_id)
+        raw = {**copy.deepcopy(task.raw), **payload}
+        updated = task_from_json(raw)
+        self.replace_task(updated)
+        return updated
+
+    async def delete_task(self, task_id: str) -> None:
+        self.calls.append(("delete_task", task_id))
+        self.tasks = [task for task in self.tasks if task.id != task_id]
+
+    async def equip(self, key: str) -> None:
+        self.calls.append(("equip", key))
+
+    async def run_cron(self) -> None:
+        self.calls.append(("run_cron", None))
+
+    async def get_content(self, *, force_refresh: bool = False) -> dict[str, Any]:
+        self.calls.append(("get_content", force_refresh))
+        return self.content
+
+    async def list_webhooks(self) -> list[Webhook]:
+        self.calls.append(("list_webhooks", None))
+        return list(self.webhooks)
+
+    async def create_webhook(self, url: str, label: str = "Habitica Analytica") -> Webhook:
+        self.calls.append(("create_webhook", url))
+        hook = Webhook(id=str(uuid.uuid4()), url=url, type="taskActivity", enabled=True, options={})
+        self.webhooks.append(hook)
+        return hook
+
+    async def aclose(self) -> None:
+        pass
+
+    # ---- helpers for tests ----
+
+    def find(self, task_id: str) -> Task:
+        for task in self.tasks + self.completed_todos:
+            if task.id == task_id:
+                return task
+        raise KeyError(task_id)
+
+    def replace_task(self, task: Task) -> None:
+        self.tasks = [task if existing.id == task.id else existing for existing in self.tasks]
+
+    def called(self, name: str) -> list[Any]:
+        return [args for called, args in self.calls if called == name]
