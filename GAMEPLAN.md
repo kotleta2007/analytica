@@ -169,7 +169,18 @@ And the same works in the CLI without Telegram
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- The four entry points are methods of a `Harness` dataclass that holds the external clients (today: the Habitica client), not module-level functions: adapters and tests inject fakes without patching. `core/turn.py` carries what a handler receives (`Turn`: session, user, settings, client, clock, timezone); `User` is a one-field dataclass in `core/replies.py`.
+- Every turn is one transaction that logs the inbound message, loads `user_settings` (created with defaults on first contact), answers, and logs the reply. A handler that raises still leaves the inbound message logged; the user gets a "something went wrong" line in their language and the traceback goes to the log. Habitica failures (`HabiticaError`, `httpx.HTTPError`) get their own line with the reason.
+- `/stats` reads the latest `user_snapshots` row and only collects when it is older than 10 minutes (the reminder's rule from F8); `/sync` always runs one collection round. Both go through `collect()`, so a chat-triggered read is recorded like a scheduled one and, after `dayStart`, fires cron exactly as a scheduled snapshot would.
+- An empty text handed to `text_message_received` means "the adapter got something it can't read" (a sticker, a photo); the reply is the `unsupported_message` line. Voice handling in the Telegram adapter is P04.
+- Telegram inline buttons: callback data is capped at 64 bytes and a payload with one task UUID does not fit, so every rendered button is a `telegram_buttons` row and the callback carries its id (migration 0004). A button pressed for another user, or an id that does not exist, reaches the core as action `expired` and gets the `unknown_button` line. Rows are tiny and never cleaned up.
+- The CLI keeps the last reply's buttons in memory, numbered; pressing one consumes the offer. It migrates the database on start so a fresh clone can talk to the bot without `scripts/dev.sh`.
+- `analytics/charts.py` (`to_png`, `to_terminal`) lands here instead of P07 task 4: both adapters must render a `ChartData` to be tested. P07 adds the stat series and `/graph`. `plotext` is pinned `<6`: 6.x is a rewrite with a different API that still mis-renders dated series; `pyproject.toml` and the CLAUDE.md tech-stack row say so.
+- Outbound messages (`core/outbound.py`) go to every allowlisted Telegram id; with no adapter registered (headless collector, scripts) the message is logged at WARNING and dropped, and `send_to_user` returns `False`.
+- Two test-infrastructure fixes outside the phase's files: `alembic/env.py` passes `disable_existing_loggers=False` (tests migrate in-process, and `fileConfig`'s default switched off every app logger created before the upgrade, so `caplog` saw nothing); `tests/conftest.py` stops pydantic-settings from reading the developer's `.env` and clears credential variables for every test — the health test's lifespan had been reaching for Habitica since P01 on a machine with a filled `.env`, and would now start polling the real bot as well.
+- `main.py` builds one `HabiticaClient` shared by the collector and the harness; the collector still closes it at shutdown.
 
 ---
 
@@ -499,3 +510,5 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - `/voices` — browse the Fish Audio voice library and pick one from the bot.
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
+- Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
+- Outbound Telegram delivery to an allowlisted id that never pressed Start raises from the scheduled job; catch and log per chat when reminders arrive (P06).

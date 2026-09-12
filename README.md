@@ -63,6 +63,34 @@ uv run python scripts/record_fixture.py            # refresh the scrubbed test f
 Any authenticated call after your day start triggers Habitica's cron, exactly
 like opening the app would; the schedule makes that deterministic.
 
+## Talking to it
+
+The core (`app/core/`) knows nothing about Telegram; two adapters translate.
+
+**Terminal**, no Telegram needed:
+
+```sh
+uv run python -m app.adapters.cli
+> /help
+> /language ru
+> /stats
+```
+
+Buttons come back numbered — type the number to press one. Charts are drawn
+with plotext; voice replies land in `data/voice/` and play through `ffplay` or
+`afplay` when one is on `PATH`.
+
+**Telegram**: put the token from @BotFather in `TELEGRAM_BOT_TOKEN` and your
+numeric id (from @userinfobot) in `TELEGRAM_ALLOWED_USER_IDS`; everyone else is
+ignored. `TELEGRAM_MODE=polling` (the default, and what `scripts/dev.sh` forces)
+long-polls from your machine; `webhook` is for the VPS and needs
+`PUBLIC_BASE_URL` and `WEBHOOK_SECRET` — the app sets the webhook itself at
+startup.
+
+Commands so far: `/start`, `/help`, `/language en|ru|fr`, `/stats` (from the
+latest snapshot, refreshed when older than 10 minutes), `/sync` (a collection
+round right now). Free text gets a polite "not yet" until the LLM phase.
+
 ## Tests
 
 ```sh
