@@ -20,6 +20,8 @@ EXPECTED_TABLES = {
     "daily_records",
     "webhook_deliveries",
     "user_settings",
+    "conversation_state",
+    "messages",
 }
 
 

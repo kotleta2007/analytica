@@ -146,7 +146,7 @@ And cron was triggered by us at 11:01, not by a random collector call
 
 **Action Required:**
 
-- [ ] 1. `app/core/replies.py` (`Reply`, `Button`, `ChartData`), `app/core/state.py` (`conversation_state` table + get/set/clear), `messages` table. Migration. — `feat(p02): reply types, conversation state, message log`
+- [x] 1. `app/core/replies.py` (`Reply`, `Button`, `ChartData`), `app/core/state.py` (`conversation_state` table + get/set/clear), `messages` table. Migration. — `feat(p02): reply types, conversation state, message log`
 - [ ] 2. `app/core/i18n.py`: fixed strings for en/ru/fr. `t(key, lang)`. — `feat(p02): i18n strings`
 - [ ] 3. `app/core/commands.py` + `app/core/harness.py` with the four entry points and `core/outbound.py` (`send_to_user` hook the adapter registers). Commands: `/start`, `/help`, `/language`, `/stats`, `/sync`. Free text → `t("no_llm_yet")`. — `feat(p02): core harness and commands`
 - [ ] 4. `app/adapters/cli.py`: REPL. Renders `Reply` as text, numbered buttons (type the number to press), charts via `plotext`, voice to `data/voice/` (+ play if `ffplay`/`afplay` exists). — `feat(p02): cli adapter`
