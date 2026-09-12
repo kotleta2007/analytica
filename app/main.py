@@ -1,8 +1,8 @@
 """The single process: a FastAPI app whose lifespan owns everything else.
 
-The lifespan configures logging, starts the collector schedule when Habitica
-credentials are present, and disposes the engine at the end. The Telegram
-adapter (P02) hangs off the same hook.
+The lifespan configures logging, builds one Habitica client, starts the
+collector schedule and the Telegram adapter when their credentials are
+present, and disposes the engine at the end.
 """
 
 import logging
@@ -13,46 +13,57 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.adapters.telegram import bot as telegram
 from app.collector import webhooks
 from app.config import get_settings
+from app.core.harness import Harness
 from app.db.engine import dispose_engine, session_scope
 from app.habitica.client import HabiticaClient
-from app.jobs.scheduler import CollectorJobs, build_collector
+from app.jobs.scheduler import build_collector
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     logging.basicConfig(
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     logger.info("analytica starting up")
-    collector = start_collector_if_configured()
+    client = habitica_client_if_configured()
+    collector = None if client is None else build_collector(client, settings.habitica_user_id)
+    harness = None if client is None else Harness(habitica=client)
+    adapter = telegram.start_telegram_if_configured(harness)
+    app.state.telegram = adapter
     if collector is not None:
         await collector.start()
+    if adapter is not None:
+        await adapter.start()
     try:
         yield
     finally:
+        if adapter is not None:
+            await adapter.stop()
         if collector is not None:
-            await collector.stop()
+            await collector.stop()  # also closes the shared Habitica client
+        app.state.telegram = None
         await dispose_engine()
         logger.info("analytica shut down")
 
 
-def start_collector_if_configured() -> CollectorJobs | None:
+def habitica_client_if_configured() -> HabiticaClient | None:
     settings = get_settings()
     if not (settings.habitica_user_id and settings.habitica_api_token):
-        logger.warning("Habitica is not configured; the collector is off")
+        logger.warning("Habitica is not configured; the collector and the bot are off")
         return None
-    client = HabiticaClient(settings.habitica_user_id, settings.habitica_api_token)
-    return build_collector(client, settings.habitica_user_id)
+    return HabiticaClient(settings.habitica_user_id, settings.habitica_api_token)
 
 
 app = FastAPI(title="Habitica Analytica", lifespan=lifespan)
 app.include_router(webhooks.router)
+app.include_router(telegram.router)
 
 
 async def database_reachable() -> bool:

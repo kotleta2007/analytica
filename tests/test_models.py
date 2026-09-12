@@ -22,6 +22,7 @@ EXPECTED_TABLES = {
     "user_settings",
     "conversation_state",
     "messages",
+    "telegram_buttons",
 }
 
 

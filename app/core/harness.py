@@ -42,7 +42,11 @@ class Harness:
     tz: ZoneInfo = field(default_factory=lambda: ZoneInfo(get_settings().timezone))
 
     async def text_message_received(self, user: User, text: str) -> Reply:
+        """Free text. An empty text is an adapter saying "I got something I can't read"."""
+
         async def handle(turn: Turn) -> Reply:
+            if not text.strip():
+                return Reply(t("unsupported_message", turn.language))
             return Reply(t("no_llm_yet", turn.language))
 
         return await self._turn(user, "text", text, handle)

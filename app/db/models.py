@@ -218,3 +218,16 @@ class Message(Base):
     direction: Mapped[str] = mapped_column(String(3))
     kind: Mapped[str] = mapped_column(String(8))
     text: Mapped[str] = mapped_column(Text)
+
+
+class TelegramButton(Base):
+    """One rendered inline button. Telegram callback data is capped at 64 bytes,
+    so the callback carries this row's id and the action and payload live here."""
+
+    __tablename__ = "telegram_buttons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    action: Mapped[str] = mapped_column(String(64))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime)

@@ -126,6 +126,12 @@ async def test_free_text_and_voice_get_the_not_yet_lines(harness: Harness) -> No
     assert voice_reply.text == t("voice_not_yet", "en")
 
 
+async def test_empty_text_means_an_unreadable_message(harness: Harness) -> None:
+    reply = await harness.text_message_received(USER, "  ")
+
+    assert reply.text == t("unsupported_message", "en")
+
+
 async def test_unknown_button_is_reported(harness: Harness) -> None:
     reply = await harness.button_pressed(USER, "confirm", {"id": 1})
 
