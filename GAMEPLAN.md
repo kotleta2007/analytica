@@ -21,7 +21,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 - Everything model-related goes through OpenRouter with one key: LLM, ASR (Qwen3-ASR-Flash), TTS (Fish Audio S2.1 Pro, voice Selene `b347db033a6549378b48d00acb0d06cd` for all languages). Verify ids and the TTS voice parameter at build time; STOP and ask if OpenRouter can't do TTS with that voice.
 - Voice replies: `/tts on|off`, default off. Speaking to the bot does not make it speak.
 - Gear: INT before day start (max mana at cron), CON instead if dailies are incomplete, PER during the day. Because any API read after `dayStart` triggers the reset, the bot triggers it itself at `dayStart + 1` with the right gear on, then sends a "new day" message (damage, mana, dailies due). No manual mode; the operator never has to open the app for the reset.
-- Timezone `Europe/Zurich`; Habitica `dayStart` = 12 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
+- Timezone `Europe/Zurich`; Habitica `dayStart` = 11 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
 - Calendar: Habitica → Calendar for tasks/events; `(done)` is isomorphic with completion in both directions, but only undone → done. Nothing is ever un-done by the bot. Main calendar. Free/busy drives scheduling of todos.
 - KanbanFlow: dropped (API needs a paid board).
 - Destructive or externally visible actions always get a confirm button.
@@ -94,24 +94,24 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 
 **Action Required:**
 
-- [ ] 1. `app/habitica/types.py`: dataclasses `UserStats` (incl. `day_start`, `timezone_offset`), `Task` (with `history` entries), `GearItem`. Small `from_json` functions. — `feat(p01): habitica types`
-- [ ] 2. `app/habitica/client.py`: async client with required headers, rate-limit awareness (`X-RateLimit-Remaining`/`Reset`, sleep when exhausted), one retry on 5xx. Methods: `get_user`, `get_tasks`, `get_completed_todos`, `score_task`, `create_task`, `update_task`, `delete_task`, `equip`, `run_cron`, `get_content` (disk-cached), `create_webhook`, `list_webhooks`. — `feat(p01): habitica rest client`
-- [ ] 3. `scripts/record_fixture.py`: hit the real API once, scrub ids/tokens, write `tests/fixtures/habitica/user.json`, `tasks.json`, `content.json`. Commit the fixtures. — `chore(p01): record scrubbed habitica fixtures`
-- [ ] 4. Alembic migration + models: `user_snapshots`, `tasks`, `task_snapshots`, `task_events`, `daily_records`, `webhook_deliveries`, `user_settings`. Every table has `user_id`; every table that stores an API response has `raw`. — `feat(p01): telemetry tables`
-- [ ] 5. `app/collector/snapshots.py`: `snapshot_user()`, `snapshot_tasks()` (upsert `tasks`, insert `task_snapshots`, diff vs previous → `task_events` with `source=snapshot_diff`). — `feat(p01): snapshot collectors`
-- [ ] 6. `app/collector/day_close.py`: `close_day()` writes `daily_records` for the Habitica day ending now; `run_cron()` calls `POST /cron` then snapshots. Habitica-day math from `day_start` + `timezone_offset`. — `feat(p01): day close and explicit cron`
-- [ ] 7. `app/collector/backfill.py`: on first run, import each daily's and habit's `history[]` into `daily_records` / `task_events`, `source=backfill`. Idempotent. — `feat(p01): backfill from habitica task history`
-- [ ] 8. `app/collector/webhooks.py`: `POST /webhooks/habitica/{secret}`; wrong secret → 403; store `webhook_deliveries` raw; map `taskActivity` payloads to `task_events` with `source=webhook`. `scripts/register_webhook.py` registers `PUBLIC_BASE_URL/webhooks/habitica/<secret>` for scored/created/updated/deleted, skipping if already registered. **If `PUBLIC_BASE_URL` is empty it logs one line and exits 0 — do not stop and ask for a URL; the VPS does not exist until P05.** Until then the receiver is exercised by tests only and snapshots carry the load. — `feat(p01): habitica webhook receiver and registration`
-- [ ] 9. `app/jobs/scheduler.py`: APScheduler in the FastAPI lifespan. Jobs: snapshots every 30 min; `close_day` at `dayStart − 2 min`; `run_cron` at `dayStart + 1 min`. Times recomputed daily from the latest `user_snapshots.raw`. `scripts/snapshot_now.py` for manual runs. — `feat(p01): scheduled collection`
+- [x] 1. `app/habitica/types.py`: dataclasses `UserStats` (incl. `day_start`, `timezone_offset`), `Task` (with `history` entries), `GearItem`. Small `from_json` functions. — `feat(p01): habitica types`
+- [x] 2. `app/habitica/client.py`: async client with required headers, rate-limit awareness (`X-RateLimit-Remaining`/`Reset`, sleep when exhausted), one retry on 5xx. Methods: `get_user`, `get_tasks`, `get_completed_todos`, `score_task`, `create_task`, `update_task`, `delete_task`, `equip`, `run_cron`, `get_content` (disk-cached), `create_webhook`, `list_webhooks`. — `feat(p01): habitica rest client`
+- [x] 3. `scripts/record_fixture.py`: hit the real API once, scrub ids/tokens, write `tests/fixtures/habitica/user.json`, `tasks.json`, `content.json`. Commit the fixtures. — `chore(p01): record scrubbed habitica fixtures`
+- [x] 4. Alembic migration + models: `user_snapshots`, `tasks`, `task_snapshots`, `task_events`, `daily_records`, `webhook_deliveries`, `user_settings`. Every table has `user_id`; every table that stores an API response has `raw`. — `feat(p01): telemetry tables`
+- [x] 5. `app/collector/snapshots.py`: `snapshot_user()`, `snapshot_tasks()` (upsert `tasks`, insert `task_snapshots`, diff vs previous → `task_events` with `source=snapshot_diff`). — `feat(p01): snapshot collectors`
+- [x] 6. `app/collector/day_close.py`: `close_day()` writes `daily_records` for the Habitica day ending now; `run_cron()` calls `POST /cron` then snapshots. Habitica-day math from `day_start` + `timezone_offset`. — `feat(p01): day close and explicit cron`
+- [x] 7. `app/collector/backfill.py`: on first run, import each daily's and habit's `history[]` into `daily_records` / `task_events`, `source=backfill`. Idempotent. — `feat(p01): backfill from habitica task history`
+- [x] 8. `app/collector/webhooks.py`: `POST /webhooks/habitica/{secret}`; wrong secret → 403; store `webhook_deliveries` raw; map `taskActivity` payloads to `task_events` with `source=webhook`. `scripts/register_webhook.py` registers `PUBLIC_BASE_URL/webhooks/habitica/<secret>` for scored/created/updated/deleted, skipping if already registered. **If `PUBLIC_BASE_URL` is empty it logs one line and exits 0 — do not stop and ask for a URL; the VPS does not exist until P05.** Until then the receiver is exercised by tests only and snapshots carry the load. — `feat(p01): habitica webhook receiver and registration`
+- [x] 9. `app/jobs/scheduler.py`: APScheduler in the FastAPI lifespan. Jobs: snapshots every 30 min; `close_day` at `dayStart − 2 min`; `run_cron` at `dayStart + 1 min`. Times recomputed daily from the latest `user_snapshots.raw`. `scripts/snapshot_now.py` for manual runs. — `feat(p01): scheduled collection`
 
 **Tests**
 
-- [ ] Parsers against fixtures: stats incl. dayStart/offset, dailies with history, gear. — `test(p01): habitica parsers`
-- [ ] Client: rate-limit sleep and 5xx retry via httpx `MockTransport`. — `test(p01): client rate limit and retry`
-- [ ] Snapshot diff: two fake task lists → expected `task_events` (completed, uncompleted, created, deleted, habit counter change). — `test(p01): snapshot diff events`
-- [ ] Day-close: correct `was_due`/`completed` rows; running twice doesn't duplicate; Habitica-day boundary at 12:00 Zurich handled across DST. — `test(p01): day close and day math`
-- [ ] Backfill idempotent. — `test(p01): backfill idempotent`
-- [ ] Webhook: sample `scored` payload → `task_events` row + raw row; bad secret → 403. — `test(p01): webhook handling`
+- [x] Parsers against fixtures: stats incl. dayStart/offset, dailies with history, gear. — `test(p01): habitica parsers`
+- [x] Client: rate-limit sleep and 5xx retry via httpx `MockTransport`. — `test(p01): client rate limit and retry`
+- [x] Snapshot diff: two fake task lists → expected `task_events` (completed, uncompleted, created, deleted, habit counter change). — `test(p01): snapshot diff events`
+- [x] Day-close: correct `was_due`/`completed` rows; running twice doesn't duplicate; Habitica-day boundary at 11:00 Zurich handled across DST. — `test(p01): day close and day math`
+- [x] Backfill idempotent. — `test(p01): backfill idempotent`
+- [x] Webhook: sample `scored` payload → `task_events` row + raw row; bad secret → 403. — `test(p01): webhook handling`
 
 **Acceptance**
 
@@ -119,13 +119,21 @@ Then data/analytica.db exists, migrations are applied, and GET /health returns o
 Given valid Habitica credentials and a registered webhook
 When I complete a task in the Habitica app
 Then task_events has a webhook-sourced row within seconds
-And after 12:00 Zurich there is one daily_records row per daily for the day that ended
-And cron was triggered by us at 12:01, not by a random collector call
+And after 11:00 Zurich there is one daily_records row per daily for the day that ended
+And cron was triggered by us at 11:01, not by a random collector call
 ```
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- Operator's `dayStart` is 11 (checked against the API), not 12; every derived clock time in this plan and in `CLAUDE.md` was moved back an hour.
+- Every round writes the full `/user` object into `user_snapshots.raw` and one `task_snapshots` row per task, as specified. Task JSON and webhook payloads are content-addressed: `raw_blobs(hash, json)` stores each distinct document once (sha256 of its canonical JSON), and `task_snapshots.raw_hash` / `webhook_deliveries.raw_hash` point at it, the way git stores blobs. Every snapshot row still exists; an unchanged task costs a pointer. Measured on the operator's account: 90 tasks × 3 rounds = 270 rows, 90 blobs, 82 KB instead of ~246 KB. The user object changes on every request (`_v`, timestamps), so it stays a full inline copy; it is the dominant cost (~0.7 GB/year) by the operator's decision.
+- `snapshot_tasks` also reads `?type=completedTodos`, otherwise a completed todo (which leaves `/tasks/user`) would look deleted. Habitica later purges old completed todos from that list too: such a todo gets `deleted_at` (it is gone) but no `deleted` event (the user did not delete it).
+- Cron resets every daily to not-completed. `collect()` snapshots the user first, notices when `lastCron` moved, and then does not record those resets as `uncompleted` events; a daily un-ticked by hand between two ordinary snapshots still is one.
+- Backfill reads what a daily's `history[]` actually means, checked against the recorded account: an entry with `completed: true` is a tick (value goes up) on its own Habitica day; an entry with `completed: false` written at a cron time is the damage for the day that just ended (a completed daily gets no cron entry); a `completed: false` entry at any other time is an un-tick and is ignored. Cron times come from `user.history.exp`, which has one entry per cron, so `backfill()` takes the client and fetches `/user` once. A cron miss wins over a tick for the same day (a tick synced late at cron time lands on the wrong day; the damage does not). Days with no entry stay unrecorded rather than guessed. Backfill also writes `completed` events for daily ticks (time of day is useful later) and never overwrites a `close_day` record.
+- A webhook payload carries the full task, so the receiver also writes a `task_snapshots` row for it; the next scheduled snapshot then sees no change in the parsed fields and does not record the same completion twice. Deliveries for another user id or of a non-`taskActivity` type are stored raw and not processed.
+- Habit `scored` events from snapshot diffs use the `counterUp`/`counterDown` deltas (one event per count); when the counters were reset by Habitica's daily/weekly/monthly counter reset, the sign of the value change decides one event. Webhooks (task 8) carry the exact events; the diff is the safety net.
 
 ---
 
@@ -305,10 +313,10 @@ And a backup exists the next morning
 
 ```gherkin
 Given one due daily is incomplete at 11:30 Zurich
-Then the CON set is equipped, and at 12:01 the PER set is
+Then the CON set is equipped, and at 11:01 the PER set is
 Given all dailies are done at 11:30
 Then the INT set is equipped instead
-And at 12:01 I get one message with the damage taken and today's dailies
+And at 11:01 I get one message with the damage taken and today's dailies
 Given two dailies are due and one is incomplete at 21:00
 Then I receive exactly one message listing the incomplete one
 ```

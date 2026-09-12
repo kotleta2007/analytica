@@ -1,0 +1,1659 @@
+{
+ "data": [
+  {
+   "_id": "b1a40c7c-38bc-5188-98d3-b908e8ed1b26",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-10T12:43:16.911Z",
+   "dateCompleted": "2026-09-10T19:55:53.755Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "b1a40c7c-38bc-5188-98d3-b908e8ed1b26",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Get paperclips for printouts at home",
+   "type": "todo",
+   "updatedAt": "2026-09-10T19:55:53.759Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "62af4fcb-1ec2-5117-9e0b-133612716ec9",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-09T09:13:33.196Z",
+   "date": null,
+   "dateCompleted": "2026-09-10T09:41:29.984Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "62af4fcb-1ec2-5117-9e0b-133612716ec9",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Update current reading list in Notion",
+   "type": "todo",
+   "updatedAt": "2026-09-10T09:41:29.988Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0.025956704627064786
+  },
+  {
+   "_id": "eee20e67-acfd-5bec-8788-e290a242d70f",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [
+    {
+     "completed": true,
+     "id": "8e40e8b5-3bb2-52b3-b441-c02fc2891ab2",
+     "text": "VPS"
+    },
+    {
+     "completed": true,
+     "id": "5145a13e-952b-5e5a-8af1-1a5efabbdc3a",
+     "text": "Todoist"
+    },
+    {
+     "completed": true,
+     "id": "9bd52f17-3086-5f63-8ae6-6f1cdfaed4b2",
+     "text": "Notion"
+    }
+   ],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-07T21:59:58.268Z",
+   "date": null,
+   "dateCompleted": "2026-09-10T09:41:24.264Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "eee20e67-acfd-5bec-8788-e290a242d70f",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Mark \u041a\u0443\u043d as read",
+   "type": "todo",
+   "updatedAt": "2026-09-10T09:41:24.269Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1.2491718802278453
+  },
+  {
+   "_id": "4e236c23-7b5f-5ecd-b034-5a54a7f78ae1",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-04T21:46:31.214Z",
+   "dateCompleted": "2026-09-07T17:28:14.287Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "4e236c23-7b5f-5ecd-b034-5a54a7f78ae1",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Read Dehoarder CLAUDE.md",
+   "type": "todo",
+   "updatedAt": "2026-09-07T17:28:14.292Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "ab53b748-f250-51ab-9c1f-6f5e88b0a36a",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T12:15:31.747Z",
+   "date": "2026-09-04T22:00:00.000Z",
+   "dateCompleted": "2026-09-06T20:57:17.354Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "ab53b748-f250-51ab-9c1f-6f5e88b0a36a",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Fill in the Attestation with Veronika and pay the fees",
+   "type": "todo",
+   "updatedAt": "2026-09-06T20:57:17.358Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -4.129174475435187
+  },
+  {
+   "_id": "52d8df09-7806-560f-b3aa-c71b677c7fa8",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-05T11:18:20.073Z",
+   "date": null,
+   "dateCompleted": "2026-09-06T17:05:58.472Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "52d8df09-7806-560f-b3aa-c71b677c7fa8",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Print the Clairvoyance docs",
+   "type": "todo",
+   "updatedAt": "2026-09-06T17:05:58.476Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0.025956704627064786
+  },
+  {
+   "_id": "58ee9460-dd20-5756-9ae5-057af293013d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-06T16:02:41.399Z",
+   "dateCompleted": "2026-09-06T17:05:54.801Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "58ee9460-dd20-5756-9ae5-057af293013d",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Print typography primer",
+   "type": "todo",
+   "updatedAt": "2026-09-06T17:05:54.804Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "6cd58043-6639-549a-bd43-f0dae822a93a",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-03T13:36:08.895Z",
+   "date": null,
+   "dateCompleted": "2026-09-06T15:53:43.182Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "6cd58043-6639-549a-bd43-f0dae822a93a",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [],
+   "text": "Send CV to mother",
+   "type": "todo",
+   "updatedAt": "2026-09-06T15:53:43.186Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "341b4a88-a6a9-5e18-a517-cda96215a68a",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T11:24:33.534Z",
+   "date": "2026-09-05T22:00:00.000Z",
+   "dateCompleted": "2026-09-04T20:44:24.696Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "341b4a88-a6a9-5e18-a517-cda96215a68a",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Set date for barber visit",
+   "type": "todo",
+   "updatedAt": "2026-09-04T20:44:24.699Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "a9c5c60f-5596-57ae-b294-e277c726e8cf",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-04T13:56:00.035Z",
+   "date": null,
+   "dateCompleted": "2026-09-04T15:04:28.606Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "a9c5c60f-5596-57ae-b294-e277c726e8cf",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Go to bank",
+   "type": "todo",
+   "updatedAt": "2026-09-04T15:04:28.611Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "9e607f5b-3ed7-514f-b347-4a51c3253c85",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T14:31:21.462Z",
+   "date": "2026-09-05T22:00:00.000Z",
+   "dateCompleted": "2026-09-04T15:04:23.192Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "9e607f5b-3ed7-514f-b347-4a51c3253c85",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Go to Office des Finances",
+   "type": "todo",
+   "updatedAt": "2026-09-04T15:04:23.196Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "dd069c78-9904-5c92-aa15-48d6d0d895ae",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T12:44:43.523Z",
+   "dateCompleted": "2026-09-04T13:10:13.159Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "dd069c78-9904-5c92-aa15-48d6d0d895ae",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Ask parents to buy history book",
+   "type": "todo",
+   "updatedAt": "2026-09-04T13:10:13.164Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "6abcbe66-d9b4-5cb1-a4a7-a09a04e55e28",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-03T13:49:31.530Z",
+   "dateCompleted": "2026-09-03T20:38:12.899Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "6abcbe66-d9b4-5cb1-a4a7-a09a04e55e28",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Take the trash out",
+   "type": "todo",
+   "updatedAt": "2026-09-03T20:38:12.905Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "ff7e8f62-d706-583d-b8a2-004303f50d07",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-02T16:18:55.684Z",
+   "dateCompleted": "2026-09-03T15:07:20.797Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "ff7e8f62-d706-583d-b8a2-004303f50d07",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Wipe laptop screen with wet wipes",
+   "type": "todo",
+   "updatedAt": "2026-09-03T15:07:20.801Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0.025956704627064786
+  },
+  {
+   "_id": "8fb67491-4b89-592d-bffc-a87fdcccaf81",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T11:27:38.035Z",
+   "date": "2026-09-12T22:00:00.000Z",
+   "dateCompleted": "2026-09-03T11:57:50.264Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "8fb67491-4b89-592d-bffc-a87fdcccaf81",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Order book on AbeBooks",
+   "type": "todo",
+   "updatedAt": "2026-09-03T11:57:50.268Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -0.9726691785864934
+  },
+  {
+   "_id": "7a0f26c4-be3f-5316-96a4-7ecc40674873",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-03T11:14:49.505Z",
+   "dateCompleted": "2026-09-03T11:14:50.647Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "7a0f26c4-be3f-5316-96a4-7ecc40674873",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Send an email to Atupri",
+   "type": "todo",
+   "updatedAt": "2026-09-03T11:14:50.650Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "a6036e21-4e17-519b-ad7f-3203f9658a7a",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-08-27T12:43:21.147Z",
+   "date": "2026-08-28T22:00:00.000Z",
+   "dateCompleted": "2026-09-03T09:27:26.806Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "a6036e21-4e17-519b-ad7f-3203f9658a7a",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Habitica clean habits",
+   "type": "todo",
+   "updatedAt": "2026-09-03T09:27:26.810Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -5.239802699145147
+  },
+  {
+   "_id": "6d7ad1f6-3c48-5af9-9491-146d570adfb3",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-02T16:14:02.290Z",
+   "date": "2026-09-01T22:00:00.000Z",
+   "dateCompleted": "2026-09-02T21:43:15.214Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "6d7ad1f6-3c48-5af9-9491-146d570adfb3",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Write to Gleb",
+   "type": "todo",
+   "updatedAt": "2026-09-02T21:43:15.222Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "ba89c812-8e3c-5f57-b28f-7141f07aa4ff",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T11:24:20.574Z",
+   "date": "2026-09-01T22:00:00.000Z",
+   "dateCompleted": "2026-09-01T18:18:13.896Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "ba89c812-8e3c-5f57-b28f-7141f07aa4ff",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Pay for phone",
+   "type": "todo",
+   "updatedAt": "2026-09-01T18:18:13.902Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "1368d0d3-f010-58b7-9ec1-36dfa655ee63",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T11:28:02.992Z",
+   "date": "2026-09-01T22:00:00.000Z",
+   "dateCompleted": "2026-09-01T17:20:48.042Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "1368d0d3-f010-58b7-9ec1-36dfa655ee63",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "AM1 Session",
+   "type": "todo",
+   "updatedAt": "2026-09-01T17:20:48.048Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "87f7dc15-2218-5ab2-9103-8d05ffe8686b",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-09-01T11:28:26.970Z",
+   "date": "2026-08-31T22:00:00.000Z",
+   "dateCompleted": "2026-09-01T17:20:40.007Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "87f7dc15-2218-5ab2-9103-8d05ffe8686b",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "1 hour of sunlight exposure",
+   "type": "todo",
+   "updatedAt": "2026-09-01T17:20:40.011Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "9cb8b4f7-8a50-52c4-a1ed-8de094e508b0",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-08-31T12:38:19.386Z",
+   "dateCompleted": "2026-08-31T14:02:40.660Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "9cb8b4f7-8a50-52c4-a1ed-8de094e508b0",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Grocery shopping",
+   "type": "todo",
+   "updatedAt": "2026-08-31T14:02:40.663Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "843dfa8b-bda8-50a2-8cef-9daa7d25a83d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "4fdf2cb9-9860-54f1-b734-5e591a925f74",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.912Z",
+   "dateCompleted": "2026-08-30T14:13:34.667Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "843dfa8b-bda8-50a2-8cef-9daa7d25a83d",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 70 :tomato:",
+   "type": "todo",
+   "updatedAt": "2026-08-30T14:13:34.676Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -77.49710089285374
+  },
+  {
+   "_id": "4169c57d-0936-563c-8e7c-9464031a1f0b",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-08-18T13:40:56.347Z",
+   "date": "2026-08-18T13:40:53.000Z",
+   "dateCompleted": "2026-08-19T12:38:12.745Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "4169c57d-0936-563c-8e7c-9464031a1f0b",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [],
+   "text": "Take the trash out",
+   "type": "todo",
+   "updatedAt": "2026-08-19T12:38:12.754Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0.025956704627064786
+  },
+  {
+   "_id": "6aab7297-1f8a-52fc-83e1-9bf234fa02c8",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {},
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2026-08-18T13:44:47.560Z",
+   "date": null,
+   "dateCompleted": "2026-08-19T12:38:10.920Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "6aab7297-1f8a-52fc-83e1-9bf234fa02c8",
+   "notes": "",
+   "priority": 0.1,
+   "reminders": [],
+   "tags": [],
+   "text": "Go shopping",
+   "type": "todo",
+   "updatedAt": "2026-08-19T12:38:10.933Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 0.025956704627064786
+  },
+  {
+   "_id": "986f15d1-6f16-5607-8f45-6ffa78267be4",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "ffc1e55d-e2ba-57ae-8096-9e50be2575f9",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.913Z",
+   "dateCompleted": "2024-01-21T21:50:38.200Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "986f15d1-6f16-5607-8f45-6ffa78267be4",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 60 :tomato:",
+   "type": "todo",
+   "updatedAt": "2024-01-21T21:50:38.207Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -5.239802699145147
+  },
+  {
+   "_id": "076600fb-ae28-5049-b437-110098179909",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "e9f82b4b-a050-5ec8-b11f-9b7f5f9beff6",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.915Z",
+   "dateCompleted": "2024-01-21T21:50:34.316Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "076600fb-ae28-5049-b437-110098179909",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 40 :tomato:",
+   "type": "todo",
+   "updatedAt": "2024-01-21T21:50:34.324Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -5.239802699145147
+  },
+  {
+   "_id": "12a0c3da-0f1b-577e-af37-bcd844524907",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "ee494326-2228-5bb3-ab69-549af7f13bba",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.916Z",
+   "dateCompleted": "2024-01-21T21:50:30.893Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "12a0c3da-0f1b-577e-af37-bcd844524907",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 50 :tomato:",
+   "type": "todo",
+   "updatedAt": "2024-01-21T21:50:30.899Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -5.239802699145147
+  },
+  {
+   "_id": "40a2ea14-414a-5a94-8da4-bd05e79c8e4e",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "897976a4-a197-5d1d-9581-2b43218a6774",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.913Z",
+   "dateCompleted": "2023-12-11T20:53:27.420Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "40a2ea14-414a-5a94-8da4-bd05e79c8e4e",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 30 :tomato:",
+   "type": "todo",
+   "updatedAt": "2023-12-11T20:53:27.435Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -4.129174475435187
+  },
+  {
+   "_id": "b5e6de2a-1b9c-54ec-96b9-3efd032e1038",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "dfe42ce1-447b-59f7-8590-0c72d29206de",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.915Z",
+   "dateCompleted": "2023-12-11T20:53:26.260Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "b5e6de2a-1b9c-54ec-96b9-3efd032e1038",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 20 :tomato:",
+   "type": "todo",
+   "updatedAt": "2023-12-11T20:53:26.272Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -4.129174475435187
+  },
+  {
+   "_id": "00ad4613-d58b-5533-a0f9-ab7b64bbe0f3",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "4c449e2e-73ed-5d58-8308-5f922858c1a9",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.911Z",
+   "dateCompleted": "2023-11-13T09:52:16.523Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "00ad4613-d58b-5533-a0f9-ab7b64bbe0f3",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": ":tomato: Completed 10 :tomato:",
+   "type": "todo",
+   "updatedAt": "2023-11-13T09:52:16.537Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -0.9726691785864934
+  },
+  {
+   "_id": "c7696405-6c8b-5087-a217-a3cdeb7a52f6",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b",
+    "shortName": "b9e6a938-9427-570a-beef-049893159909",
+    "taskId": "c675c59e-fa30-5d30-be2b-e4eb9aceca0f",
+    "winner": "617767ca-d9ba-5b92-bda3-ffaca23a4c88"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:13:32.751Z",
+   "dateCompleted": "2023-11-06T12:53:45.749Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "c7696405-6c8b-5087-a217-a3cdeb7a52f6",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "8f916c4e-d8c2-5d95-b6c0-403d2e0f164b"
+   ],
+   "text": ":tomato: Complete your first pomodoro!",
+   "type": "todo",
+   "updatedAt": "2023-11-06T12:53:45.945Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "d2e6fc05-788a-56b0-bd41-8114230700bb",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "266939d5-8b78-52fa-93e4-2504399b84f1",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.911Z",
+   "dateCompleted": "2023-11-06T12:53:40.462Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "d2e6fc05-788a-56b0-bd41-8114230700bb",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": "Joined the 100 :tomato: Challenge",
+   "type": "todo",
+   "updatedAt": "2023-11-06T12:53:40.477Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "b8b518a2-13b8-55c2-82e6-469e2b222eef",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6",
+    "shortName": "c7fc0aad-4a49-5a96-a3f9-150867e0d25b",
+    "taskId": "0f8be4ec-7602-5394-a5d8-31c5242bf6b1",
+    "winner": "51da723c-d844-5639-8807-0c19b19d5915"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2023-11-06T12:05:27.916Z",
+   "dateCompleted": "2023-11-06T12:27:48.538Z",
+   "group": {
+    "assignedUsers": [],
+    "completedBy": {}
+   },
+   "id": "b8b518a2-13b8-55c2-82e6-469e2b222eef",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "1db9bb9f-fce5-5c11-9044-67bf3b01e3e6"
+   ],
+   "text": "## :dart: Join the ***Conquerors of Betterment*** ",
+   "type": "todo",
+   "updatedAt": "2023-11-06T12:27:48.552Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "081f1076-e015-5564-934b-f1fc0b6177e3",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "3e03d009-2501-5010-82ce-6c51d566d1db",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:30:20.545Z",
+   "dateCompleted": "2022-02-18T18:07:17.289Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "081f1076-e015-5564-934b-f1fc0b6177e3",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Write to Vlad",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -517.3836981097767
+  },
+  {
+   "_id": "bf4e52ff-34f4-54b2-b75d-4cc3442b4164",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "b844a6c4-dffa-5d76-bbc9-98748b835ca4",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:33:13.841Z",
+   "dateCompleted": "2021-11-16T05:48:41.104Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "bf4e52ff-34f4-54b2-b75d-4cc3442b4164",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Open idea notebook, start writing down ideas",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -201.73988025946556
+  },
+  {
+   "_id": "0c630009-5dbb-544c-b20e-446f42627326",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "5083f570-6d11-5980-8fe1-4b94c5a18ec2",
+    "shortName": "f3d38f9e-3218-5f2d-aaf6-f4e0825d7916",
+    "taskId": "93c063d5-52c9-544c-b1b2-b9f817dc8649",
+    "winner": "381d4259-0b8e-5c19-9d9d-996784a16b62"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-10-07T18:23:55.417Z",
+   "date": "2021-10-24T18:38:00.000Z",
+   "dateCompleted": "2021-10-07T18:35:30.342Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "0c630009-5dbb-544c-b20e-446f42627326",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "5083f570-6d11-5980-8fe1-4b94c5a18ec2"
+   ],
+   "text": "Finish Survey",
+   "type": "todo",
+   "updatedAt": "2021-10-27T16:30:20.639Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "e69ec83c-bded-5c97-8763-b2ec8ea59d12",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "37264cda-e0d9-5f26-8be3-db6bfdac9585",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.395Z",
+   "date": "2021-10-03T00:20:00.000Z",
+   "dateCompleted": "2021-10-01T19:39:31.196Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "e69ec83c-bded-5c97-8763-b2ec8ea59d12",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Clean the thing that shall not be named",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -8.771383837406706
+  },
+  {
+   "_id": "e3fa2fea-1dd1-558a-87ef-8800ec6f702d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "e8dec92f-6022-5969-9913-1ec473e7956c",
+    "id": "2e1245a3-d15a-5eef-ac2f-65a45faae5ee",
+    "shortName": "fc28d540-d295-5591-9aa1-4aed093bdb63",
+    "taskId": "21fc7505-1271-5536-97fe-30c3e56ec92b",
+    "winner": null
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-27T14:43:07.834Z",
+   "dateCompleted": "2021-09-27T19:58:22.025Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "e3fa2fea-1dd1-558a-87ef-8800ec6f702d",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [
+    "2e1245a3-d15a-5eef-ac2f-65a45faae5ee"
+   ],
+   "text": "have fuuuuuuunnnnnnnn",
+   "type": "todo",
+   "updatedAt": "2021-09-30T12:43:01.956Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "413568ed-d56a-50b8-9820-956b196128ae",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "ba2655f7-3599-5600-84f4-3edafa848be7",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.392Z",
+   "date": "2021-10-03T00:18:00.000Z",
+   "dateCompleted": "2021-09-27T00:31:38.712Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "413568ed-d56a-50b8-9820-956b196128ae",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Take out the trash",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -3.0488181170434956
+  },
+  {
+   "_id": "c5f3819b-0304-53df-ac88-b5cc0e997b02",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "5ecf8b21-917a-53af-b138-8f83f8f85ad3",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.395Z",
+   "date": "2021-10-03T00:23:00.000Z",
+   "dateCompleted": "2021-09-26T19:31:25.238Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "c5f3819b-0304-53df-ac88-b5cc0e997b02",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Wipe the floors",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -3.0488181170434956
+  },
+  {
+   "_id": "d60df345-2ca2-5569-a2d2-1aaf2f03de5b",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "ace983a1-c5c5-531d-9511-32a1f5bcf3a5",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.390Z",
+   "date": "2021-10-03T00:13:00.000Z",
+   "dateCompleted": "2021-09-26T19:31:15.061Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "d60df345-2ca2-5569-a2d2-1aaf2f03de5b",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Clean your bathroom: get rid of the empty bottles",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -3.0488181170434956
+  },
+  {
+   "_id": "f3c1c323-e5f2-5b01-acf7-16139199efa8",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "e85a2d91-e802-5876-b575-5c68f58e22e1",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.396Z",
+   "date": "2021-10-03T00:23:00.000Z",
+   "dateCompleted": "2021-09-26T19:30:46.369Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "f3c1c323-e5f2-5b01-acf7-16139199efa8",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Throw away the receipts",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -3.0488181170434956
+  },
+  {
+   "_id": "f974d52c-5f85-549d-8d6d-6c993ca7f0b1",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "768d3948-ff0e-515d-b9d6-7bd4e0550828",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.391Z",
+   "date": "2021-10-03T00:17:00.000Z",
+   "dateCompleted": "2021-09-22T18:40:42.533Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "f974d52c-5f85-549d-8d6d-6c993ca7f0b1",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Clean your fridge",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "1e87de5c-4afa-53df-b5cb-318270c1bef1",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "a2734174-c86c-55d4-9f5d-d9bdd6630495",
+    "shortName": "6ba46e9e-225f-5efc-9cdd-5dbe77ef2f26",
+    "taskId": "bd576cea-6ec4-5e48-85a2-6b5e97244783",
+    "winner": "ba9c3e86-412c-509e-8eef-f16c9ca4b648"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-22T16:26:00.391Z",
+   "date": "2021-10-03T00:15:00.000Z",
+   "dateCompleted": "2021-09-22T18:20:35.282Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "1e87de5c-4afa-53df-b5cb-318270c1bef1",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "a2734174-c86c-55d4-9f5d-d9bdd6630495"
+   ],
+   "text": "Clean your kitchen: get rid of empty containers",
+   "type": "todo",
+   "updatedAt": "2021-10-09T21:35:19.470Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "93fb6aed-1c09-594a-a5c5-96413392bd35",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "2aa3362d-298a-5f1f-a691-6bf45c8a648a",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-24T07:22:14.158Z",
+   "dateCompleted": "2021-09-17T21:12:20.006Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "93fb6aed-1c09-594a-a5c5-96413392bd35",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Finish the Coursera course",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -33.56188615268181
+  },
+  {
+   "_id": "6ed06a5f-4608-5c0d-b222-9a60e070fe41",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "98591060-e858-5176-8384-b8be3d13c8b0",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-09-16T13:43:55.499Z",
+   "dateCompleted": "2021-09-16T13:50:38.940Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "6ed06a5f-4608-5c0d-b222-9a60e070fe41",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Pay for phone",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": 1
+  },
+  {
+   "_id": "74d4862a-eca0-59f8-849b-975e205edee1",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "1b6f1848-e814-54b9-8be4-11f077480b72",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:30:52.149Z",
+   "dateCompleted": "2021-09-14T22:36:34.317Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "74d4862a-eca0-59f8-849b-975e205edee1",
+   "notes": "",
+   "priority": 2,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Learn \"\u0413\u043e\u0440\u043e\u0434 \u0417\u043e\u043b\u043e\u0442\u043e\u0439\" on ukulele",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -14.02865229366684
+  },
+  {
+   "_id": "c602aa7d-1ee0-525f-9ecf-a2ed0747b97f",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "c7a3c650-d8f7-5ecc-abd7-c92792cededd",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:30:03.364Z",
+   "dateCompleted": "2021-09-04T20:37:18.444Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "c602aa7d-1ee0-525f-9ecf-a2ed0747b97f",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Pay for FMEL",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "e4859161-a6e2-5cf0-90ac-6111b534321d",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "757e052b-11ac-5301-8706-01ca4267eed2",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:29:50.051Z",
+   "dateCompleted": "2021-09-04T20:37:14.155Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "e4859161-a6e2-5cf0-90ac-6111b534321d",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Pay for semester",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "db63febe-7ef8-5df8-adfc-57d77ba3112a",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "ec7b1f0f-0f11-518f-a521-ce4a65b011e6",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-31T14:29:30.034Z",
+   "dateCompleted": "2021-09-04T20:37:10.486Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "db63febe-7ef8-5df8-adfc-57d77ba3112a",
+   "notes": "",
+   "priority": 1.5,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Check exam grades",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -1.9971402029437662
+  },
+  {
+   "_id": "839022b7-d540-5e26-9d33-67116f572388",
+   "attribute": "str",
+   "byHabitica": false,
+   "challenge": {
+    "broken": "99f34926-33cc-51c5-887f-2428c4bc2e6e",
+    "id": "da096b37-965a-53ba-acbe-7e3df1943666",
+    "shortName": "ad96cd1c-dfa4-536e-8ac4-f34ea1368fdc",
+    "taskId": "01f1ef09-4e96-5fc1-92be-561eab0ff181",
+    "winner": "0d00c8d3-531a-59ea-b96c-e9599394b584"
+   },
+   "checklist": [],
+   "collapseChecklist": false,
+   "completed": true,
+   "createdAt": "2021-08-23T21:28:25.583Z",
+   "dateCompleted": "2021-09-04T20:37:06.751Z",
+   "group": {
+    "approval": {
+     "approved": false,
+     "requested": false,
+     "required": false
+    },
+    "assignedUsers": [],
+    "sharedCompletion": "singleCompletion"
+   },
+   "id": "839022b7-d540-5e26-9d33-67116f572388",
+   "notes": "",
+   "priority": 1,
+   "reminders": [],
+   "tags": [
+    "da096b37-965a-53ba-acbe-7e3df1943666"
+   ],
+   "text": "Meet with Yarik",
+   "type": "todo",
+   "updatedAt": "2022-03-11T17:11:25.419Z",
+   "userId": "00000000-0000-4000-8000-000000000001",
+   "value": -11.313235191511072
+  }
+ ],
+ "success": true
+}

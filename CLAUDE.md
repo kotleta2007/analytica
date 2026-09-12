@@ -281,7 +281,7 @@ Single user per deployment. Still: every table has a `user_id`, and the Telegram
 
 ### Habitica day, timezone, and cron — read this twice
 
-Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 12) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs *lazily*: on the first authenticated request after `dayStart`. That includes *our* collector's requests, so once the day has turned, any snapshot we take fires the reset. There is no way to keep collecting and not trigger it. So we make it deterministic:
+Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 11) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs *lazily*: on the first authenticated request after `dayStart`. That includes *our* collector's requests, so once the day has turned, any snapshot we take fires the reset. There is no way to keep collecting and not trigger it. So we make it deterministic:
 
 ```
 dayStart − 30 min   gear job: incomplete due dailies? → equip CON set, else → equip INT set
@@ -364,10 +364,11 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 
 - `user_snapshots(id, user_id, taken_at, hp, mp, exp, gp, lvl, class, to_next_level, raw)`
 - `tasks(id, user_id, habitica_id, type, text, notes, created_at, first_seen_at, last_seen_at, deleted_at, raw)` — every task we've ever seen
-- `task_snapshots(id, task_id, taken_at, completed, is_due, streak, value, counter_up, counter_down, checklist_done, checklist_total, raw)`
+- `task_snapshots(id, task_id, taken_at, completed, is_due, streak, value, counter_up, counter_down, checklist_done, checklist_total, raw_hash)`
 - `task_events(id, task_id, at, kind, direction, delta, source, raw)` — `kind ∈ {scored, created, updated, deleted, completed, uncompleted, checklist, started}`, `source ∈ {bot, snapshot_diff, webhook, backfill, calendar, reminder}`
 - `daily_records(id, task_id, day, was_due, completed, source)` — one row per daily per Habitica day; what analytics reads
-- `webhook_deliveries(id, received_at, type, raw)` — everything Habitica sends us, untouched
+- `webhook_deliveries(id, received_at, type, raw_hash)` — everything Habitica sends us, untouched
+- `raw_blobs(hash, json)` — content-addressed storage for the two tables above: each distinct document once, keyed by the sha256 of its canonical JSON, like a git blob. `store_blobs()` in `db/blobs.py`; the models expose `.raw` through the pointer. An unchanged task costs a pointer per snapshot, not a copy. `user_snapshots.raw` stays inline (the user object changes on every request).
 - `llm_calls(id, user_id, at, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, tool_calls, ok, error)`
 - `transcriptions(id, user_id, at, provider, model, raw_text, accepted_text, language, latency_ms)`
 - `tts_calls(id, user_id, at, provider, model, chars, latency_ms)`
