@@ -149,13 +149,13 @@ And cron was triggered by us at 11:01, not by a random collector call
 - [x] 1. `app/core/replies.py` (`Reply`, `Button`, `ChartData`), `app/core/state.py` (`conversation_state` table + get/set/clear), `messages` table. Migration. — `feat(p02): reply types, conversation state, message log`
 - [x] 2. `app/core/i18n.py`: fixed strings for en/ru/fr. `t(key, lang)`. — `feat(p02): i18n strings`
 - [x] 3. `app/core/commands.py` + `app/core/harness.py` with the four entry points and `core/outbound.py` (`send_to_user` hook the adapter registers). Commands: `/start`, `/help`, `/language`, `/stats`, `/sync`. Free text → `t("no_llm_yet")`. — `feat(p02): core harness and commands`
-- [ ] 4. `app/adapters/cli.py`: REPL. Renders `Reply` as text, numbered buttons (type the number to press), charts via `plotext`, voice to `data/voice/` (+ play if `ffplay`/`afplay` exists). — `feat(p02): cli adapter`
+- [x] 4. `app/adapters/cli.py`: REPL. Renders `Reply` as text, numbered buttons (type the number to press), charts via `plotext`, voice to `data/voice/` (+ play if `ffplay`/`afplay` exists). — `feat(p02): cli adapter`
 - [ ] 5. `app/adapters/telegram/bot.py` + `render.py`: aiogram 3; `TELEGRAM_MODE=webhook` mounts `POST /webhooks/telegram/{secret}` on FastAPI and sets the webhook at startup; `polling` starts long polling in the lifespan. Allowlist. Maps message/command/callback → harness; renders text, inline keyboard, photo, voice note. — `feat(p02): telegram adapter with webhook and polling modes`
 
 **Tests**
 
 - [x] Harness: `/language fr` persists; `/help` in French; unknown command → i18n string; messages logged both directions. — `test(p02): commands and language`
-- [ ] CLI flow with `FakeHabiticaClient`: `/stats`. — `test(p02): cli flow`
+- [x] CLI flow with `FakeHabiticaClient`: `/stats`. — `test(p02): cli flow`
 - [ ] Telegram render: `Reply` with buttons → `InlineKeyboardMarkup`; chart → photo; allowlist rejects unknown user; webhook path with wrong secret → 403. — `test(p02): telegram render, allowlist, webhook secret`
 
 **Acceptance**
