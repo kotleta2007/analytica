@@ -5,12 +5,14 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
+from app.db.blobs import content_hash, store_blob, store_blobs
 from app.db.engine import session_scope
-from app.db.models import TaskRow, UserSettings, UserSnapshot
+from app.db.models import RawBlob, TaskRow, UserSettings, UserSnapshot
 
 USER = "00000000-0000-4000-8000-000000000001"
 
 EXPECTED_TABLES = {
+    "raw_blobs",
     "user_snapshots",
     "tasks",
     "task_snapshots",
@@ -92,3 +94,30 @@ async def test_user_settings_defaults(db_path: Path) -> None:
     assert settings.reminder_time == "21:00"
     assert settings.gear_int == {}
     assert settings.dismissed_proposals == []
+
+
+def test_content_hash_ignores_key_order_and_whitespace() -> None:
+    assert content_hash({"a": 1, "b": [1, 2]}) == content_hash({"b": [1, 2], "a": 1})
+    assert content_hash({"a": 1}) != content_hash({"a": 2})
+    assert len(content_hash({})) == 64
+
+
+async def test_identical_documents_are_stored_once(db_path: Path) -> None:
+    doc = {"id": "t1", "text": "Floss"}
+    other = {"id": "t2", "text": "Gym"}
+
+    async with session_scope() as session:
+        first = await store_blobs(session, [doc, other, dict(doc)])
+    async with session_scope() as session:
+        again = await store_blob(session, {"text": "Floss", "id": "t1"})
+        blobs = list(await session.scalars(select(RawBlob)))
+
+    assert first[0] == first[2] == again
+    assert first[1] != again
+    assert len(blobs) == 2
+    assert {blob.json["id"] for blob in blobs} == {"t1", "t2"}
+
+
+async def test_store_blobs_with_nothing_to_store(db_path: Path) -> None:
+    async with session_scope() as session:
+        assert await store_blobs(session, []) == []

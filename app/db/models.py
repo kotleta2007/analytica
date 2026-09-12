@@ -4,8 +4,11 @@ Conventions:
 
 - every table carries `user_id` (the Habitica user id) even though one
   deployment serves one person;
-- every table that stores an API response keeps it whole in `raw`, so a field
-  we did not parse is never lost;
+- every table that stores an API response keeps it whole, so a field we did
+  not parse is never lost. `user_snapshots` keeps its `raw` inline; the tables
+  that repeat the same JSON many times (`task_snapshots`, `webhook_deliveries`)
+  point at `raw_blobs`, where each distinct document is stored once under its
+  hash — the way git stores blobs;
 - timestamps are stored in UTC and come back timezone-aware (`UtcDateTime`);
   SQLite itself has no notion of a timezone.
 """
@@ -26,7 +29,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import TypeDecorator
 
 
@@ -51,6 +54,15 @@ class UtcDateTime(TypeDecorator[datetime]):
 
 class Base(DeclarativeBase):
     pass
+
+
+class RawBlob(Base):
+    """One distinct JSON document, keyed by the sha256 of its canonical form."""
+
+    __tablename__ = "raw_blobs"
+
+    hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    json: Mapped[dict[str, Any]] = mapped_column(JSON)
 
 
 class UserSnapshot(Base):
@@ -103,7 +115,12 @@ class TaskSnapshot(Base):
     counter_down: Mapped[int | None] = mapped_column(Integer, nullable=True)
     checklist_done: Mapped[int] = mapped_column(Integer, default=0)
     checklist_total: Mapped[int] = mapped_column(Integer, default=0)
-    raw: Mapped[dict[str, Any]] = mapped_column(JSON)
+    raw_hash: Mapped[str] = mapped_column(ForeignKey("raw_blobs.hash"))
+    blob: Mapped[RawBlob] = relationship(lazy="selectin")
+
+    @property
+    def raw(self) -> dict[str, Any]:
+        return self.blob.json
 
 
 class TaskEvent(Base):
@@ -151,7 +168,12 @@ class WebhookDelivery(Base):
     user_id: Mapped[str] = mapped_column(String(36), index=True)
     received_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
     type: Mapped[str] = mapped_column(String(32))
-    raw: Mapped[dict[str, Any]] = mapped_column(JSON)
+    raw_hash: Mapped[str] = mapped_column(ForeignKey("raw_blobs.hash"))
+    blob: Mapped[RawBlob] = relationship(lazy="selectin")
+
+    @property
+    def raw(self) -> dict[str, Any]:
+        return self.blob.json
 
 
 class UserSettings(Base):

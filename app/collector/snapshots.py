@@ -1,8 +1,8 @@
 """Pull the account and its tasks, write snapshot rows, diff → task_events.
 
 Every round writes one `user_snapshots` row and one `task_snapshots` row per
-task, each with the full JSON the API returned. Collect everything; decide
-what to use later.
+task. Task JSON goes through `raw_blobs`, so a task that did not change costs
+a pointer, not another copy. Collect everything; decide what to use later.
 """
 
 import logging
@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.blobs import store_blobs
 from app.db.models import TaskEvent, TaskRow, TaskSnapshot, UserSnapshot
 from app.habitica.client import HabiticaClient
 from app.habitica.types import Task
@@ -102,10 +103,11 @@ async def snapshot_tasks(
 
     rows = await load_task_rows(session, user_id)
     previous = await load_latest_snapshots(session, user_id)
+    hashes = await store_blobs(session, [task.raw for task in tasks])
 
     outcome = SnapshotOutcome(seen=len(tasks), changed=0, events=[])
     seen_ids: set[str] = set()
-    for task in tasks:
+    for task, raw_hash in zip(tasks, hashes, strict=True):
         if task.id in seen_ids:
             continue
         seen_ids.add(task.id)
@@ -123,8 +125,8 @@ async def snapshot_tasks(
         before = previous.get(row.id)
         if before is not None:
             outcome.events.extend(diff_events(row, before, task, now, reset_by_cron))
-        session.add(task_snapshot(row, task, user_id, now))
-        if before is None or before.raw != task.raw:
+        session.add(task_snapshot(row, task, user_id, now, raw_hash))
+        if before is None or before.raw_hash != raw_hash:
             outcome.changed += 1
 
     for habitica_id, row in rows.items():
@@ -189,7 +191,10 @@ def refresh_task_row(row: TaskRow, task: Task, now: datetime) -> None:
     row.raw = task.raw
 
 
-def task_snapshot(row: TaskRow, task: Task, user_id: str, now: datetime) -> TaskSnapshot:
+def task_snapshot(
+    row: TaskRow, task: Task, user_id: str, now: datetime, raw_hash: str
+) -> TaskSnapshot:
+    """`raw_hash` comes from `store_blobs(session, [task.raw])`."""
     return TaskSnapshot(
         user_id=user_id,
         task_id=row.id,
@@ -202,7 +207,7 @@ def task_snapshot(row: TaskRow, task: Task, user_id: str, now: datetime) -> Task
         counter_down=task.counter_down,
         checklist_done=task.checklist_done,
         checklist_total=len(task.checklist),
-        raw=task.raw,
+        raw_hash=raw_hash,
     )
 
 

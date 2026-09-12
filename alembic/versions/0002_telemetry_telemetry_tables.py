@@ -1,5 +1,5 @@
-"""telemetry tables: user_snapshots, tasks, task_snapshots, task_events, daily_records,
-webhook_deliveries, user_settings.
+"""telemetry tables: raw_blobs, user_snapshots, tasks, task_snapshots, task_events,
+daily_records, webhook_deliveries, user_settings.
 
 Revision ID: 0002_telemetry
 Revises: 0001_baseline
@@ -20,6 +20,12 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    op.create_table(
+        "raw_blobs",
+        sa.Column("hash", sa.String(length=64), nullable=False),
+        sa.Column("json", sa.JSON(), nullable=False),
+        sa.PrimaryKeyConstraint("hash"),
+    )
     op.create_table(
         "tasks",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -79,7 +85,8 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(length=36), nullable=False),
         sa.Column("received_at", sa.DateTime(), nullable=False),
         sa.Column("type", sa.String(length=32), nullable=False),
-        sa.Column("raw", sa.JSON(), nullable=False),
+        sa.Column("raw_hash", sa.String(length=64), nullable=False),
+        sa.ForeignKeyConstraint(["raw_hash"], ["raw_blobs.hash"]),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("webhook_deliveries", schema=None) as batch_op:
@@ -146,11 +153,9 @@ def upgrade() -> None:
         sa.Column("counter_down", sa.Integer(), nullable=True),
         sa.Column("checklist_done", sa.Integer(), nullable=False),
         sa.Column("checklist_total", sa.Integer(), nullable=False),
-        sa.Column("raw", sa.JSON(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["task_id"],
-            ["tasks.id"],
-        ),
+        sa.Column("raw_hash", sa.String(length=64), nullable=False),
+        sa.ForeignKeyConstraint(["raw_hash"], ["raw_blobs.hash"]),
+        sa.ForeignKeyConstraint(["task_id"], ["tasks.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("task_snapshots", schema=None) as batch_op:
@@ -192,3 +197,4 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_tasks_user_id"))
 
     op.drop_table("tasks")
+    op.drop_table("raw_blobs")

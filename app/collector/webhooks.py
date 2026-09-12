@@ -26,6 +26,7 @@ from app.collector.snapshots import (
     task_snapshot,
 )
 from app.config import get_settings
+from app.db.blobs import store_blob
 from app.db.engine import session_scope
 from app.db.models import TaskEvent, TaskRow, WebhookDelivery
 from app.habitica.types import Task, task_from_json
@@ -63,7 +64,14 @@ async def store_delivery(
     """Store the raw delivery, then whatever events it implies."""
     user_id = str(payload.get("user", {}).get("_id") or "")
     delivery_type = str(payload.get("type") or payload.get("webhookType") or "unknown")
-    session.add(WebhookDelivery(user_id=user_id, received_at=now, type=delivery_type, raw=payload))
+    session.add(
+        WebhookDelivery(
+            user_id=user_id,
+            received_at=now,
+            type=delivery_type,
+            raw_hash=await store_blob(session, payload),
+        )
+    )
     if user_id != expected_user_id:
         logger.warning("habitica webhook for another user (%s); stored, not processed", user_id)
         return []
@@ -101,7 +109,7 @@ async def task_activity_events(
         row.deleted_at = now
         return [event(row, now, "deleted")]
 
-    session.add(task_snapshot(row, task, user_id, now))
+    session.add(task_snapshot(row, task, user_id, now, await store_blob(session, task.raw)))
     if kind == "scored":
         return [scored_event(row, task, payload, now)]
     if kind == "created":

@@ -1,11 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, snapshot_tasks, snapshot_user
 from app.db.engine import session_scope
-from app.db.models import TaskEvent, TaskRow, TaskSnapshot, UserSnapshot
+from app.db.models import RawBlob, TaskEvent, TaskRow, TaskSnapshot, UserSnapshot
 from app.habitica.types import user_stats_from_json
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.habitica_fixtures import load_data
@@ -126,17 +126,29 @@ async def test_habit_score_falls_back_to_value_when_counters_reset(db_path: Path
     assert events[-1] == ("scored", "up", "Run")
 
 
-async def test_unchanged_tasks_still_get_a_snapshot_row_but_no_events(db_path: Path) -> None:
-    client = FakeHabiticaClient(tasks=[make_task("daily", "Floss")])
+async def test_unchanged_tasks_get_a_snapshot_row_sharing_one_blob(db_path: Path) -> None:
+    floss = make_task("daily", "Floss")
+    client = FakeHabiticaClient(tasks=[floss, make_task("habit", "Run")])
     await run_snapshot(client, T0)
     await run_snapshot(client, T1)
+    client.tasks = [with_fields(floss, completed=True), make_task("habit", "Run")]
+    await run_snapshot(client, T1 + timedelta(minutes=30))
 
     async with session_scope() as session:
         snapshots = list(await session.scalars(select(TaskSnapshot).order_by(TaskSnapshot.id)))
-        row = await session.scalar(select(TaskRow))
-    assert [s.taken_at for s in snapshots] == [T0, T1]
-    assert row is not None and row.last_seen_at == T1
-    assert await events_by_kind() == [("created", None, "Floss")]
+        blobs = await session.scalar(select(func.count(RawBlob.hash)))
+        row = await session.scalar(select(TaskRow).where(TaskRow.text == "Floss"))
+    assert len(snapshots) == 6  # two tasks, three rounds
+    assert blobs == 3  # Floss before, Floss after, Run
+    floss_hashes = [s.raw_hash for s in snapshots if s.task_id == row.id]
+    assert floss_hashes[0] == floss_hashes[1] != floss_hashes[2]
+    assert snapshots[-2].raw["completed"] is True
+    assert row is not None and row.last_seen_at == T1 + timedelta(minutes=30)
+    assert await events_by_kind() == [
+        ("created", None, "Floss"),
+        ("created", None, "Run"),
+        ("completed", None, "Floss"),
+    ]
 
 
 async def test_checklist_progress_is_an_event(db_path: Path) -> None:
