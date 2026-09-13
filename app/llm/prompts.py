@@ -9,6 +9,7 @@ last few closed sessions.
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from app.core.i18n import format_day, format_moment
 from app.core.tasks import KnownTask, due_day
 from app.habitica.types import Task, UserStats
 
@@ -22,6 +23,7 @@ ROLE = (
 OVERRIDE_RULE = (
     "If the user's message explicitly asks for another language, obey for that reply only."
 )
+DATE_RULE = "Write dates as DD.MM.YYYY (31.12.2026), never in ISO form."
 CONTENT_RULE = (
     "Habitica content is always English: titles and notes you create or edit must be in "
     "English, so translate the user's words. When the user refers to a task in another "
@@ -50,7 +52,7 @@ def build_system_prompt(
 ) -> str:
     parts = [
         ROLE,
-        f"Reply in {LANGUAGE_NAMES.get(language, 'English')}. {OVERRIDE_RULE}",
+        f"Reply in {LANGUAGE_NAMES.get(language, 'English')}. {OVERRIDE_RULE} {DATE_RULE}",
         CONTENT_RULE,
         TOOL_RULE,
         clock_line(now, tz, stats),
@@ -69,7 +71,7 @@ def build_system_prompt(
 
 def clock_line(now: datetime, tz: ZoneInfo, stats: UserStats | None) -> str:
     local = now.astimezone(tz)
-    line = f"Now: {local.strftime('%A %Y-%m-%d %H:%M')} ({tz.key})."
+    line = f"Now: {local.strftime('%A')} {format_moment(local)} ({tz.key})."
     if stats is not None:
         line += f" The Habitica day starts at {stats.day_start:02d}:00."
     return line
@@ -102,7 +104,7 @@ def task_state(task: Task, tz: ZoneInfo) -> str:
         done = "done" if task.completed else "not done"
         return f"{due}, {done}, streak {task.streak or 0}"
     if task.type == "todo" and (day := due_day(task, tz)) is not None:
-        return f"due {day.isoformat()}"
+        return f"due {format_day(day)}"
     return ""
 
 

@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from app.collector.snapshots import collect_if_stale
-from app.core.i18n import t
+from app.core.i18n import format_day, format_moment, parse_day, t
 from app.core.replies import Button
 from app.core.state import get_state, set_state
 from app.core.tasks import (
@@ -271,7 +271,7 @@ async def get_stats(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolRe
             "gp": round(user.gp, 1),
             "lvl": user.lvl,
             "class": user.class_name,
-            "as_of": snapshot.taken_at.astimezone(turn.tz).strftime("%Y-%m-%d %H:%M"),
+            "as_of": format_moment(snapshot.taken_at.astimezone(turn.tz)),
         }
     )
 
@@ -310,9 +310,9 @@ def optional_fields(args: dict[str, Any], task_type: str, tz: ZoneInfo) -> dict[
 
 def parse_date(value: Any) -> date:
     try:
-        return date.fromisoformat(str(value))
+        return parse_day(str(value))
     except ValueError as problem:
-        raise ToolArgumentError("due_date must be YYYY-MM-DD") from problem
+        raise ToolArgumentError("due_date must be DD.MM.YYYY or YYYY-MM-DD") from problem
 
 
 def repeat_from_days(days: Any) -> dict[str, bool]:
@@ -332,7 +332,7 @@ def task_summary(task: Task, tz: ZoneInfo) -> dict[str, Any]:
     if task.notes:
         summary["notes"] = task.notes
     if (day := due_day(task, tz)) is not None:
-        summary["due"] = day.isoformat()
+        summary["due"] = format_day(day)
     return summary
 
 
@@ -398,7 +398,10 @@ TOOLS: dict[str, Tool] = {
                     "type": {"type": "string", "enum": ["habit", "daily", "todo"]},
                     "text": {"type": "string", "description": "Title, in English."},
                     "notes": {"type": "string"},
-                    "due_date": {"type": "string", "description": "YYYY-MM-DD; todos only."},
+                    "due_date": {
+                        "type": "string",
+                        "description": "DD.MM.YYYY or YYYY-MM-DD; todos only.",
+                    },
                     "difficulty": {
                         "type": "string",
                         "enum": ["trivial", "easy", "medium", "hard"],
@@ -422,7 +425,10 @@ TOOLS: dict[str, Tool] = {
                     "task_id": TASK_ID,
                     "text": {"type": "string", "description": "New title, in English."},
                     "notes": {"type": "string"},
-                    "due_date": {"type": "string", "description": "YYYY-MM-DD; todos only."},
+                    "due_date": {
+                        "type": "string",
+                        "description": "DD.MM.YYYY or YYYY-MM-DD; todos only.",
+                    },
                     "difficulty": {
                         "type": "string",
                         "enum": ["trivial", "easy", "medium", "hard"],

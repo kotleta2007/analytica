@@ -108,7 +108,7 @@ async def test_list_tasks_reads_due_days_in_the_users_timezone(db_path: Path) ->
     async with TurnScope(client) as turn:
         result = await tools.dispatch(turn, call("list_tasks", type="todo"))
 
-    assert result.content["tasks"][0]["due"] == "2026-09-14"
+    assert result.content["tasks"][0]["due"] == "14.09.2026"
 
 
 async def test_get_stats_reads_the_snapshot(seeded: FakeHabiticaClient) -> None:
@@ -118,7 +118,7 @@ async def test_get_stats_reads_the_snapshot(seeded: FakeHabiticaClient) -> None:
     user = seeded.user
     assert result.content["hp"] == round(user.hp, 1)
     assert result.content["lvl"] == user.lvl
-    assert result.content["as_of"] == "2026-09-13 12:00"
+    assert result.content["as_of"] == "13.09.2026 12:00"
     assert seeded.called("get_user") == []  # the snapshot is fresh
 
 
@@ -171,8 +171,17 @@ async def test_create_todo_with_due_date_and_difficulty(seeded: FakeHabiticaClie
         {"type": "todo", "text": "Buy bread", "date": "2026-09-13T22:00:00+00:00", "priority": 2.0}
     ]
     created = result.content["created"]
-    assert (created["type"], created["text"], created["due"]) == ("todo", "Buy bread", "2026-09-14")
+    assert (created["type"], created["text"], created["due"]) == ("todo", "Buy bread", "14.09.2026")
     assert result.changed_tasks is True
+
+
+async def test_due_date_is_accepted_in_european_form_too(seeded: FakeHabiticaClient) -> None:
+    async with TurnScope(seeded) as turn:
+        await tools.dispatch(
+            turn, call("create_task", type="todo", text="Buy bread", due_date="14.09.2026")
+        )
+
+    assert seeded.called("create_task")[0]["date"] == "2026-09-13T22:00:00+00:00"
 
 
 async def test_create_habit_is_positive_only_by_default(seeded: FakeHabiticaClient) -> None:
@@ -200,7 +209,7 @@ async def test_create_daily_on_chosen_weekdays(seeded: FakeHabiticaClient) -> No
     ("arguments", "message"),
     [
         ({"type": "daily", "text": "X", "due_date": "2026-09-14"}, "only todos have a due date"),
-        ({"type": "todo", "text": "X", "due_date": "tomorrow"}, "due_date must be YYYY-MM-DD"),
+        ({"type": "todo", "text": "X", "due_date": "tomorrow"}, "due_date must be DD.MM.YYYY"),
         ({"type": "todo", "text": "X", "difficulty": "brutal"}, "difficulty must be"),
         ({"type": "todo", "text": "X", "repeat_days": ["mon"]}, "only dailies have repeat_days"),
         ({"type": "todo"}, "text is required"),

@@ -49,6 +49,13 @@ def test_language_and_override_rule() -> None:
     assert "Reply in Russian." in build(language="ru")
 
 
+def test_dates_are_european_and_the_model_is_told_so() -> None:
+    prompt = build()
+
+    assert "Write dates as DD.MM.YYYY (31.12.2026)" in prompt
+    assert "2026-09" not in prompt  # no ISO date anywhere the model could copy from
+
+
 def test_english_content_rule_is_present() -> None:
     prompt = build()
 
@@ -62,7 +69,7 @@ def test_task_list_is_one_compact_line_per_task_with_short_ids() -> None:
 
     assert "- d1a2b3c4 daily · Vacuum the floors · due today, not done, streak 4" in prompt
     assert "- ab1a2b3c habit · Workout\n" in prompt
-    assert "- 70d0aaaa todo · Buy milk · due 2026-09-14" in prompt
+    assert "- 70d0aaaa todo · Buy milk · due 14.09.2026" in prompt
     assert "d1a2b3c4-0000" not in prompt  # never the full UUID
 
 
@@ -70,7 +77,7 @@ def test_clock_stats_and_day_start() -> None:
     prompt = build()
     user = user_stats_from_json(load_data("user"))
 
-    assert "Now: Sunday 2026-09-13 12:00 (Europe/Zurich)." in prompt
+    assert "Now: Sunday 13.09.2026 12:00 (Europe/Zurich)." in prompt
     assert f"The Habitica day starts at {user.day_start:02d}:00." in prompt
     assert f"Stats: HP {user.hp:.0f}/{user.max_hp} · MP {user.mp:.0f}/{user.max_mp}" in prompt
     assert f"level {user.lvl} {user.class_name}" in prompt
@@ -117,5 +124,5 @@ def test_due_day_is_read_in_the_users_timezone() -> None:
         date="2026-09-13T22:00:00.000Z",
     )
 
-    assert task_line(letter, TZ) == "- bbbbbbbb todo · Take letter · due 2026-09-14"
-    assert task_line(letter, ZoneInfo("UTC")) == "- bbbbbbbb todo · Take letter · due 2026-09-13"
+    assert task_line(letter, TZ) == "- bbbbbbbb todo · Take letter · due 14.09.2026"
+    assert task_line(letter, ZoneInfo("UTC")) == "- bbbbbbbb todo · Take letter · due 13.09.2026"

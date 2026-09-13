@@ -6,8 +6,32 @@ active language. Keys are plain text; adapters send them without markup, so a
 task name with `*` or `_` in it never breaks a message.
 """
 
+from datetime import date, datetime
+
 LANGUAGES = ("en", "ru", "fr")
 DEFAULT_LANGUAGE = "en"
+
+# Dates are shown the European way in every language: 31.12.2026.
+DATE_FORMAT = "%d.%m.%Y"
+
+
+def format_day(day: date) -> str:
+    return day.strftime(DATE_FORMAT)
+
+
+def format_moment(moment: datetime) -> str:
+    """`31.12.2026 14:05`; the caller converts to the user's timezone first."""
+    return moment.strftime(f"{DATE_FORMAT} %H:%M")
+
+
+def parse_day(value: str) -> date:
+    """Accepts `31.12.2026` and `2026-12-31`; raises ValueError otherwise."""
+    text = value.strip()
+    try:
+        return datetime.strptime(text, DATE_FORMAT).date()
+    except ValueError:
+        return date.fromisoformat(text)
+
 
 STRINGS: dict[str, dict[str, str]] = {
     "welcome": {
