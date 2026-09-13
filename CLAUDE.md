@@ -137,7 +137,7 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Web/API | FastAPI | health, Habitica webhook receiver, Telegram webhook receiver |
 | DB | SQLite | one file, `data/analytica.db`, WAL mode. SQLAlchemy 2 (async, `aiosqlite`) + Alembic (batch mode). Backup = copy the file. |
 | Analytics | polars | all stats. Load rows via SQLAlchemy, build `pl.DataFrame` from them — no extra connector. |
-| Charts | seaborn/matplotlib → PNG for Telegram; `plotext` for the terminal | one `ChartData` object, two renderers |
+| Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
 | LLM | OpenRouter | `openai` SDK with `base_url=https://openrouter.ai/api/v1`. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
 | ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | chat completions with an `input_audio` content part (base64); auto language detection; a text part carries context (task names, Habitica vocabulary) to bias recognition. One key for everything. |
@@ -182,6 +182,7 @@ analytica/
 │   │   ├── harness.py           # text_message_received(), voice_message_received(), button_pressed(), command_received()
 │   │   ├── replies.py           # Reply, Button, ChartData dataclasses
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
+│   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
 │   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /target /challenges /plan /sync
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
 │   │   ├── outbound.py          # send_to_user() hook for scheduled messages
@@ -261,11 +262,14 @@ class Reply:
     chart: ChartData | None = None
     voice: bytes | None = None     # opus audio, when TTS is on for this reply
 
-# core/harness.py
-async def text_message_received(user: User, text: str) -> Reply: ...
-async def voice_message_received(user: User, audio: bytes, mime_type: str) -> Reply: ...
-async def button_pressed(user: User, action: str, payload: dict) -> Reply: ...
-async def command_received(user: User, command: str, args: str) -> Reply: ...
+# core/harness.py — the external clients live on the dataclass so adapters and tests inject fakes
+@dataclass
+class Harness:
+    habitica: HabiticaClient
+    async def text_message_received(self, user: User, text: str) -> Reply: ...
+    async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply: ...
+    async def button_pressed(self, user: User, action: str, payload: dict) -> Reply: ...
+    async def command_received(self, user: User, command: str, args: str) -> Reply: ...
 ```
 
 Rules:
@@ -380,6 +384,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 - `asr_glossary(id, user_id, term, added_from, created_at)` — F1
 - `aspirations(...)`, `aspiration_tasks(...)` — F7e
 - `conversation_state(user_id, state, payload, updated_at)`
+- `telegram_buttons(id, user_id, action, payload, created_at)` — adapter-only: Telegram callback data is capped at 64 bytes, so an inline button carries this row's id and the action/payload live here
 - `calendar_links(id, task_id, event_id, calendar_id, done, last_sync_at)`
 
 **Jobs**

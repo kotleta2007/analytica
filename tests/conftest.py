@@ -13,10 +13,32 @@ import pytest
 from alembic.config import Config
 
 from alembic import command
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.db import engine as engine_module
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Credentials a developer may have in .env or exported in the shell. Tests set
+# what they need themselves; with these present the app lifespan would start
+# the real collector and the real Telegram bot.
+CREDENTIAL_VARIABLES = (
+    "HABITICA_USER_ID",
+    "HABITICA_API_TOKEN",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_ALLOWED_USER_IDS",
+    "TELEGRAM_MODE",
+    "PUBLIC_BASE_URL",
+    "WEBHOOK_SECRET",
+    "OPENROUTER_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_dotenv_and_no_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+    for name in CREDENTIAL_VARIABLES:
+        monkeypatch.delenv(name, raising=False)
+    _reset_caches()
 
 
 def _reset_caches() -> None:

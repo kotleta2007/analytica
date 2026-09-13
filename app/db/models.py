@@ -190,3 +190,44 @@ class UserSettings(Base):
     last_reminder_day: Mapped[date | None] = mapped_column(Date, nullable=True)
     dismissed_proposals: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     recent_suggestions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+
+
+class ConversationState(Base):
+    """What the bot is waiting for from this user, if anything."""
+
+    __tablename__ = "conversation_state"
+
+    user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    state: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(UtcDateTime)
+
+
+class Message(Base):
+    """The chat log, both directions.
+
+    direction: in | out
+    kind: text | command | button | voice
+    """
+
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
+    direction: Mapped[str] = mapped_column(String(3))
+    kind: Mapped[str] = mapped_column(String(8))
+    text: Mapped[str] = mapped_column(Text)
+
+
+class TelegramButton(Base):
+    """One rendered inline button. Telegram callback data is capped at 64 bytes,
+    so the callback carries this row's id and the action and payload live here."""
+
+    __tablename__ = "telegram_buttons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    action: Mapped[str] = mapped_column(String(64))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime)
