@@ -46,6 +46,7 @@ def build_system_prompt(
     tasks: list[KnownTask],
     recent_summaries: list[str],
     session_topic: str | None = None,
+    session_summary: str | None = None,
 ) -> str:
     parts = [
         ROLE,
@@ -61,6 +62,8 @@ def build_system_prompt(
         parts.append("Recent context, most recent first:\n" + bullets(recent_summaries))
     if session_topic:
         parts.append(f"This is a planning session about: {session_topic}.")
+    if session_summary:
+        parts.append("Earlier in this conversation (summarised):\n" + session_summary.strip())
     return "\n\n".join(parts)
 
 

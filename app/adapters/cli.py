@@ -25,6 +25,7 @@ from app.core.harness import Harness
 from app.core.replies import Button, Reply, User
 from app.db.engine import dispose_engine
 from app.habitica.client import client_from_settings
+from app.llm.client import client_from_settings as llm_client_from_settings
 
 logger = logging.getLogger(__name__)
 
@@ -117,9 +118,12 @@ async def main() -> None:
     settings = get_settings()
     logging.basicConfig(level="WARNING", format="%(levelname)s %(name)s %(message)s")
     await migrate()
+    llm = llm_client_from_settings()
     async with client_from_settings() as client:
-        cli = Cli(harness=Harness(habitica=client), user=User(settings.habitica_user_id))
+        cli = Cli(harness=Harness(habitica=client, llm=llm), user=User(settings.habitica_user_id))
         await cli.run()
+    if llm is not None:
+        await llm.aclose()
     await dispose_engine()
 
 

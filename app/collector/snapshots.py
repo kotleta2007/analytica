@@ -3,6 +3,11 @@
 Every round writes one `user_snapshots` row and one `task_snapshots` row per
 task. Task JSON goes through `raw_blobs`, so a task that did not change costs
 a pointer, not another copy. Collect everything; decide what to use later.
+
+`source` names who caused the events a round finds: `snapshot_diff` for the
+scheduled rounds, `bot` for the round the harness runs right after a tool
+changed a task — that round's diff *is* the record of what the bot did, and
+the next scheduled round then sees no change and records nothing twice.
 """
 
 import logging
@@ -60,13 +65,20 @@ class CollectOutcome:
 
 
 async def collect(
-    client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
+    client: HabiticaClient,
+    session: AsyncSession,
+    user_id: str,
+    now: datetime,
+    *,
+    source: str = SOURCE,
 ) -> CollectOutcome:
     """One collection round: user first, then tasks. What the scheduler calls."""
     last_cron_before = await latest_last_cron(session, user_id)
     user_snapshot = await snapshot_user(client, session, user_id, now)
     cron_ran = user_snapshot.raw.get("lastCron") != last_cron_before
-    tasks = await snapshot_tasks(client, session, user_id, now, reset_by_cron=cron_ran)
+    tasks = await snapshot_tasks(
+        client, session, user_id, now, reset_by_cron=cron_ran, source=source
+    )
     return CollectOutcome(user=user_snapshot, tasks=tasks, cron_ran=cron_ran)
 
 
@@ -109,6 +121,7 @@ async def snapshot_tasks(
     now: datetime,
     *,
     reset_by_cron: bool = False,
+    source: str = SOURCE,
 ) -> SnapshotOutcome:
     """Upsert `tasks`, write a `task_snapshots` row per task, diff into `task_events`.
 
@@ -135,14 +148,14 @@ async def snapshot_tasks(
             session.add(row)
             await session.flush()
             rows[task.id] = row
-            outcome.events.append(created_event(row, task, now))
+            outcome.events.append(created_event(row, task, now, source))
         else:
-            outcome.events.extend(update_events(row, task, now))
+            outcome.events.extend(update_events(row, task, now, source))
             refresh_task_row(row, task, now)
 
         before = previous.get(row.id)
         if before is not None:
-            outcome.events.extend(diff_events(row, before, task, now, reset_by_cron))
+            outcome.events.extend(diff_events(row, before, task, now, reset_by_cron, source))
         session.add(task_snapshot(row, task, user_id, now, raw_hash))
         if before is None or before.raw_hash != raw_hash:
             outcome.changed += 1
@@ -156,7 +169,7 @@ async def snapshot_tasks(
             continue  # Habitica purges old completed todos; that is not the user deleting one
         outcome.events.append(
             TaskEvent(
-                user_id=user_id, task_id=row.id, at=now, kind="deleted", source=SOURCE, raw=None
+                user_id=user_id, task_id=row.id, at=now, kind="deleted", source=source, raw=None
             )
         )
 
@@ -229,19 +242,19 @@ def task_snapshot(
     )
 
 
-def created_event(row: TaskRow, task: Task, now: datetime) -> TaskEvent:
+def created_event(row: TaskRow, task: Task, now: datetime, source: str = SOURCE) -> TaskEvent:
     """A task we have never seen. Its own `createdAt` is the honest timestamp."""
     return TaskEvent(
         user_id=row.user_id,
         task_id=row.id,
         at=task.created_at,
         kind="created",
-        source=SOURCE,
+        source=source,
         raw={"first_seen_at": now.isoformat()},
     )
 
 
-def update_events(row: TaskRow, task: Task, now: datetime) -> list[TaskEvent]:
+def update_events(row: TaskRow, task: Task, now: datetime, source: str = SOURCE) -> list[TaskEvent]:
     """Text or notes changed since we last stored the task."""
     changes: dict[str, Any] = {}
     if row.text != task.text:
@@ -252,20 +265,25 @@ def update_events(row: TaskRow, task: Task, now: datetime) -> list[TaskEvent]:
         return []
     return [
         TaskEvent(
-            user_id=row.user_id, task_id=row.id, at=now, kind="updated", source=SOURCE, raw=changes
+            user_id=row.user_id, task_id=row.id, at=now, kind="updated", source=source, raw=changes
         )
     ]
 
 
 def diff_events(
-    row: TaskRow, before: TaskSnapshot, task: Task, now: datetime, reset_by_cron: bool = False
+    row: TaskRow,
+    before: TaskSnapshot,
+    task: Task,
+    now: datetime,
+    reset_by_cron: bool = False,
+    source: str = SOURCE,
 ) -> list[TaskEvent]:
     """What happened between the previous snapshot and this one."""
     events: list[TaskEvent] = []
 
     def event(kind: str, **fields: Any) -> TaskEvent:
         return TaskEvent(
-            user_id=row.user_id, task_id=row.id, at=now, kind=kind, source=SOURCE, **fields
+            user_id=row.user_id, task_id=row.id, at=now, kind=kind, source=source, **fields
         )
 
     if task.type in ("daily", "todo") and before.completed != task.completed:

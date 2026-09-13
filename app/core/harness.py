@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core import commands
+from app.core import commands, conversation
 from app.core.i18n import t
 from app.core.replies import Reply, User
 from app.core.turn import Turn, load_settings
@@ -49,7 +49,7 @@ class Harness:
         async def handle(turn: Turn) -> Reply:
             if not text.strip():
                 return Reply(t("unsupported_message", turn.language))
-            return Reply(t("no_llm_yet", turn.language))
+            return await conversation.answer(turn, text.strip())
 
         return await self._turn(user, "text", text, handle)
 
@@ -61,13 +61,20 @@ class Harness:
 
     async def button_pressed(self, user: User, action: str, payload: dict[str, Any]) -> Reply:
         async def handle(turn: Turn) -> Reply:
+            if action == conversation.tools.CONFIRM_ACTION:
+                return await conversation.confirm(turn, payload)
+            if action == conversation.tools.CANCEL_ACTION:
+                return await conversation.cancel(turn, payload)
             return Reply(t("unknown_button", turn.language))
 
         return await self._turn(user, "button", action, handle)
 
     async def command_received(self, user: User, command: str, args: str) -> Reply:
         async def handle(turn: Turn) -> Reply:
-            return await commands.run(turn, command, args)
+            dropped = await conversation.drop_pending(turn)
+            reply = await commands.run(turn, command, args)
+            reply.text = conversation.prefix(dropped, reply.text)
+            return reply
 
         return await self._turn(user, "command", f"/{command} {args}".strip(), handle)
 

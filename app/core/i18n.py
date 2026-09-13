@@ -91,11 +91,28 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Укажи тему сессии: /session planning выучить латынь",
         "fr": "Donne un sujet à la session : /session planning apprendre le latin",
     },
-    "no_llm_yet": {
-        "en": "I can't hold a conversation yet — that comes in a later version. Try /help.",
-        "ru": "Разговаривать я пока не умею — это появится в следующей версии. Попробуй /help.",
-        "fr": "Je ne sais pas encore discuter — ça viendra dans une prochaine version. "
-        "Essaie /help.",
+    "llm_not_configured": {
+        "en": "I can't hold a conversation on this install: OPENROUTER_API_KEY is not set. "
+        "Commands still work — try /help.",
+        "ru": "Разговаривать на этой установке я не могу: не задан OPENROUTER_API_KEY. "
+        "Команды работают — попробуй /help.",
+        "fr": "Je ne peux pas discuter sur cette installation : OPENROUTER_API_KEY n'est pas "
+        "défini. Les commandes marchent — essaie /help.",
+    },
+    "llm_error": {
+        "en": "The model didn't answer: {error}",
+        "ru": "Модель не ответила: {error}",
+        "fr": "Le modèle n'a pas répondu : {error}",
+    },
+    "llm_empty_reply": {
+        "en": "(The model returned an empty answer. Try rephrasing.)",
+        "ru": "(Модель вернула пустой ответ. Попробуй переформулировать.)",
+        "fr": "(Le modèle a renvoyé une réponse vide. Essaie de reformuler.)",
+    },
+    "action_failed": {
+        "en": "Couldn't {action}: {error}",
+        "ru": "Не удалось {action}: {error}",
+        "fr": "Impossible de {action} : {error}",
     },
     "voice_not_yet": {
         "en": "Voice messages come in a later version. Please type for now.",

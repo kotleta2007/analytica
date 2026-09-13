@@ -197,16 +197,16 @@ And the same works in the CLI without Telegram
 - [x] 2. `app/llm/tools.py`: schemas + dispatch for `list_tasks`, `score_task`, `create_task`, `update_task`, `delete_task`, `get_stats`. Tools flagged as destructive return `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. — `feat(p03): habitica tools and confirm mechanism`
 - [x] 3. `app/llm/prompts.py`: system prompt builder — role, active language + per-message override rule, "Habitica content is English; translate when creating, match semantically when the user speaks RU/FR", compact stats line, compact task list. — `feat(p03): system prompt builder`
 - [x] 4. `app/core/sessions.py`: `sessions` table, `messages.session_id`; open/append/close with idle limits (quick 15 min); replay a session into prompt messages; close writes a ≤3-line summary with the cheap model; last 3 summaries go into the system prompt as "Recent context"; token budget collapses the oldest half. `/new`, `/session`. Migration. — `feat(p03): sessions and recent-context summaries`
-- [ ] 5. Harness: `text_message_received` → session → tool loop (max 6 rounds) → `Reply`. After any task-changing tool: `snapshot_tasks()` and a `task_events` row with `source=bot`. — `feat(p03): llm turn in the harness`
+- [x] 5. Harness: `text_message_received` → session → tool loop (max 6 rounds) → `Reply`. After any task-changing tool: `snapshot_tasks()` and a `task_events` row with `source=bot`. — `feat(p03): llm turn in the harness`
 - [ ] 6. `/model` shows strong/cheap with calls, cost, avg latency from `llm_calls`; `/model cheap|strong` switches for this user. — `feat(p03): model switching and comparison`
 
 **Tests**
 
-- [ ] `FakeLlm` with scripted tool calls; assert dispatch, snapshot after change, `task_events` row, final text. — `test(p03): tool loop`
-- [ ] Prompt builder: override sentence present; task list compact; English-only rule present. — `test(p03): prompt builder`
-- [ ] `llm_calls` row on success and on error. — `test(p03): llm telemetry`
-- [ ] `delete_task` → confirm buttons; **Do it** deletes; **Cancel** or any other message cancels. — `test(p03): destructive confirm`
-- [ ] Sessions: a message 16 min after the last one starts a new session and the old one has a summary; the summary appears in the next prompt; `/new` closes immediately; over-budget session is collapsed. — `test(p03): session lifecycle`
+- [x] `FakeLlm` with scripted tool calls; assert dispatch, snapshot after change, `task_events` row, final text. — `test(p03): tool loop`
+- [x] Prompt builder: override sentence present; task list compact; English-only rule present. — `test(p03): prompt builder`
+- [x] `llm_calls` row on success and on error. — `test(p03): llm telemetry`
+- [x] `delete_task` → confirm buttons; **Do it** deletes; **Cancel** or any other message cancels. — `test(p03): destructive confirm`
+- [x] Sessions: a message 16 min after the last one starts a new session and the old one has a summary; the summary appears in the next prompt; `/new` closes immediately; over-budget session is collapsed. — `test(p03): session lifecycle`
 
 **Acceptance**
 

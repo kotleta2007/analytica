@@ -122,7 +122,7 @@ async def test_free_text_and_voice_get_the_not_yet_lines(harness: Harness) -> No
     text_reply = await harness.text_message_received(USER, "complete workout")
     voice_reply = await harness.voice_message_received(USER, b"\x00\x01", "audio/ogg")
 
-    assert text_reply.text == t("no_llm_yet", "en")
+    assert text_reply.text == t("llm_not_configured", "en")
     assert voice_reply.text == t("voice_not_yet", "en")
 
 
@@ -147,7 +147,7 @@ async def test_messages_are_logged_in_both_directions(harness: Harness) -> None:
         ("in", "command", "/language ru"),
         ("out", "text", t("language_set", "ru")),
         ("in", "text", "привет"),
-        ("out", "text", t("no_llm_yet", "ru")),
+        ("out", "text", t("llm_not_configured", "ru")),
         ("in", "button", "confirm"),
         ("out", "text", t("unknown_button", "ru")),
     ]
