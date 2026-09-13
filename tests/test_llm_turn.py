@@ -458,3 +458,21 @@ async def test_acceptance_french_vacuum_scores_the_daily_and_is_billed(
         rows = list(await db.scalars(select(LlmCall).order_by(LlmCall.id)))
     assert [row.model for row in rows] == ["z-ai/glm-5.3", "z-ai/glm-5.3"]
     assert all(row.ok and row.cost_usd is not None and row.cost_usd > 0 for row in rows)
+
+
+async def test_a_failed_collection_after_the_action_does_not_hide_the_answer(
+    harness: Harness, habitica: FakeHabiticaClient, llm: FakeLlm, caplog: pytest.LogCaptureFixture
+) -> None:
+    import httpx
+
+    async def unreachable() -> None:
+        raise httpx.ConnectError("connection refused")
+
+    habitica.get_user = unreachable  # type: ignore[method-assign]
+    llm.queue(calls_tool("score_task", task_id="d1a2b3c4", direction="up"), says("Done."))
+
+    reply = await harness.text_message_received(USER, "vacuumed")
+
+    assert reply.text == "Done."
+    assert habitica.called("score_task") == [(DAILY.id, "up")]
+    assert "collection after a bot action failed" in caplog.text

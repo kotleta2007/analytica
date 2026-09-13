@@ -27,7 +27,7 @@ from app.core.turn import Turn, summarizer
 from app.habitica.client import HabiticaError
 from app.habitica.types import UserStats, user_stats_from_json
 from app.llm import tools
-from app.llm.client import LlmError, LlmResult, ToolCall, chat
+from app.llm.client import LlmClient, LlmError, LlmResult, ToolCall, chat
 from app.llm.models import model_id
 from app.llm.prompts import build_system_prompt
 
@@ -49,15 +49,14 @@ async def answer(turn: Turn, text: str) -> Reply:
         sessions.attach(turn.inbound, chat_session, {"role": "user", "content": text})
     await sessions.collapse_if_over_budget(turn.session, chat_session, summarizer(turn))
     try:
-        reply = await run_model(turn, chat_session)
+        reply = await run_model(turn, turn.llm, chat_session)
     except LlmError as error:
         reply = Reply(t("llm_error", turn.language, error=error))
     reply.text = prefix(dropped, reply.text)
     return reply
 
 
-async def run_model(turn: Turn, chat_session: sessions.ChatSession) -> Reply:
-    assert turn.llm is not None
+async def run_model(turn: Turn, llm: LlmClient, chat_session: sessions.ChatSession) -> Reply:
     model = model_id(turn.settings.model)
     messages = [await system_message(turn, chat_session)]
     messages += await sessions.replay(turn.session, chat_session)
@@ -66,7 +65,7 @@ async def run_model(turn: Turn, chat_session: sessions.ChatSession) -> Reply:
 
     for _ in range(MAX_TOOL_ROUNDS):
         result = await chat(
-            turn.llm, turn.session, turn.user.id, turn.now, messages, tools.schemas(), model
+            llm, turn.session, turn.user.id, turn.now, messages, tools.schemas(), model
         )
         if not result.wants_tools:
             break
@@ -75,11 +74,11 @@ async def run_model(turn: Turn, chat_session: sessions.ChatSession) -> Reply:
         await log_round(turn, chat_session, result, tool_messages)
         messages += [result.message, *tool_messages]
         if changed:
-            await collect(turn.habitica, turn.session, turn.user.id, turn.now, source=BOT_SOURCE)
+            await record_change(turn)
     else:
         logger.warning("tool rounds exhausted for user %s; forcing a text answer", turn.user.id)
         result = await chat(
-            turn.llm,
+            llm,
             turn.session,
             turn.user.id,
             turn.now,
@@ -94,6 +93,19 @@ async def run_model(turn: Turn, chat_session: sessions.ChatSession) -> Reply:
         logger.warning("model %s returned an empty answer", model)
         text = t("llm_empty_reply", turn.language)
     return Reply(text, buttons=buttons)
+
+
+async def record_change(turn: Turn) -> None:
+    """The collection round after a bot action: its diff is the bot's `task_events`.
+
+    The action itself already succeeded; a failure here loses attribution, not
+    data (the scheduled round records the change as `snapshot_diff`), so it must
+    not turn a done action into an error for the user.
+    """
+    try:
+        await collect(turn.habitica, turn.session, turn.user.id, turn.now, source=BOT_SOURCE)
+    except (HabiticaError, httpx.HTTPError) as error:
+        logger.warning("collection after a bot action failed: %s", error)
 
 
 async def run_tools(
@@ -180,7 +192,7 @@ async def confirm(turn: Turn, payload: dict[str, Any]) -> Reply:
             t("action_failed", turn.language, action=action, error=outcome.content["error"])
         )
     if outcome.changed_tasks:
-        await collect(turn.habitica, turn.session, turn.user.id, turn.now, source=BOT_SOURCE)
+        await record_change(turn)
     return Reply(t("action_done", turn.language, action=action))
 
 
