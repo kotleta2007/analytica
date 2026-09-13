@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.i18n import format_day, format_moment
 from app.core.tasks import KnownTask, due_day
-from app.habitica.types import Task, UserStats
+from app.habitica.types import Task, UserStats, class_label
 
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian", "fr": "French"}
 
@@ -111,10 +111,12 @@ def clock_line(now: datetime, tz: ZoneInfo, stats: UserStats | None) -> str:
 
 
 def stats_line(stats: UserStats) -> str:
+    """Every derived number is computed here; the model is not trusted with arithmetic."""
     return (
         f"HP {stats.hp:.0f}/{stats.max_hp} · MP {stats.mp:.0f}/{stats.max_mp} · "
-        f"XP {stats.exp:.0f}/{stats.to_next_level} · {stats.gp:.0f} GP · "
-        f"level {stats.lvl} {stats.class_name}"
+        f"XP {stats.exp:.0f}/{stats.to_next_level} ({stats.exp_remaining} more XP to reach "
+        f"level {stats.lvl + 1}) · {stats.gp:.0f} GP · "
+        f"level {stats.lvl} {class_label(stats.class_name)}"
     )
 
 

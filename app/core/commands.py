@@ -21,7 +21,7 @@ from app.core.replies import Reply
 from app.core.turn import Turn, summarizer
 from app.db.models import LlmCall, UserSnapshot
 from app.habitica.client import HabiticaError
-from app.habitica.types import user_stats_from_json
+from app.habitica.types import class_label, user_stats_from_json
 from app.llm.models import MODEL_NAMES, registry
 
 logger = logging.getLogger(__name__)
@@ -211,7 +211,7 @@ def stats_line(turn: Turn, snapshot: UserSnapshot) -> str:
         to_next_level=user.to_next_level,
         gp=fmt(user.gp),
         lvl=user.lvl,
-        class_name=user.class_name,
+        class_name=class_label(user.class_name),
         time=snapshot.taken_at.astimezone(turn.tz).strftime("%H:%M"),
     )
 

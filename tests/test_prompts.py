@@ -94,7 +94,8 @@ def test_clock_stats_and_day_start() -> None:
         f"The user's stats now: HP {user.hp:.0f}/{user.max_hp} · MP {user.mp:.0f}/{user.max_mp}"
         in prompt
     )
-    assert f"level {user.lvl} {user.class_name}" in prompt
+    assert f"level {user.lvl} mage" in prompt  # the API says "wizard"
+    assert f"({user.to_next_level - user.exp:.0f} more XP to reach level {user.lvl + 1})" in prompt
 
 
 def test_without_stats_or_tasks() -> None:

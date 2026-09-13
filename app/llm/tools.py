@@ -37,7 +37,7 @@ from app.core.tasks import (
 )
 from app.core.turn import Turn
 from app.habitica.client import HabiticaError
-from app.habitica.types import Task, user_stats_from_json
+from app.habitica.types import Task, class_label, user_stats_from_json
 from app.llm.client import ToolCall
 
 logger = logging.getLogger(__name__)
@@ -267,10 +267,12 @@ async def get_stats(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolRe
             "mp": round(user.mp, 1),
             "max_mp": user.max_mp,
             "exp": round(user.exp, 1),
-            "exp_to_next_level": user.to_next_level,
+            "exp_needed_for_next_level": user.to_next_level,
+            "exp_remaining_to_next_level": user.exp_remaining,
             "gp": round(user.gp, 1),
             "lvl": user.lvl,
-            "class": user.class_name,
+            "next_lvl": user.lvl + 1,
+            "class": class_label(user.class_name),
             "as_of": format_moment(snapshot.taken_at.astimezone(turn.tz)),
         }
     )

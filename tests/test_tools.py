@@ -118,6 +118,10 @@ async def test_get_stats_reads_the_snapshot(seeded: FakeHabiticaClient) -> None:
     user = seeded.user
     assert result.content["hp"] == round(user.hp, 1)
     assert result.content["lvl"] == user.lvl
+    assert result.content["class"] == "mage"
+    # Arithmetic is done here, not by the model.
+    assert result.content["exp_remaining_to_next_level"] == round(user.to_next_level - user.exp)
+    assert result.content["next_lvl"] == user.lvl + 1
     assert result.content["as_of"] == "13.09.2026 12:00"
     assert seeded.called("get_user") == []  # the snapshot is fresh
 

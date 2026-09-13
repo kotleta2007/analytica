@@ -14,7 +14,7 @@ from app.core.i18n import t
 from app.core.replies import Reply, User
 from app.db.engine import session_scope
 from app.db.models import Message, UserSettings, UserSnapshot
-from app.habitica.types import task_from_json
+from app.habitica.types import class_label, task_from_json
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.habitica_fixtures import load_data
 
@@ -165,7 +165,7 @@ async def test_stats_collects_when_there_is_no_snapshot(
 
     user = fake_client.user
     assert reply.text.startswith(f"❤️ {user.hp:.0f}/{user.max_hp}  🔵 {user.mp:.0f}/{user.max_mp}")
-    assert f"Уровень {user.lvl}, {user.class_name} · на 14:30" in reply.text
+    assert f"Уровень {user.lvl}, {class_label(user.class_name)} · на 14:30" in reply.text
     assert fake_client.called("get_user") == [None]
     async with session_scope() as session:
         assert await session.scalar(select(UserSnapshot)) is not None

@@ -12,7 +12,7 @@ from app.analytics.charts import to_terminal
 from app.core.harness import Harness
 from app.core.i18n import t
 from app.core.replies import Button, ChartData, Reply, User
-from app.habitica.types import task_from_json
+from app.habitica.types import class_label, task_from_json
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.fakes.llm import FakeLlm, calls_tool, says
 from tests.habitica_fixtures import load_data
@@ -51,7 +51,7 @@ async def test_language_then_stats_in_russian(cli: Cli, fake_client: FakeHabitic
 
     user = fake_client.user
     assert shown.startswith(f"❤️ {user.hp:.0f}/{user.max_hp}")
-    assert f"Уровень {user.lvl}, {user.class_name} · на 14:30" in shown
+    assert f"Уровень {user.lvl}, {class_label(user.class_name)} · на 14:30" in shown
     assert fake_client.called("get_user") == [None]
 
 
