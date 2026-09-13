@@ -185,6 +185,8 @@ analytica/
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
 │   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /target /challenges /plan /sync
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
+│   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
+│   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
 │   │   ├── outbound.py          # send_to_user() hook for scheduled messages
 │   │   └── i18n.py              # fixed strings in en/ru/fr
 │   ├── llm/
@@ -266,6 +268,7 @@ class Reply:
 @dataclass
 class Harness:
     habitica: HabiticaClient
+    llm: LlmClient | None = None   # None when OPENROUTER_API_KEY is unset: commands work, free text is refused
     async def text_message_received(self, user: User, text: str) -> Reply: ...
     async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply: ...
     async def button_pressed(self, user: User, action: str, payload: dict) -> Reply: ...
@@ -330,7 +333,7 @@ Transcripts are stored (`transcriptions` table: raw, cleaned, accepted) so both 
 
 The model never gets the whole chat history; it gets a **session**.
 
-- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary)`, `kind ∈ {quick, planning}`. Each `messages` row carries a `session_id` and the LLM-formatted turn (role, content, tool calls) as JSON, so a session can be replayed into a prompt.
+- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary, collapsed_summary, collapsed_through_id)`, `kind ∈ {quick, planning}`. Each `messages` row that belongs to a session carries its `session_id` and the LLM-formatted message (role, content, tool calls) in `llm`, so a session can be replayed into a prompt; tool calls and tool results are rows of `kind=tool`.
 - A message arrives → if the user's open session is within its idle limit, append to it; otherwise close it (below) and open a new `quick` one. Idle limits: `quick` 15 min, `planning` 120 min (config).
 - **Planning sessions** are for long conversations — designing the tasks for a new aspiration, reworking a week. Opened by the model via the `start_planning_session(topic)` tool when it recognises the intent, or by the user (`/session planning <topic>`). Closed by the model via `end_session()` once the plan is committed, by the user (`/new`), or by the idle limit.
 - **Closing a session**: the cheap model writes a ≤ 3-line summary ("Discussed learning Latin; agreed on habit *Latin vocab 10 min* and todo *Buy Wheelock*; grammar deferred"), stored on the row. The next system prompts include the last 3 summaries under "Recent context", so continuity survives the reset without carrying the transcript.
@@ -376,11 +379,11 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 - `llm_calls(id, user_id, at, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, tool_calls, ok, error)`
 - `transcriptions(id, user_id, at, provider, model, raw_text, accepted_text, language, latency_ms)`
 - `tts_calls(id, user_id, at, provider, model, chars, latency_ms)`
-- `messages(id, user_id, at, direction, kind, text)` — chat log
+- `messages(id, user_id, at, direction, kind, text, session_id, llm)` — chat log; `session_id` and `llm` (the model-format message) only on rows that belong to a session
 - `user_settings(user_id, language, model, tts, reminder_time, gear_int, gear_per, gear_con, last_reminder_day, dismissed_proposals, recent_suggestions)`
 - `weekly_targets(id, user_id, habit_task_id, daily_task_id, per_week, created_at)`, `weekly_target_weeks(id, target_id, week_start, count, met, sessions_json)`
 - `task_durations(task_id, minutes, source)` — user-stated estimates for the planner
-- `sessions(...)`, `messages.session_id` — F1b
+- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary, collapsed_summary, collapsed_through_id)` — F1b; the last two hold the running summary once a session outgrows its token budget, and the id of the last message it stands for
 - `asr_glossary(id, user_id, term, added_from, created_at)` — F1
 - `aspirations(...)`, `aspiration_tasks(...)` — F7e
 - `conversation_state(user_id, state, payload, updated_at)`
@@ -408,7 +411,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 |---|---|---|
 | `list_tasks(type?)` | tasks with ids | |
 | `score_task(task_id, direction)` | complete a daily/todo, +/- a habit | |
-| `create_task(type, text, notes?, due_date?, difficulty?)` | English text only | |
+| `create_task(type, text, notes?, due_date?, difficulty?, repeat_days?)` | English text only; `repeat_days` for dailies on chosen weekdays | |
 | `update_task(...)` | | |
 | `delete_task(task_id)` | | **yes** |
 | `get_stats()` | hp/mp/exp/gp/lvl | |

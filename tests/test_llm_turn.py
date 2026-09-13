@@ -431,3 +431,30 @@ async def test_model_counts_failed_calls(harness: Harness, llm: FakeLlm) -> None
     shown = await harness.command_received(USER, "model", "")
 
     assert "● strong z-ai/glm-5.3 — 2 calls (1 failed), $0.0001," in shown.text
+
+
+# ---- acceptance ----
+
+
+async def test_acceptance_french_vacuum_scores_the_daily_and_is_billed(
+    harness: Harness, habitica: FakeHabiticaClient, llm: FakeLlm
+) -> None:
+    """Given a daily "Vacuum the floors", "j'ai passé l'aspirateur" with language=fr
+    scores it up, answers in French, and leaves a billed llm_calls row for the strong model."""
+    await harness.command_received(USER, "language", "fr")
+    llm.queue(
+        calls_tool("score_task", task_id="d1a2b3c4", direction="up"),
+        says("C'est noté : « Vacuum the floors » est fait."),
+    )
+
+    reply = await harness.text_message_received(USER, "j'ai passé l'aspirateur")
+
+    assert habitica.called("score_task") == [(DAILY.id, "up")]
+    assert reply.text == "C'est noté : « Vacuum the floors » est fait."
+    assert "Reply in French." in llm.calls[0].system
+    async with session_scope() as db:
+        from app.db.models import LlmCall
+
+        rows = list(await db.scalars(select(LlmCall).order_by(LlmCall.id)))
+    assert [row.model for row in rows] == ["z-ai/glm-5.3", "z-ai/glm-5.3"]
+    assert all(row.ok and row.cost_usd is not None and row.cost_usd > 0 for row in rows)
