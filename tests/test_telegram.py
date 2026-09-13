@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 import pytest
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import (
     AnswerCallbackQuery,
     DeleteWebhook,
@@ -23,7 +24,7 @@ from app.adapters.telegram.bot import (
     start_telegram_if_configured,
     store_buttons,
 )
-from app.adapters.telegram.render import keyboard, send_reply, split_text
+from app.adapters.telegram.render import keyboard, send_reply, split_text, to_html
 from app.config import get_settings
 from app.core.replies import Button, ChartData, Reply, User
 from tests.fakes.telegram import RecordingSession, recording_bot
@@ -140,7 +141,61 @@ async def test_reply_with_buttons_becomes_a_message_with_a_keyboard() -> None:
     assert sent.chat_id == 42
     assert sent.text == "Delete Workout?"
     assert sent.reply_markup is markup
-    assert bot.default.parse_mode is None  # plain text: task names may contain * and _
+    assert sent.parse_mode == "HTML"
+
+
+async def test_markdown_from_the_model_is_sent_as_telegram_html() -> None:
+    bot, session = recording_bot()
+
+    await send_reply(bot, 42, Reply("Done — **Vacuum the floors** is ticked off."), None)
+
+    (sent,) = session.sent(SendMessage)
+    assert sent.text == "Done — <b>Vacuum the floors</b> is ticked off."
+
+
+async def test_rejected_entities_fall_back_to_plain_text(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    bot, session = recording_bot()
+    original = session.make_request
+
+    async def refuse_html(bot_: Any, method: Any, timeout: int | None = None) -> Any:
+        if isinstance(method, SendMessage) and method.parse_mode == "HTML":
+            session.requests.append(method)
+            raise TelegramBadRequest(
+                method=method, message="Bad Request: can't parse entities: unclosed tag"
+            )
+        return await original(bot_, method, timeout)
+
+    session.make_request = refuse_html  # type: ignore[method-assign]
+    await send_reply(bot, 42, Reply("**odd"), None)
+
+    html, plain = session.sent(SendMessage)
+    assert (html.parse_mode, html.text) == ("HTML", "**odd")
+    assert (plain.parse_mode, plain.text) == (None, "**odd")
+    assert "rejected the formatting" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("markdown", "html"),
+    [
+        ("**8 todos** are overdue", "<b>8 todos</b> are overdue"),
+        ("__strong__ and _soft_ and *soft*", "<b>strong</b> and <i>soft</i> and <i>soft</i>"),
+        ("- Write email\n- Free disk space", "• Write email\n• Free disk space"),
+        ("## Overdue", "<b>Overdue</b>"),
+        ("call `score_task`", "call <code>score_task</code>"),
+        ('```json\n{"a": 1}\n```', "<pre>{&quot;a&quot;: 1}</pre>"),
+        ("[docs](https://habitica.com/x)", '<a href="https://habitica.com/x">docs</a>'),
+        ("~~gone~~", "<s>gone</s>"),
+        # Task names are shown, not parsed.
+        ("HP < 10 & MP > 5", "HP &lt; 10 &amp; MP &gt; 5"),
+        ("snake_case_name, 2 * 3 * 4", "snake_case_name, 2 * 3 * 4"),
+        ("<b>not a tag</b>", "&lt;b&gt;not a tag&lt;/b&gt;"),
+        ("**bold with `code` inside**", "<b>bold with <code>code</code> inside</b>"),
+    ],
+)
+def test_to_html_converts_the_markdown_the_model_writes(markdown: str, html: str) -> None:
+    assert to_html(markdown) == html
 
 
 async def test_chart_becomes_a_photo_with_the_text_as_caption() -> None:
@@ -175,7 +230,7 @@ async def test_long_text_is_split_and_the_keyboard_rides_on_the_last_chunk() -> 
     assert len(sent) == 3  # ~8.9k characters
     assert all(len(s.text) <= 4096 for s in sent)
     assert [s.reply_markup for s in sent] == [None, None, markup]
-    assert "\n".join(s.text for s in sent) == text
+    assert "\n".join(s.text for s in sent) == text  # plain lines: HTML is the same text
 
 
 def test_split_text_prefers_a_newline_and_never_returns_empty() -> None:
