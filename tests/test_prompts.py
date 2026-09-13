@@ -21,8 +21,9 @@ def known(task_type: str, text: str, task_id: str, **fields: object) -> KnownTas
 TASKS = [
     known("daily", "Vacuum the floors", "d1a2b3c4-0000-4000-8000-000000000001", streak=4),
     known("habit", "Workout", "ab1a2b3c-0000-4000-8000-000000000002"),
+    # Habitica stores a due day as local midnight in UTC: due 14/09 in Zurich is 13/09 22:00Z.
     known(
-        "todo", "Buy milk", "70d0aaaa-0000-4000-8000-000000000003", date="2026-09-14T22:00:00.000Z"
+        "todo", "Buy milk", "70d0aaaa-0000-4000-8000-000000000003", date="2026-09-13T22:00:00.000Z"
     ),
 ]
 
@@ -100,7 +101,21 @@ def test_recent_context_and_planning_topic() -> None:
 
 def test_task_line_for_a_done_daily_not_due() -> None:
     line = task_line(
-        known("daily", "Milk", "aaaaaaaa-0000-4000-8000-000000000009", completed=True, isDue=False)
+        known("daily", "Milk", "aaaaaaaa-0000-4000-8000-000000000009", completed=True, isDue=False),
+        TZ,
     )
 
     assert line == "- aaaaaaaa daily · Milk · not due today, done, streak 0"
+
+
+def test_due_day_is_read_in_the_users_timezone() -> None:
+    """Regression: a todo the Habitica app shows as due 14/09 was announced as due 13/09."""
+    letter = known(
+        "todo",
+        "Take letter",
+        "bbbbbbbb-0000-4000-8000-000000000010",
+        date="2026-09-13T22:00:00.000Z",
+    )
+
+    assert task_line(letter, TZ) == "- bbbbbbbb todo · Take letter · due 2026-09-14"
+    assert task_line(letter, ZoneInfo("UTC")) == "- bbbbbbbb todo · Take letter · due 2026-09-13"

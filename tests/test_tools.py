@@ -94,6 +94,23 @@ async def test_list_tasks_filters_by_type_and_rejects_others(seeded: FakeHabitic
     assert bad.content == {"error": "type must be habit, daily or todo"}
 
 
+async def test_list_tasks_reads_due_days_in_the_users_timezone(db_path: Path) -> None:
+    """Regression: `2026-09-13T22:00Z` is due 14/09 in Zurich, and was listed as 13/09."""
+    letter = make_task(
+        "todo",
+        "Take letter",
+        task_id="1e77e400-0000-4000-8000-000000000005",
+        date="2026-09-13T22:00:00.000Z",
+    )
+    client = FakeHabiticaClient(tasks=[letter])
+    async with session_scope() as session:
+        await collect(client, session, USER.id, NOW)
+    async with TurnScope(client) as turn:
+        result = await tools.dispatch(turn, call("list_tasks", type="todo"))
+
+    assert result.content["tasks"][0]["due"] == "2026-09-14"
+
+
 async def test_get_stats_reads_the_snapshot(seeded: FakeHabiticaClient) -> None:
     async with TurnScope(seeded) as turn:
         result = await tools.dispatch(turn, call("get_stats"))
@@ -149,8 +166,9 @@ async def test_create_todo_with_due_date_and_difficulty(seeded: FakeHabiticaClie
             ),
         )
 
+    # Local midnight in UTC, the form Habitica's own UI stores, so the app shows 14/09 too.
     assert seeded.called("create_task") == [
-        {"type": "todo", "text": "Buy bread", "date": "2026-09-14", "priority": 2.0}
+        {"type": "todo", "text": "Buy bread", "date": "2026-09-13T22:00:00+00:00", "priority": 2.0}
     ]
     created = result.content["created"]
     assert (created["type"], created["text"], created["due"]) == ("todo", "Buy bread", "2026-09-14")
@@ -206,7 +224,9 @@ async def test_update_task_sends_only_the_given_fields(seeded: FakeHabiticaClien
         )
         empty = await tools.dispatch(turn, call("update_task", task_id="70d0aaaa"))
 
-    assert seeded.called("update_task") == [(TODO.id, {"notes": "skimmed", "date": "2026-09-20"})]
+    assert seeded.called("update_task") == [
+        (TODO.id, {"notes": "skimmed", "date": "2026-09-19T22:00:00+00:00"})
+    ]
     assert result.content["updated"]["notes"] == "skimmed"
     assert empty.content["error"].startswith("nothing to update")
 

@@ -18,6 +18,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -25,7 +26,15 @@ from app.collector.snapshots import collect_if_stale
 from app.core.i18n import t
 from app.core.replies import Button
 from app.core.state import get_state, set_state
-from app.core.tasks import KnownTask, TaskNotFound, load_known_tasks, open_tasks, resolve_task
+from app.core.tasks import (
+    KnownTask,
+    TaskNotFound,
+    due_datetime,
+    due_day,
+    load_known_tasks,
+    open_tasks,
+    resolve_task,
+)
 from app.core.turn import Turn
 from app.habitica.client import HabiticaError
 from app.habitica.types import Task, user_stats_from_json
@@ -174,7 +183,7 @@ async def list_tasks(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolR
     if wanted not in (None, "habit", "daily", "todo"):
         raise ToolArgumentError("type must be habit, daily or todo")
     known = open_tasks(await load_known_tasks(turn.session, turn.user.id))
-    tasks = [task_details(k) for k in known if wanted is None or k.task.type == wanted]
+    tasks = [task_details(k, turn.tz) for k in known if wanted is None or k.task.type == wanted]
     return ToolResult({"tasks": tasks, "count": len(tasks)})
 
 
@@ -213,23 +222,23 @@ async def create_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
     if task_type not in ("habit", "daily", "todo"):
         raise ToolArgumentError("type must be habit, daily or todo")
     payload: dict[str, Any] = {"type": task_type, "text": required(args, "text")}
-    payload.update(optional_fields(args, task_type))
+    payload.update(optional_fields(args, task_type, turn.tz))
     if task_type == "habit":
         payload.setdefault("up", True)
         payload.setdefault("down", False)
     task = await turn.habitica.create_task(payload)
-    return ToolResult({"created": task_summary(task)}, changed_tasks=True)
+    return ToolResult({"created": task_summary(task, turn.tz)}, changed_tasks=True)
 
 
 async def update_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
     known = await resolve_task(turn.session, turn.user.id, required(args, "task_id"))
-    payload = optional_fields(args, known.task.type)
+    payload = optional_fields(args, known.task.type, turn.tz)
     if "text" in args:
         payload["text"] = required(args, "text")
     if not payload:
         raise ToolArgumentError("nothing to update: pass text, notes, due_date or difficulty")
     task = await turn.habitica.update_task(known.row.habitica_id, payload)
-    return ToolResult({"updated": task_summary(task)}, changed_tasks=True)
+    return ToolResult({"updated": task_summary(task, turn.tz)}, changed_tasks=True)
 
 
 async def delete_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
@@ -277,7 +286,7 @@ def required(args: dict[str, Any], name: str) -> str:
     return value.strip()
 
 
-def optional_fields(args: dict[str, Any], task_type: str) -> dict[str, Any]:
+def optional_fields(args: dict[str, Any], task_type: str, tz: ZoneInfo) -> dict[str, Any]:
     """The Habitica fields behind the optional arguments create and update share."""
     payload: dict[str, Any] = {}
     if "notes" in args and args["notes"] is not None:
@@ -285,7 +294,8 @@ def optional_fields(args: dict[str, Any], task_type: str) -> dict[str, Any]:
     if args.get("due_date"):
         if task_type != "todo":
             raise ToolArgumentError("only todos have a due date")
-        payload["date"] = parse_date(args["due_date"]).isoformat()
+        # Local midnight in UTC: what Habitica's own UI stores, so the app shows the same day.
+        payload["date"] = due_datetime(parse_date(args["due_date"]), tz).isoformat()
     if args.get("difficulty"):
         if args["difficulty"] not in DIFFICULTY_PRIORITY:
             raise ToolArgumentError("difficulty must be trivial, easy, medium or hard")
@@ -317,18 +327,18 @@ def repeat_from_days(days: Any) -> dict[str, bool]:
     return {key: key in chosen for key in REPEAT_KEYS.values()}
 
 
-def task_summary(task: Task) -> dict[str, Any]:
+def task_summary(task: Task, tz: ZoneInfo) -> dict[str, Any]:
     summary: dict[str, Any] = {"id": task.id[:8], "type": task.type, "text": task.text}
     if task.notes:
         summary["notes"] = task.notes
-    if task.due_date is not None:
-        summary["due"] = task.due_date.date().isoformat()
+    if (day := due_day(task, tz)) is not None:
+        summary["due"] = day.isoformat()
     return summary
 
 
-def task_details(known: KnownTask) -> dict[str, Any]:
+def task_details(known: KnownTask, tz: ZoneInfo) -> dict[str, Any]:
     task = known.task
-    details = task_summary(task)
+    details = task_summary(task, tz)
     details["id"] = known.short_id
     if task.type == "daily":
         details["due_today"] = bool(task.is_due)

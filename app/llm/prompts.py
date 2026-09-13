@@ -9,7 +9,7 @@ last few closed sessions.
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.core.tasks import KnownTask
+from app.core.tasks import KnownTask, due_day
 from app.habitica.types import Task, UserStats
 
 LANGUAGE_NAMES = {"en": "English", "ru": "Russian", "fr": "French"}
@@ -57,7 +57,7 @@ def build_system_prompt(
     ]
     if stats is not None:
         parts.append("Stats: " + stats_line(stats))
-    parts.append(task_list(tasks))
+    parts.append(task_list(tasks, tz))
     if recent_summaries:
         parts.append("Recent context, most recent first:\n" + bullets(recent_summaries))
     if session_topic:
@@ -83,26 +83,26 @@ def stats_line(stats: UserStats) -> str:
     )
 
 
-def task_list(tasks: list[KnownTask]) -> str:
+def task_list(tasks: list[KnownTask], tz: ZoneInfo) -> str:
     if not tasks:
         return "Tasks: none."
-    return "Tasks (id type · text · state):\n" + "\n".join(task_line(k) for k in tasks)
+    return "Tasks (id type · text · state):\n" + "\n".join(task_line(k, tz) for k in tasks)
 
 
-def task_line(known: KnownTask) -> str:
+def task_line(known: KnownTask, tz: ZoneInfo) -> str:
     task = known.task
     line = f"- {known.short_id} {task.type} · {task.text}"
-    state = task_state(task)
+    state = task_state(task, tz)
     return f"{line} · {state}" if state else line
 
 
-def task_state(task: Task) -> str:
+def task_state(task: Task, tz: ZoneInfo) -> str:
     if task.type == "daily":
         due = "due today" if task.is_due else "not due today"
         done = "done" if task.completed else "not done"
         return f"{due}, {done}, streak {task.streak or 0}"
-    if task.type == "todo" and task.due_date is not None:
-        return f"due {task.due_date.date().isoformat()}"
+    if task.type == "todo" and (day := due_day(task, tz)) is not None:
+        return f"due {day.isoformat()}"
     return ""
 
 

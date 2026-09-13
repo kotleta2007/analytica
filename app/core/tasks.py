@@ -8,6 +8,8 @@ and resolved back by prefix.
 """
 
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +36,23 @@ class KnownTask:
 
 def short_id(habitica_id: str) -> str:
     return habitica_id[:SHORT_ID_LENGTH]
+
+
+def due_day(task: Task, tz: ZoneInfo) -> date | None:
+    """The calendar day a todo is due, as the user sees it.
+
+    Habitica stores a due date as local midnight in UTC — a todo due 14/09 in
+    Zurich is `2026-09-13T22:00:00Z` — so the day must be read in the user's
+    timezone, never from the UTC value.
+    """
+    if task.due_date is None:
+        return None
+    return task.due_date.astimezone(tz).date()
+
+
+def due_datetime(day: date, tz: ZoneInfo) -> datetime:
+    """The value to send Habitica for a due day: that day's local midnight, in UTC."""
+    return datetime(day.year, day.month, day.day, tzinfo=tz).astimezone(UTC)
 
 
 async def load_known_tasks(session: AsyncSession, user_id: str) -> list[KnownTask]:
