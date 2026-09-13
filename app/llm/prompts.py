@@ -30,6 +30,13 @@ CONTENT_RULE = (
     "language, match it semantically against the English task list below. Use the ids exactly "
     "as shown; never invent one."
 )
+MECHANICS = (
+    "Habitica mechanics, so you never guess: at the day start (cron) every daily that was due "
+    "and not completed costs HP; that is the only damage in the game. Todos never cost HP, "
+    "overdue or not — an old todo just turns from yellow toward red and is worth more gold and "
+    "XP when completed. Habits have no penalty unless the user scores them negatively. "
+    "Completing tasks gives XP and gold; a daily also grows its streak."
+)
 TOOL_RULE = (
     "Use the tools for anything that reads or changes Habitica and report what they returned; "
     "never claim something happened without a tool result. Ask before acting only when the "
@@ -54,6 +61,7 @@ def build_system_prompt(
         ROLE,
         f"Reply in {LANGUAGE_NAMES.get(language, 'English')}. {OVERRIDE_RULE} {DATE_RULE}",
         CONTENT_RULE,
+        MECHANICS,
         TOOL_RULE,
         clock_line(now, tz, stats),
     ]

@@ -56,6 +56,14 @@ def test_dates_are_european_and_the_model_is_told_so() -> None:
     assert "2026-09" not in prompt  # no ISO date anywhere the model could copy from
 
 
+def test_game_mechanics_are_stated_so_the_model_does_not_invent_them() -> None:
+    """Seen live: the model claimed overdue todos cause daily damage. Only dailies do."""
+    prompt = build()
+
+    assert "Todos never cost HP, overdue or not" in prompt
+    assert "every daily that was due and not completed costs HP" in prompt
+
+
 def test_english_content_rule_is_present() -> None:
     prompt = build()
 
