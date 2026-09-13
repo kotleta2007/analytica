@@ -393,3 +393,41 @@ async def test_free_text_without_a_configured_model(
 def test_prefix_joins_only_when_there_is_a_line() -> None:
     assert conversation.prefix("", "text") == "text"
     assert conversation.prefix("dropped", "text") == "dropped\ntext"
+
+
+# ---- /model ----
+
+
+async def test_model_shows_usage_and_switches(harness: Harness, llm: FakeLlm) -> None:
+    llm.queue(says("Hi."), says("Hello again."))
+    await harness.text_message_received(USER, "hi")
+
+    before = await harness.command_received(USER, "model", "")
+    switched = await harness.command_received(USER, "model", "cheap")
+    await harness.text_message_received(USER, "hi again")
+    after = await harness.command_received(USER, "model", "")
+    invalid = await harness.command_received(USER, "model", "huge")
+
+    assert before.text.splitlines() == [
+        "Models (● is yours):",
+        "● strong z-ai/glm-5.3 — 1 call, $0.0001, avg 0.1 s",
+        "  cheap  deepseek/deepseek-v4-flash — no calls yet",
+        t("model_footer", "en"),
+    ]
+    assert switched.text == "Switched to cheap (deepseek/deepseek-v4-flash)."
+    assert llm.calls[-1].model == "deepseek/deepseek-v4-flash"
+    assert after.text.splitlines()[1:3] == [
+        "  strong z-ai/glm-5.3 — 1 call, $0.0001, avg 0.1 s",
+        "● cheap  deepseek/deepseek-v4-flash — 1 call, $0.0001, avg 0.1 s",
+    ]
+    assert invalid.text == t("model_invalid", "en")
+
+
+async def test_model_counts_failed_calls(harness: Harness, llm: FakeLlm) -> None:
+    llm.queue(LlmError("z-ai/glm-5.3: HTTP 500"), says("ok"))
+    await harness.text_message_received(USER, "hi")
+    await harness.text_message_received(USER, "hi")
+
+    shown = await harness.command_received(USER, "model", "")
+
+    assert "● strong z-ai/glm-5.3 — 2 calls (1 failed), $0.0001," in shown.text

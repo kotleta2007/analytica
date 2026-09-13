@@ -198,7 +198,7 @@ And the same works in the CLI without Telegram
 - [x] 3. `app/llm/prompts.py`: system prompt builder — role, active language + per-message override rule, "Habitica content is English; translate when creating, match semantically when the user speaks RU/FR", compact stats line, compact task list. — `feat(p03): system prompt builder`
 - [x] 4. `app/core/sessions.py`: `sessions` table, `messages.session_id`; open/append/close with idle limits (quick 15 min); replay a session into prompt messages; close writes a ≤3-line summary with the cheap model; last 3 summaries go into the system prompt as "Recent context"; token budget collapses the oldest half. `/new`, `/session`. Migration. — `feat(p03): sessions and recent-context summaries`
 - [x] 5. Harness: `text_message_received` → session → tool loop (max 6 rounds) → `Reply`. After any task-changing tool: `snapshot_tasks()` and a `task_events` row with `source=bot`. — `feat(p03): llm turn in the harness`
-- [ ] 6. `/model` shows strong/cheap with calls, cost, avg latency from `llm_calls`; `/model cheap|strong` switches for this user. — `feat(p03): model switching and comparison`
+- [x] 6. `/model` shows strong/cheap with calls, cost, avg latency from `llm_calls`; `/model cheap|strong` switches for this user. — `feat(p03): model switching and comparison`
 
 **Tests**
 

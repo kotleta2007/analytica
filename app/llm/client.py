@@ -175,7 +175,7 @@ async def chat(
         LlmCall(
             user_id=user_id,
             at=now,
-            model=result.model,
+            model=model,  # what was asked for; the provider may report a routed variant
             prompt_tokens=result.prompt_tokens,
             completion_tokens=result.completion_tokens,
             cost_usd=result.cost_usd,

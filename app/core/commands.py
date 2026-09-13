@@ -1,6 +1,6 @@
 """Slash commands. Each one is a function of the turn and its arguments.
 
-    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session
+    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session, /model
 
 Later phases add theirs to `COMMANDS`. Free text is not a command and never
 lands here.
@@ -8,18 +8,21 @@ lands here.
 
 import logging
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import timedelta
 
 import httpx
+from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, collect_if_stale
 from app.core import sessions
 from app.core.i18n import LANGUAGES, t
 from app.core.replies import Reply
 from app.core.turn import Turn, summarizer
-from app.db.models import UserSnapshot
+from app.db.models import LlmCall, UserSnapshot
 from app.habitica.client import HabiticaError
 from app.habitica.types import user_stats_from_json
+from app.llm.models import MODEL_NAMES, registry
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +139,59 @@ async def session(turn: Turn, args: str) -> Reply:
     )
 
 
+async def model(turn: Turn, args: str) -> Reply:
+    wanted = args.strip().lower()
+    if wanted:
+        if wanted not in MODEL_NAMES:
+            return Reply(t("model_invalid", turn.language))
+        turn.settings.model = wanted
+        await turn.session.flush()
+        return Reply(t("model_set", turn.language, name=wanted, id=registry()[wanted]))
+    usage = await llm_usage(turn)
+    lines = [t("model_header", turn.language)]
+    for name, model_id in registry().items():
+        marker = "●" if name == turn.settings.model else " "
+        lines.append(f"{marker} {name:<6} {model_id} — {usage_text(usage.get(model_id))}")
+    lines.append(t("model_footer", turn.language))
+    return Reply("\n".join(lines))
+
+
+@dataclass
+class ModelUsage:
+    calls: int
+    failed: int
+    cost_usd: float
+    avg_latency_ms: float
+
+
+async def llm_usage(turn: Turn) -> dict[str, ModelUsage]:
+    """Per model id, over every call this user ever made."""
+    rows = await turn.session.execute(
+        select(
+            LlmCall.model,
+            func.count(),
+            func.sum(func.iif(LlmCall.ok, 0, 1)),
+            func.coalesce(func.sum(LlmCall.cost_usd), 0.0),
+            func.avg(LlmCall.latency_ms),
+        )
+        .where(LlmCall.user_id == turn.user.id)
+        .group_by(LlmCall.model)
+    )
+    return {
+        model_id: ModelUsage(calls, failed, cost, avg_latency)
+        for model_id, calls, failed, cost, avg_latency in rows.all()
+    }
+
+
+def usage_text(usage: ModelUsage | None) -> str:
+    if usage is None or usage.calls == 0:
+        return "no calls yet"
+    calls = f"{usage.calls} calls" if usage.calls != 1 else "1 call"
+    if usage.failed:
+        calls += f" ({usage.failed} failed)"
+    return f"{calls}, ${usage.cost_usd:.4f}, avg {usage.avg_latency_ms / 1000:.1f} s"
+
+
 def minutes_text(delta: timedelta) -> str:
     minutes = int(delta.total_seconds() // 60)
     return f"{minutes // 60} h {minutes % 60:02d} min" if minutes >= 60 else f"{minutes} min"
@@ -173,6 +229,7 @@ COMMANDS: dict[str, Handler] = {
     "sync": sync,
     "new": new,
     "session": session,
+    "model": model,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -182,4 +239,5 @@ HELP: list[tuple[str, str]] = [
     ("/sync", "help_sync"),
     ("/new", "help_new"),
     ("/session [planning <topic>]", "help_session"),
+    ("/model [strong|cheap]", "help_model"),
 ]

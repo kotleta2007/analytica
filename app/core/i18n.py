@@ -50,6 +50,31 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "показать текущую сессию или открыть долгую сессию планирования",
         "fr": "voir la session en cours, ou en ouvrir une longue de planification",
     },
+    "help_model": {
+        "en": "which model answers you, with what it has cost so far",
+        "ru": "какая модель тебе отвечает и сколько это стоило",
+        "fr": "quel modèle te répond, et ce qu'il a coûté jusqu'ici",
+    },
+    "model_header": {
+        "en": "Models (● is yours):",
+        "ru": "Модели (● — твоя):",
+        "fr": "Modèles (● = le tien) :",
+    },
+    "model_footer": {
+        "en": "/model strong|cheap to switch. The weekly coach always uses strong.",
+        "ru": "/model strong|cheap — переключить. Еженедельный тренер всегда на strong.",
+        "fr": "/model strong|cheap pour changer. Le coach hebdomadaire reste sur strong.",
+    },
+    "model_set": {
+        "en": "Switched to {name} ({id}).",
+        "ru": "Переключено на {name} ({id}).",
+        "fr": "Passé sur {name} ({id}).",
+    },
+    "model_invalid": {
+        "en": "I have two models: strong and cheap. Example: /model cheap",
+        "ru": "У меня две модели: strong и cheap. Например: /model cheap",
+        "fr": "J'ai deux modèles : strong et cheap. Exemple : /model cheap",
+    },
     "session_none": {
         "en": "No open session. Just write to me and one starts.",
         "ru": "Открытой сессии нет. Просто напиши — и она начнётся.",
