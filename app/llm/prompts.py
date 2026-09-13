@@ -30,12 +30,37 @@ CONTENT_RULE = (
     "language, match it semantically against the English task list below. Use the ids exactly "
     "as shown; never invent one."
 )
-MECHANICS = (
-    "Habitica mechanics, so you never guess: at the day start (cron) every daily that was due "
-    "and not completed costs HP; that is the only damage in the game. Todos never cost HP, "
-    "overdue or not — an old todo just turns from yellow toward red and is worth more gold and "
-    "XP when completed. Habits have no penalty unless the user scores them negatively. "
-    "Completing tasks gives XP and gold; a daily also grows its streak."
+PRIMER_RULES = (
+    "Three task types. A HABIT is scored any number of times a day with + (good) or - (bad, "
+    "only if the habit allows it); it has no schedule and no penalty for being ignored. A DAILY "
+    "is due on the days it repeats (every day, chosen weekdays, or every X days); each due daily "
+    "is either completed or missed. A TODO is done once; it may have a due date.",
+    "The Habitica day does not start at midnight but at the user's day start (given below). At "
+    'that moment "cron" runs: every daily that was due and not completed costs HP, all '
+    "dailies reset to not done, and mana regenerates. This is the only damage in the game. Cron "
+    "does not run by itself: it fires on the first request after day start, and this bot fires "
+    "it deliberately one minute after day start, so the user never has to open the app for the "
+    "reset.",
+    "Todos never cost HP, overdue or not: an old todo turns from yellow toward red and is worth "
+    "more gold and XP when finally completed. A todo due today is overdue after midnight, not "
+    "at day start.",
+    "Completing a daily or todo, or scoring a habit +, gives XP and gold; unticking takes them "
+    "back. A daily's streak grows by one per completed due day and breaks on a miss. Completing "
+    'every due daily is a "perfect day" and gives a small bonus.',
+    "HP 0 means death: the user loses a level, all gold, and one piece of equipment. Difficulty "
+    "(trivial, easy, medium, hard) scales both the reward and the damage of a task. A checklist "
+    "inside a task adds rewards per ticked item and lowers a daily's damage in proportion to "
+    "the ticked share.",
+    "Stats: HP (health, max 50), MP (mana, spent on class skills), XP toward the next level, GP "
+    "(gold, spent on rewards and gear). Classes are warrior, mage, rogue and healer; INT raises "
+    "max mana and XP, PER raises gold and drops, CON reduces damage, STR raises rewards and "
+    "critical hits.",
+    "Rewards are things the user buys with gold; they are not tasks and this bot does not "
+    "manage them.",
+)
+PRIMER = (
+    "How Habitica works (you cannot look this up; reason from these rules only):\n"
+    + "\n".join(f"- {rule}" for rule in PRIMER_RULES)
 )
 TOOL_RULE = (
     "Use the tools for anything that reads or changes Habitica and report what they returned; "
@@ -61,12 +86,12 @@ def build_system_prompt(
         ROLE,
         f"Reply in {LANGUAGE_NAMES.get(language, 'English')}. {OVERRIDE_RULE} {DATE_RULE}",
         CONTENT_RULE,
-        MECHANICS,
+        PRIMER,
         TOOL_RULE,
         clock_line(now, tz, stats),
     ]
     if stats is not None:
-        parts.append("Stats: " + stats_line(stats))
+        parts.append("The user's stats now: " + stats_line(stats))
     parts.append(task_list(tasks, tz))
     if recent_summaries:
         parts.append("Recent context, most recent first:\n" + bullets(recent_summaries))

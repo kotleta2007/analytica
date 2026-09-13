@@ -188,7 +188,7 @@ async def test_the_prompt_carries_the_language_stats_and_task_list(
     system = llm.calls[0].system
     assert "Reply in Russian." in system
     assert "- d1a2b3c4 daily · Vacuum the floors" in system
-    assert "Stats: HP" in system
+    assert "The user's stats now: HP" in system
     assert llm.calls[0].messages[-1] == {"role": "user", "content": "привет"}
     assert llm.calls[0].tool_names == [
         "list_tasks",
