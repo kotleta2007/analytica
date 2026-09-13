@@ -101,6 +101,36 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Habitica не ответила как следует: {error}",
         "fr": "Habitica n'a pas répondu correctement : {error}",
     },
+    "confirm_do_it": {
+        "en": "✅ Do it",
+        "ru": "✅ Давай",
+        "fr": "✅ Vas-y",
+    },
+    "confirm_cancel": {
+        "en": "❌ Cancel",
+        "ru": "❌ Отмена",
+        "fr": "❌ Annuler",
+    },
+    "action_delete_task": {
+        "en": "delete “{text}”",
+        "ru": "удалить «{text}»",
+        "fr": "supprimer « {text} »",
+    },
+    "action_done": {
+        "en": "Done: {action}.",
+        "ru": "Готово: {action}.",
+        "fr": "C'est fait : {action}.",
+    },
+    "action_cancelled": {
+        "en": "Cancelled: {action}.",
+        "ru": "Отменено: {action}.",
+        "fr": "Annulé : {action}.",
+    },
+    "action_dropped": {
+        "en": "(The pending action — {action} — is dropped.)",
+        "ru": "(Ожидавшее действие — {action} — отменено.)",
+        "fr": "(L'action en attente — {action} — est abandonnée.)",
+    },
     "something_went_wrong": {
         "en": "Something went wrong on my side. It's logged; try again in a moment.",
         "ru": "Что-то пошло не так с моей стороны. Записано в лог; попробуй чуть позже.",

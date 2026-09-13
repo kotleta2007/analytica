@@ -12,7 +12,7 @@ from datetime import timedelta
 
 import httpx
 
-from app.collector.snapshots import collect, latest_user_snapshot
+from app.collector.snapshots import collect, collect_if_stale
 from app.core.i18n import LANGUAGES, t
 from app.core.replies import Reply
 from app.core.turn import Turn
@@ -81,10 +81,9 @@ async def language(turn: Turn, args: str) -> Reply:
 
 
 async def stats(turn: Turn, args: str) -> Reply:
-    snapshot = await latest_user_snapshot(turn.session, turn.user.id)
-    if snapshot is None or turn.now - snapshot.taken_at > STATS_MAX_AGE:
-        outcome = await collect(turn.habitica, turn.session, turn.user.id, turn.now)
-        snapshot = outcome.user
+    snapshot = await collect_if_stale(
+        turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+    )
     return Reply(stats_line(turn, snapshot))
 
 

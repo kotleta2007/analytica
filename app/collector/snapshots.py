@@ -7,7 +7,7 @@ a pointer, not another copy. Collect everything; decide what to use later.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -68,6 +68,24 @@ async def collect(
     cron_ran = user_snapshot.raw.get("lastCron") != last_cron_before
     tasks = await snapshot_tasks(client, session, user_id, now, reset_by_cron=cron_ran)
     return CollectOutcome(user=user_snapshot, tasks=tasks, cron_ran=cron_ran)
+
+
+async def collect_if_stale(
+    client: HabiticaClient,
+    session: AsyncSession,
+    user_id: str,
+    now: datetime,
+    max_age: timedelta,
+) -> UserSnapshot:
+    """The latest user snapshot, refreshed by a collection round when older than `max_age`.
+
+    What a chat turn calls before answering: fresh enough to be honest, without
+    a round trip to Habitica for every message.
+    """
+    snapshot = await latest_user_snapshot(session, user_id)
+    if snapshot is not None and now - snapshot.taken_at <= max_age:
+        return snapshot
+    return (await collect(client, session, user_id, now)).user
 
 
 async def latest_user_snapshot(session: AsyncSession, user_id: str) -> UserSnapshot | None:
