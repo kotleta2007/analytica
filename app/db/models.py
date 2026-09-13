@@ -220,6 +220,24 @@ class Message(Base):
     text: Mapped[str] = mapped_column(Text)
 
 
+class LlmCall(Base):
+    """One request to the model provider, successful or not."""
+
+    __tablename__ = "llm_calls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
+    model: Mapped[str] = mapped_column(String(64))
+    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    latency_ms: Mapped[int] = mapped_column(Integer)
+    tool_calls: Mapped[int] = mapped_column(Integer, default=0)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class TelegramButton(Base):
     """One rendered inline button. Telegram callback data is capped at 64 bytes,
     so the callback carries this row's id and the action and payload live here."""

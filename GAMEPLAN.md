@@ -193,7 +193,7 @@ And the same works in the CLI without Telegram
 
 **Action Required:**
 
-- [ ] 1. `app/llm/models.py` (`strong`/`cheap` registry from config), `app/llm/client.py`: `chat(messages, tools, model)` via `openai` SDK on OpenRouter, `usage.include=true`, writes `llm_calls`. Migration. — `feat(p03): openrouter client with call telemetry`
+- [x] 1. `app/llm/models.py` (`strong`/`cheap` registry from config), `app/llm/client.py`: `chat(messages, tools, model)` via `openai` SDK on OpenRouter, `usage.include=true`, writes `llm_calls`. Migration. — `feat(p03): openrouter client with call telemetry`
 - [ ] 2. `app/llm/tools.py`: schemas + dispatch for `list_tasks`, `score_task`, `create_task`, `update_task`, `delete_task`, `get_stats`. Tools flagged as destructive return `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. — `feat(p03): habitica tools and confirm mechanism`
 - [ ] 3. `app/llm/prompts.py`: system prompt builder — role, active language + per-message override rule, "Habitica content is English; translate when creating, match semantically when the user speaks RU/FR", compact stats line, compact task list. — `feat(p03): system prompt builder`
 - [ ] 4. `app/core/sessions.py`: `sessions` table, `messages.session_id`; open/append/close with idle limits (quick 15 min); replay a session into prompt messages; close writes a ≤3-line summary with the cheap model; last 3 summaries go into the system prompt as "Recent context"; token budget collapses the oldest half. `/new`, `/session`. Migration. — `feat(p03): sessions and recent-context summaries`
