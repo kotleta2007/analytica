@@ -183,10 +183,11 @@ analytica/
 │   │   ├── replies.py           # Reply, Button, ChartData dataclasses
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
-│   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /target /challenges /plan /sync
+│   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /skills /target /challenges /plan /sync
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
 │   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
 │   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
+│   │   ├── skills.py            # the class skills the user can cast now, from content + stats (F12)
 │   │   ├── outbound.py          # send_to_user() hook for scheduled messages
 │   │   └── i18n.py              # fixed strings in en/ru/fr
 │   ├── llm/
@@ -361,6 +362,7 @@ Thin async client over `https://habitica.com/api/v3`. Required headers on every 
 | Run cron on purpose | `POST /cron` |
 | Game content (gear stats) | `GET /content` (cached on disk, refreshed weekly) |
 | Challenges | `GET /challenges/user`, `GET /challenges/{id}`, `POST /challenges/{id}/join` |
+| Cast a class skill | `POST /user/class/cast/{key}?targetId={taskId}` (target only for task skills) |
 | Webhooks | `POST /user/webhook` with `type: taskActivity` (scored, created, updated, deleted) |
 
 Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is always stored too** (`raw` column) so we never regret a field we didn't parse. Collect everything; decide what to use later.
@@ -403,7 +405,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 - One `chat(messages, tools, model) -> LlmResult` function via the `openrouter` SDK. OpenRouter returns `usage.cost` on every response; every call is recorded in `llm_calls`.
 - Registry: `strong` = `LLM_STRONG_MODEL`, `cheap` = `LLM_CHEAP_MODEL`. Default `strong`. `/model` shows both with calls / cost / avg latency from `llm_calls`; `/model cheap` switches for this user. The coach always uses `strong`.
 - Tool-calling loop: max 6 tool rounds per turn, then force a text answer.
-- System prompt (built per turn): role, active language + override rule, "Habitica content is English", one-line stats, compact task list (id, type, text, due/completed, streak).
+- System prompt (built per turn): role, active language + override rule, "Habitica content is English", a compact primer on how Habitica works (the model cannot look the game up and is not meant to; this is its whole knowledge of the mechanics), one-line stats, the skills the user can cast now (F12), compact task list (id, type, text, due/completed, streak). **Every derived number is computed in Python and handed to the model** — XP to the next level, MP left after a cast, days overdue — never left to the model's arithmetic.
 
 **Tools exposed to the model**
 
@@ -421,6 +423,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 | `convert_daily_to_habit(task_id)` | demote a daily that isn't working | **yes** |
 | `set_weekly_target(habit_id, per_week)`, `remove_weekly_target(habit_id)` | F7c | set: **yes** |
 | `list_challenges(search?)`, `join_challenge(id)` | | join: **yes** |
+| `cast_skill(skill, task_id?)` | F12 — cast one of the user's class skills; `task_id` for task-targeted ones | **yes** |
 | `start_planning_session(topic)`, `end_session()` | F1b | |
 | `create_plan(aspiration, items[])` | batch-create the agreed todos/habits/dailies for an aspiration, link them | **yes** (one confirm for the whole batch) |
 | `propose_transition(task_id, to_stage)` | F7e — surfaces a lifecycle move with buttons | **yes** |
@@ -546,6 +549,15 @@ Direction: **Habitica → Calendar.** Habitica is the source of tasks; the calen
   - One-directional: undone → done only. The bot never removes ` (done)` and never un-completes anything. If a task is un-completed in Habitica, the link is marked `done=false` and left alone; the event keeps its suffix.
 - **Post-slot check-in**: 10 minutes after a scheduled slot ends, the bot asks "Did you work on *Essay draft*?" with **Done** / **Partly** / **Not yet**. *Done* scores the task; *Partly* records `started` (if not already) and offers to reschedule the remainder; *Not yet* offers to reschedule. This is where "when do you actually start" data comes from for scheduled work.
 - Never touches events that aren't in `calendar_links`.
+
+### F12 — Class skills
+
+Each class unlocks four skills between levels 11 and 14; casting one costs mana and, for the task-targeted ones (Burst of Flames, Brutal Smash, Pickpocket, Backstab), acts on one task. The skill table comes from `GET /content` (`spells.{warrior,wizard,rogue,healer}`: `mana`, `lvl`, `target ∈ {task, self, party, tasks}`), never from code; the API calls the mage `wizard`.
+
+- `core/skills.py`: `available_skills(stats, content)` — the user's class, unlocked at their level, each with `castable = mp ≥ mana` computed locally.
+- The system prompt lists them ("Burst of Flames — fireball, 10 MP, on a task") next to the stats line; the primer says what skills are.
+- `cast_skill(skill, task_id?)` tool: name or key; a task skill without `task_id` is an error result, a non-task skill with one too. Always a confirm button (mana is spent, the app shows it), then a `collect(source=bot)` round: a cast changes stats and a task skill changes the task's value.
+- `/skills` lists what can be cast now with costs. Party-targeted skills are cast as is — the party is Habitica's concern, not the bot's.
 
 ---
 

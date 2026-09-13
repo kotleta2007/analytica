@@ -238,6 +238,7 @@ And llm_calls has a new row with model z-ai/glm-5.3 and cost > 0
 - Dates are shown the European way, `31.12.2026`, in every language: `DATE_FORMAT` and `format_day` / `format_moment` / `parse_day` in `core/i18n.py`. The model copies the format it is shown, so the prompt's clock line, the task list and every tool result use it, and one prompt rule says so; `due_date` on the tools accepts both `31.12.2026` and `2026-12-31`.
 - The model writes Markdown and Telegram showed the asterisks. The Telegram adapter now converts the common subset (`**bold**`, `*italic*`/`_italic_`, `` `code` ``, fenced blocks, links, `#` headings, `-` bullets, `~~strike~~`) to Telegram HTML and sends with `parse_mode=HTML`; everything else is HTML-escaped, so `<`, `&` and a task name like `snake_case` or `2 * 3` are shown as typed. Telegram's MarkdownV2 was not an option (an unescaped `.` rejects the whole message). If Telegram still refuses the entities, the chunk is resent as plain text and logged. The CLI prints the Markdown as is.
 - Seen live: asked to prioritise overdue todos, the model claimed every overdue todo "damages you daily" and ranked by damage prevented. Todos never cost HP in Habitica; only a due, uncompleted daily does, at cron. The system prompt now carries a compact primer on the game (`PRIMER` in `prompts.py`, ~500 tokens): the three task types, day start and cron (and that this bot fires it), damage and death, streaks, checklists, difficulty, stats and classes, rewards. The model cannot look Habitica up and is not meant to; this is its whole knowledge of the game. Extend it when the coach (P07) starts talking about tiers and transitions.
+- Arithmetic is done in Python and handed to the model, never left to it: `UserStats.exp_remaining` feeds the prompt's stats line ("2009 more XP to reach level 121") and `get_stats` (`exp_remaining_to_next_level`, `next_lvl`). The same rule applies to every derived number added later. The API calls the mage `wizard`; `class_label()` shows "mage" in the prompt, the tools and `/stats`.
 - `tests/test_cli_flow.py` now drives a real text turn and a confirm-button turn through the CLI with `FakeLlm`; the voice turn arrives with P04.
 
 ---
@@ -322,7 +323,7 @@ And a backup exists the next morning
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
-**Goal**: the scheduled features. Small phase.
+**Goal**: the scheduled features, and the class skills. Small phase.
 
 **Current Status:** Scheduler runs collectors and cron only. No outbound scheduled messages. `equip` unused.
 
@@ -331,12 +332,14 @@ And a backup exists the next morning
 - [ ] 1. `app/jobs/reminders.py`: daily at `reminder_time` (default 21:00): list due-and-incomplete dailies from the latest snapshot (refresh if older than 10 min); skip if none; `last_reminder_day` guard. `/remind HH:MM`, `/remind off`. (The Saturday target line and the Started buttons are added in P07.) — `feat(p06): daily reminder`
 - [ ] 2. `app/jobs/gear.py`: three sets `gear_int/per/con` in `user_settings`; `dayStart − 30 min` job picks CON if any due daily is incomplete else INT; `run_cron` (P01) followed by PER. `/gear` shows sets; `/gear <stat> auto` picks best owned item per slot from content; `/gear <stat> <slot> <key>`; `/gear now <stat>`. — `feat(p06): int/per/con gear sets around day start`
 - [ ] 3. `app/jobs/new_day.py`: after `run_cron`, one message: HP lost (snapshot before vs after), mana, dailies due today. — `feat(p06): new-day message`
+- [ ] 4. Class skills (F12). `habitica/types.py`: `Skill(key, text, class_name, mana, level, target, notes)` + `skills_from_content()` reading `content.spells.{warrior,wizard,rogue,healer}` (the mage is `wizard` in the API; `class_label()` already maps it). `habitica/client.py`: `cast_skill(key, target_id=None)` → `POST /user/class/cast/{key}?targetId=`. `core/skills.py`: `available_skills(stats, content)` — the user's class, `lvl ≥ skill.level`, with `castable = mp ≥ mana` computed here, not by the model. The system prompt gets one line per available skill ("Burst of Flames — fireball, 10 MP, on a task"), and the primer gets a sentence on what skills are. Tool `cast_skill(skill, task_id?)`: resolves the key by name or key, requires `task_id` for `target ∈ {task}` and refuses it otherwise, needs a confirm button (spends mana, visible in the app), then `collect(source=bot)` — a cast changes stats and, for task skills, the task's value. `/skills` lists what can be cast now with mana costs. `scripts/record_fixture.py`: keep `spells` in `trim_content`; re-record the content fixture. — `feat(p06): class skills, listed in the prompt and cast on confirm`
 
 **Tests**
 
 - [ ] Reminder: fires once, lists only due+incomplete, skips when none, respects off. — `test(p06): reminder rules`
 - [ ] Gear: CON chosen when a due daily is incomplete, INT otherwise; PER after cron; auto-pick chooses the highest-stat owned item per slot from the content fixture. — `test(p06): gear selection`
 - [ ] New-day message computes HP lost from two snapshots and lists due dailies. — `test(p06): new day message`
+- [ ] Skills: a level-12 mage sees Burst of Flames and Ethereal Surge only, with `castable` following current MP; `cast_skill("fireball")` without a task → error result; with a task → confirm buttons; **Do it** calls `POST /user/class/cast/fireball?targetId=<id>` and collects; a skill of another class → error. — `test(p06): class skills`
 
 **Acceptance**
 
@@ -348,6 +351,10 @@ Then the INT set is equipped instead
 And at 11:01 I get one message with the damage taken and today's dailies
 Given two dailies are due and one is incomplete at 21:00
 Then I receive exactly one message listing the incomplete one
+Given I am a level 12 mage with 30 MP
+When I send "cast burst of flames on the essay"
+Then the bot asks to confirm "Burst of Flames on Essay draft (10 MP)"
+And after ✅ Do it the cast is sent to Habitica with the task's id
 ```
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
