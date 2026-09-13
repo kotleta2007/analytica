@@ -40,6 +40,57 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "снять свежий снимок Habitica прямо сейчас",
         "fr": "prendre un instantané Habitica maintenant",
     },
+    "help_new": {
+        "en": "start a fresh conversation (the current one is summarised)",
+        "ru": "начать разговор заново (текущий будет кратко сохранён)",
+        "fr": "repartir sur une conversation neuve (l'actuelle est résumée)",
+    },
+    "help_session": {
+        "en": "show the current session, or open a long planning one",
+        "ru": "показать текущую сессию или открыть долгую сессию планирования",
+        "fr": "voir la session en cours, ou en ouvrir une longue de planification",
+    },
+    "session_none": {
+        "en": "No open session. Just write to me and one starts.",
+        "ru": "Открытой сессии нет. Просто напиши — и она начнётся.",
+        "fr": "Pas de session ouverte. Écris-moi et elle commence.",
+    },
+    "session_closed": {
+        "en": "Session closed. Your next message starts a fresh one.",
+        "ru": "Сессия закрыта. Следующее сообщение начнёт новую.",
+        "fr": "Session fermée. Ton prochain message en ouvre une nouvelle.",
+    },
+    "session_info": {
+        "en": "{kind} session{topic} · started {age} ago · last message {idle} ago · "
+        "{count} messages",
+        "ru": "{kind} сессия{topic} · началась {age} назад · последнее сообщение {idle} назад · "
+        "сообщений: {count}",
+        "fr": "session {kind}{topic} · ouverte depuis {age} · dernier message il y a {idle} · "
+        "{count} messages",
+    },
+    "session_kind_quick": {
+        "en": "Quick",
+        "ru": "Быстрая",
+        "fr": "rapide",
+    },
+    "session_kind_planning": {
+        "en": "Planning",
+        "ru": "Плановая",
+        "fr": "de planification",
+    },
+    "session_planning_opened": {
+        "en": "Planning session opened: {topic}. It survives two hours of silence; "
+        "/new closes it earlier.",
+        "ru": "Сессия планирования открыта: {topic}. Она живёт два часа тишины; "
+        "/new закроет раньше.",
+        "fr": "Session de planification ouverte : {topic}. Elle survit à deux heures de "
+        "silence ; /new la ferme avant.",
+    },
+    "session_planning_needs_topic": {
+        "en": "Give the session a topic: /session planning learning Latin",
+        "ru": "Укажи тему сессии: /session planning выучить латынь",
+        "fr": "Donne un sujet à la session : /session planning apprendre le latin",
+    },
     "no_llm_yet": {
         "en": "I can't hold a conversation yet — that comes in a later version. Try /help.",
         "ru": "Разговаривать я пока не умею — это появится в следующей версии. Попробуй /help.",

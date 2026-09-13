@@ -1,6 +1,6 @@
 """Slash commands. Each one is a function of the turn and its arguments.
 
-    /start, /help, /language [en|ru|fr], /stats, /sync
+    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session
 
 Later phases add theirs to `COMMANDS`. Free text is not a command and never
 lands here.
@@ -13,9 +13,10 @@ from datetime import timedelta
 import httpx
 
 from app.collector.snapshots import collect, collect_if_stale
+from app.core import sessions
 from app.core.i18n import LANGUAGES, t
 from app.core.replies import Reply
-from app.core.turn import Turn
+from app.core.turn import Turn, summarizer
 from app.db.models import UserSnapshot
 from app.habitica.client import HabiticaError
 from app.habitica.types import user_stats_from_json
@@ -99,6 +100,47 @@ async def sync(turn: Turn, args: str) -> Reply:
     return Reply(summary + "\n" + stats_line(turn, outcome.user))
 
 
+async def new(turn: Turn, args: str) -> Reply:
+    chat = await sessions.open_session_for(turn.session, turn.user.id)
+    if chat is None:
+        return Reply(t("session_none", turn.language))
+    await sessions.close_session(turn.session, chat, turn.now, summarizer(turn))
+    return Reply(t("session_closed", turn.language))
+
+
+async def session(turn: Turn, args: str) -> Reply:
+    kind, _, topic = args.partition(" ")
+    if kind.lower() == sessions.PLANNING:
+        if not topic.strip():
+            return Reply(t("session_planning_needs_topic", turn.language))
+        open_chat = await sessions.open_session_for(turn.session, turn.user.id)
+        if open_chat is not None:
+            await sessions.close_session(turn.session, open_chat, turn.now, summarizer(turn))
+        await sessions.open_session(
+            turn.session, turn.user.id, turn.now, sessions.PLANNING, topic.strip()
+        )
+        return Reply(t("session_planning_opened", turn.language, topic=topic.strip()))
+    chat = await sessions.open_session_for(turn.session, turn.user.id)
+    if chat is None or sessions.is_idle(chat, turn.now):
+        return Reply(t("session_none", turn.language))
+    return Reply(
+        t(
+            "session_info",
+            turn.language,
+            kind=t(f"session_kind_{chat.kind}", turn.language),
+            topic=f" — {chat.topic}" if chat.topic else "",
+            age=minutes_text(turn.now - chat.started_at),
+            idle=minutes_text(turn.now - chat.last_activity_at),
+            count=len(await sessions.session_messages(turn.session, chat)),
+        )
+    )
+
+
+def minutes_text(delta: timedelta) -> str:
+    minutes = int(delta.total_seconds() // 60)
+    return f"{minutes // 60} h {minutes % 60:02d} min" if minutes >= 60 else f"{minutes} min"
+
+
 def stats_line(turn: Turn, snapshot: UserSnapshot) -> str:
     # The row's raw column is the whole /user object; the parser knows the maxima.
     user = user_stats_from_json(snapshot.raw)
@@ -129,6 +171,8 @@ COMMANDS: dict[str, Handler] = {
     "language": language,
     "stats": stats,
     "sync": sync,
+    "new": new,
+    "session": session,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -136,4 +180,6 @@ HELP: list[tuple[str, str]] = [
     ("/language en|ru|fr", "help_language"),
     ("/stats", "help_stats"),
     ("/sync", "help_sync"),
+    ("/new", "help_new"),
+    ("/session [planning <topic>]", "help_session"),
 ]

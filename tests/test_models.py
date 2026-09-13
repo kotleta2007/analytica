@@ -24,6 +24,7 @@ EXPECTED_TABLES = {
     "messages",
     "telegram_buttons",
     "llm_calls",
+    "sessions",
 }
 
 

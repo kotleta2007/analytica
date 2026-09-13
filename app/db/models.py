@@ -203,11 +203,36 @@ class ConversationState(Base):
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime)
 
 
+class ChatSession(Base):
+    """A stretch of conversation the model sees as one context.
+
+    kind: quick | planning. `summary` is written at close; `collapsed_summary`
+    stands in for the messages up to `collapsed_through_id` once a session
+    outgrows its token budget.
+    """
+
+    __tablename__ = "sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    kind: Mapped[str] = mapped_column(String(8))
+    topic: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    last_activity_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    ended_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    collapsed_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    collapsed_through_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
 class Message(Base):
     """The chat log, both directions.
 
     direction: in | out
-    kind: text | command | button | voice
+    kind: text | command | button | voice | tool
+    `llm` holds the message in the model's format when it belongs to a session,
+    so the session can be replayed into a prompt; tool calls and tool results
+    are rows of kind `tool`.
     """
 
     __tablename__ = "messages"
@@ -218,6 +243,10 @@ class Message(Base):
     direction: Mapped[str] = mapped_column(String(3))
     kind: Mapped[str] = mapped_column(String(8))
     text: Mapped[str] = mapped_column(Text)
+    session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("sessions.id"), nullable=True, index=True
+    )
+    llm: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class LlmCall(Base):

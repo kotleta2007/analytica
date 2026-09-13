@@ -27,6 +27,7 @@ from app.core.turn import Turn, load_settings
 from app.db.engine import session_scope
 from app.db.models import Message
 from app.habitica.client import HabiticaClient
+from app.llm.client import LlmClient
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ def utcnow() -> datetime:
 @dataclass
 class Harness:
     habitica: HabiticaClient
+    llm: LlmClient | None = None
     clock: Callable[[], datetime] = utcnow
     tz: ZoneInfo = field(default_factory=lambda: ZoneInfo(get_settings().timezone))
 
@@ -75,19 +77,51 @@ class Harness:
         async with session_scope() as session:
             now = self.clock()
             settings = await load_settings(session, user.id)
-            await log_message(session, user.id, now, "in", kind, text)
-            turn = Turn(session, user, settings, self.habitica, now, self.tz)
+            inbound = await log_message(session, user.id, now, "in", kind, text)
+            turn = Turn(session, user, settings, self.habitica, now, self.tz, self.llm, inbound)
             try:
                 reply = await handle(turn)
             except Exception:
                 logger.exception("%s turn failed for user %s", kind, user.id)
                 reply = Reply(t("something_went_wrong", settings.language))
-            await log_message(session, user.id, self.clock(), "out", "text", reply.text)
+            # The reply belongs to the session the inbound message was attached to, if any.
+            await log_message(
+                session,
+                user.id,
+                self.clock(),
+                "out",
+                "text",
+                reply.text,
+                session_id=inbound.session_id,
+                llm=None if inbound.session_id is None else assistant_message(reply.text),
+            )
         return reply
 
 
+def assistant_message(text: str) -> dict[str, Any]:
+    return {"role": "assistant", "content": text}
+
+
 async def log_message(
-    session: AsyncSession, user_id: str, at: datetime, direction: str, kind: str, text: str
-) -> None:
-    session.add(Message(user_id=user_id, at=at, direction=direction, kind=kind, text=text))
+    session: AsyncSession,
+    user_id: str,
+    at: datetime,
+    direction: str,
+    kind: str,
+    text: str,
+    *,
+    session_id: int | None = None,
+    llm: dict[str, Any] | None = None,
+) -> Message:
+    row = Message(
+        user_id=user_id,
+        at=at,
+        direction=direction,
+        kind=kind,
+        text=text,
+        session_id=session_id,
+        llm=llm,
+    )
+    session.add(row)
     await session.flush()
+    return row
