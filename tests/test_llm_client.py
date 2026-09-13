@@ -1,4 +1,8 @@
-"""The OpenRouter client against a mocked transport, and its `llm_calls` rows."""
+"""The OpenRouter client against a mocked transport, and its `llm_calls` rows.
+
+The SDK validates responses strictly, so the mocked bodies carry every field
+OpenRouter always sends (`system_fingerprint` included).
+"""
 
 import json
 from datetime import UTC, datetime
@@ -26,6 +30,7 @@ def completion(message: dict[str, Any], cost: float = 0.00123) -> dict[str, Any]
         "object": "chat.completion",
         "created": 1,
         "model": MODEL,
+        "system_fingerprint": None,
         "choices": [{"index": 0, "finish_reason": "stop", "message": message}],
         "usage": {"prompt_tokens": 210, "completion_tokens": 17, "total_tokens": 227, "cost": cost},
     }
@@ -38,16 +43,16 @@ class Server:
         self.responses = list(responses)
         self.requests: list[dict[str, Any]] = []
 
-    def handler(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(json.loads(request.content))
-        return self.responses.pop(0)
-
     def client(self) -> LlmClient:
         transport = httpx.MockTransport(self.handler)
         return LlmClient("test-key", http_client=httpx.AsyncClient(transport=transport))
 
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(json.loads(request.content))
+        return self.responses.pop(0) if len(self.responses) > 1 else self.responses[0]
 
-async def test_chat_sends_usage_flag_tools_and_parses_text() -> None:
+
+async def test_chat_sends_tools_and_parses_text() -> None:
     server = Server(httpx.Response(200, json=completion({"role": "assistant", "content": "Hi!"})))
     tools = [{"type": "function", "function": {"name": "get_stats", "parameters": {}}}]
 
@@ -60,7 +65,7 @@ async def test_chat_sends_usage_flag_tools_and_parses_text() -> None:
     assert result.message == {"role": "assistant", "content": "Hi!"}
     sent = server.requests[0]
     assert sent["model"] == MODEL
-    assert sent["usage"] == {"include": True}
+    assert sent["messages"] == [{"role": "user", "content": "hello"}]
     assert sent["tools"] == tools
     assert "tool_choice" not in sent
 
@@ -111,13 +116,22 @@ async def test_http_error_becomes_llm_error() -> None:
         await server.client().chat([{"role": "user", "content": "x"}], None, MODEL)
 
 
+async def test_a_5xx_is_retried_briefly_then_raised() -> None:
+    server = Server(*[httpx.Response(502, json={"error": {"message": "bad gateway"}})] * 5)
+
+    with pytest.raises(LlmError, match="HTTP 502"):
+        await server.client().chat([{"role": "user", "content": "x"}], None, MODEL)
+
+    assert len(server.requests) == 3  # bounded by RETRIES, not the SDK's hour-long default
+
+
 async def test_connection_error_becomes_llm_error() -> None:
     def refuse(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused")
 
     client = LlmClient("k", http_client=httpx.AsyncClient(transport=httpx.MockTransport(refuse)))
 
-    with pytest.raises(LlmError, match="Connection error"):
+    with pytest.raises(LlmError, match="connection refused"):
         await client.chat([{"role": "user", "content": "x"}], None, MODEL)
 
 
@@ -155,8 +169,7 @@ async def test_successful_call_is_recorded(db_path: Path) -> None:
 
 
 async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:
-    server = Server(httpx.Response(500, json={"error": {"message": "upstream down"}}))
-    server.responses.append(httpx.Response(500, json={"error": {"message": "upstream down"}}))
+    server = Server(httpx.Response(402, json={"error": {"message": "insufficient credits"}}))
 
     async with session_scope() as session:
         # The harness catches the error inside its transaction, so the row is committed.
@@ -165,7 +178,7 @@ async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:
 
     (row,) = await rows()
     assert row.ok is False
-    assert row.error is not None and "500" in row.error
+    assert row.error is not None and "402" in row.error
     assert (row.prompt_tokens, row.completion_tokens, row.cost_usd) == (0, 0, None)
 
 

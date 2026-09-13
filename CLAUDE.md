@@ -139,7 +139,7 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Analytics | polars | all stats. Load rows via SQLAlchemy, build `pl.DataFrame` from them — no extra connector. |
 | Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
-| LLM | OpenRouter | `openai` SDK with `base_url=https://openrouter.ai/api/v1`. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
+| LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
 | ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | chat completions with an `input_audio` content part (base64); auto language detection; a text part carries context (task names, Habitica vocabulary) to bias recognition. One key for everything. |
 | TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | single voice for all languages: Selene, `reference_id b347db033a6549378b48d00acb0d06cd`. **Verify at build time** that OpenRouter exposes this model with a voice parameter; if it doesn't, STOP and ask — the fallback is Fish's native API behind the same `speak()` interface, not a workaround. |
 | Scheduler | APScheduler (AsyncIOScheduler) | in-process; jobs: snapshots, day-close + cron, reminders, gear, calendar sync, weekly report |
@@ -400,7 +400,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 
 ### F5 — LLM harness (OpenRouter)
 
-- One `chat(messages, tools, model) -> LlmResult` function via the `openai` SDK. Sends `usage: {include: true}`; records every call in `llm_calls`.
+- One `chat(messages, tools, model) -> LlmResult` function via the `openrouter` SDK. OpenRouter returns `usage.cost` on every response; every call is recorded in `llm_calls`.
 - Registry: `strong` = `LLM_STRONG_MODEL`, `cheap` = `LLM_CHEAP_MODEL`. Default `strong`. `/model` shows both with calls / cost / avg latency from `llm_calls`; `/model cheap` switches for this user. The coach always uses `strong`.
 - Tool-calling loop: max 6 tool rounds per turn, then force a text answer.
 - System prompt (built per turn): role, active language + override rule, "Habitica content is English", one-line stats, compact task list (id, type, text, due/completed, streak).
