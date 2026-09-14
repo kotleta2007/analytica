@@ -295,6 +295,18 @@ class Transcription(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class AsrGlossaryTerm(Base):
+    """A word the recogniser gets wrong for this user. added_from: command | tool | amendment."""
+
+    __tablename__ = "asr_glossary"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    term: Mapped[str] = mapped_column(String(64))
+    added_from: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime)
+
+
 class TelegramButton(Base):
     """One rendered inline button. Telegram callback data is capped at 64 bytes,
     so the callback carries this row's id and the action and payload live here."""

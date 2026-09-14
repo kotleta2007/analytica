@@ -99,6 +99,51 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "У меня две модели: strong и cheap. Например: /model cheap",
         "fr": "J'ai deux modèles : strong et cheap. Exemple : /model cheap",
     },
+    "help_glossary": {
+        "en": "words the voice recogniser gets wrong for you",
+        "ru": "слова, которые распознавание речи путает",
+        "fr": "les mots que la reconnaissance vocale écorche",
+    },
+    "glossary_empty": {
+        "en": "Your glossary is empty. /glossary add <term> teaches me a spelling.",
+        "ru": "Глоссарий пуст. /glossary add <слово> — научить меня написанию.",
+        "fr": "Ton glossaire est vide. /glossary add <terme> m'apprend une orthographe.",
+    },
+    "glossary_list": {
+        "en": "Glossary:\n{terms}",
+        "ru": "Глоссарий:\n{terms}",
+        "fr": "Glossaire :\n{terms}",
+    },
+    "glossary_usage": {
+        "en": "Usage: /glossary, /glossary add <term>, /glossary remove <term>",
+        "ru": "Использование: /glossary, /glossary add <слово>, /glossary remove <слово>",
+        "fr": "Usage : /glossary, /glossary add <terme>, /glossary remove <terme>",
+    },
+    "glossary_added": {
+        "en": "Added “{term}” to your glossary.",
+        "ru": "«{term}» добавлено в глоссарий.",
+        "fr": "« {term} » ajouté au glossaire.",
+    },
+    "glossary_exists": {
+        "en": "“{term}” is already in your glossary.",
+        "ru": "«{term}» уже есть в глоссарии.",
+        "fr": "« {term} » est déjà dans le glossaire.",
+    },
+    "glossary_removed": {
+        "en": "Removed “{term}” from your glossary.",
+        "ru": "«{term}» удалено из глоссария.",
+        "fr": "« {term} » retiré du glossaire.",
+    },
+    "glossary_missing": {
+        "en": "“{term}” is not in your glossary.",
+        "ru": "«{term}» нет в глоссарии.",
+        "fr": "« {term} » n'est pas dans le glossaire.",
+    },
+    "glossary_bad_term": {
+        "en": "Can't add that: {reason}.",
+        "ru": "Не могу добавить: {reason}.",
+        "fr": "Impossible d'ajouter ça : {reason}.",
+    },
     "session_none": {
         "en": "No open session. Just write to me and one starts.",
         "ru": "Открытой сессии нет. Просто напиши — и она начнётся.",

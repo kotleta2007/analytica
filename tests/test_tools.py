@@ -510,6 +510,7 @@ def test_every_tool_has_a_valid_function_schema() -> None:
         "delete_task",
         "move_task",
         "get_stats",
+        "add_glossary_term",
     ]
     for schema in tools.schemas():
         assert schema["type"] == "function"
