@@ -13,7 +13,7 @@ from app.core.tasks import short_id
 from app.core.turn import Turn, load_settings
 from app.db.engine import session_scope
 from app.habitica.client import HabiticaError
-from app.habitica.types import task_from_json
+from app.habitica.types import task_from_json, user_stats_from_json
 from app.llm import tools
 from app.llm.client import ToolCall
 from tests.fakes.habitica import FakeHabiticaClient
@@ -75,14 +75,38 @@ async def test_list_tasks_shows_open_tasks_with_short_ids(seeded: FakeHabiticaCl
         result = await tools.dispatch(turn, call("list_tasks"))
 
     tasks = result.content["tasks"]
+    # Habits, dailies, todos — the app's column order — when tasksOrder does not list them.
     assert [(t["id"], t["type"], t["text"]) for t in tasks] == [
-        ("d1a2b3c4", "daily", "Vacuum the floors"),
         ("ab1a2b3c", "habit", "Workout"),
+        ("d1a2b3c4", "daily", "Vacuum the floors"),
         ("70d0aaaa", "todo", "Buy milk"),
     ]
-    assert tasks[0]["due_today"] is True and tasks[0]["completed"] is False
-    assert tasks[1]["counter_up"] == 0
+    assert tasks[1]["due_today"] is True and tasks[1]["completed"] is False
+    assert tasks[0]["counter_up"] == 0
     assert result.changed_tasks is False
+
+
+async def test_tasks_follow_the_order_the_user_arranged_in_the_app(db_path: Path) -> None:
+    """After a move (or a drag in the app) the model must see the new order, or it cannot
+    compute "put X under Y"."""
+    first = make_task("todo", "Read GAMEPLAN", task_id="aaaa0001-0000-4000-8000-000000000001")
+    second = make_task("todo", "Free disk space", task_id="aaaa0002-0000-4000-8000-000000000002")
+    new = make_task("todo", "Created since", task_id="aaaa0003-0000-4000-8000-000000000003")
+    user = user_stats_from_json(
+        {**load_data("user"), "tasksOrder": {"todos": [second.id, first.id], "dailys": [DAILY.id]}}
+    )
+    client = FakeHabiticaClient(user=user, tasks=[first, DAILY, second, new])
+    async with session_scope() as session:
+        await collect(client, session, USER.id, NOW)
+    async with TurnScope(client) as turn:
+        result = await tools.dispatch(turn, call("list_tasks"))
+
+    assert [t["text"] for t in result.content["tasks"]] == [
+        "Vacuum the floors",
+        "Free disk space",
+        "Read GAMEPLAN",
+        "Created since",  # not in tasksOrder yet: after the others of its type
+    ]
 
 
 async def test_list_tasks_filters_by_type_and_rejects_others(seeded: FakeHabiticaClient) -> None:

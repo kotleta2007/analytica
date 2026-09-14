@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.collector.snapshots import latest_user_snapshot
 from app.db.models import TaskRow
 from app.habitica.types import Task, task_from_json
 
@@ -56,13 +57,42 @@ def due_datetime(day: date, tz: ZoneInfo) -> datetime:
 
 
 async def load_known_tasks(session: AsyncSession, user_id: str) -> list[KnownTask]:
-    """Every task Habitica still has, parsed from the JSON of its latest sighting."""
+    """Every task Habitica still has, in the order the user sees it in the app.
+
+    The order comes from `tasksOrder` in the latest user snapshot (habits, then
+    dailies, then todos, each list as the user arranged it). A task the snapshot
+    does not list yet — created since — goes after the others of its type.
+    """
     rows = await session.scalars(
         select(TaskRow)
         .where(TaskRow.user_id == user_id, TaskRow.deleted_at.is_(None))
         .order_by(TaskRow.id)
     )
-    return [KnownTask(row=row, task=task_from_json(row.raw)) for row in rows]
+    known = [KnownTask(row=row, task=task_from_json(row.raw)) for row in rows]
+    position = await habitica_order(session, user_id)
+    return sorted(
+        known,
+        key=lambda k: position.get(
+            k.row.habitica_id, (TYPE_RANK.get(k.task.type, 9), len(position))
+        ),
+    )
+
+
+TYPE_RANK = {"habit": 0, "daily": 1, "todo": 2, "reward": 3}
+ORDER_LISTS = {"habits": "habit", "dailys": "daily", "todos": "todo", "rewards": "reward"}
+
+
+async def habitica_order(session: AsyncSession, user_id: str) -> dict[str, tuple[int, int]]:
+    """`habitica_id → (type rank, index)` from the latest snapshot's `tasksOrder`."""
+    snapshot = await latest_user_snapshot(session, user_id)
+    if snapshot is None:
+        return {}
+    order = snapshot.raw.get("tasksOrder", {})
+    return {
+        task_id: (TYPE_RANK[task_type], index)
+        for list_name, task_type in ORDER_LISTS.items()
+        for index, task_id in enumerate(order.get(list_name, []))
+    }
 
 
 def open_tasks(known: list[KnownTask]) -> list[KnownTask]:
