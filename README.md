@@ -96,8 +96,8 @@ right now), `/new`, `/session [planning <topic>]`, `/model [strong|cheap]`.
 floors" completes the daily; "ajoute une tâche : acheter du lait demain" creates
 an English todo due tomorrow; "what are my stats?" reads them. The model sees a
 fresh system prompt every turn — the reply language, your stats, one compact line
-per task — and acts through six tools (`list_tasks`, `score_task`, `create_task`,
-`update_task`, `delete_task`, `get_stats`), up to six rounds per message.
+per task — and acts through seven tools (`list_tasks`, `score_task`, `create_task`,
+`update_task`, `delete_task`, `move_task`, `get_stats`), up to six rounds per message.
 Habitica content stays English whatever language you write in. Deleting is never
 done on the model's say-so: it asks, you press **✅ Do it** or **❌ Cancel**, and
 any other message drops the offer.

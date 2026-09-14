@@ -244,6 +244,34 @@ async def test_update_task_sends_only_the_given_fields(seeded: FakeHabiticaClien
     assert empty.content["error"].startswith("nothing to update")
 
 
+async def test_move_task_to_the_top_and_bottom(seeded: FakeHabiticaClient) -> None:
+    async with TurnScope(seeded) as turn:
+        top = await tools.dispatch(turn, call("move_task", task_id="70d0aaaa", position="top"))
+        bottom = await tools.dispatch(
+            turn, call("move_task", task_id="70d0aaaa", position="bottom")
+        )
+        third = await tools.dispatch(turn, call("move_task", task_id="d1a2b3c4", position=3))
+
+    assert seeded.called("move_task") == [(TODO.id, 0), (TODO.id, -1), (DAILY.id, 2)]
+    assert top.content == {"moved": "Buy milk", "to": "top of the todo list", "list_length": 1}
+    assert bottom.content["to"] == "bottom of the todo list"
+    assert third.content["to"] == "position 3 of the daily list"
+    assert top.changed_tasks is True
+
+
+@pytest.mark.parametrize("position", ["middle", 0, -2, True, "x"])
+async def test_move_task_rejects_bad_positions(
+    seeded: FakeHabiticaClient, position: object
+) -> None:
+    async with TurnScope(seeded) as turn:
+        result = await tools.dispatch(
+            turn, call("move_task", task_id="70d0aaaa", position=position)
+        )
+
+    assert result.content["error"].startswith("position must be top, bottom, or a slot number")
+    assert seeded.called("move_task") == []
+
+
 # ---- confirmation ----
 
 
@@ -328,6 +356,7 @@ def test_every_tool_has_a_valid_function_schema() -> None:
         "create_task",
         "update_task",
         "delete_task",
+        "move_task",
         "get_stats",
     ]
     for schema in tools.schemas():

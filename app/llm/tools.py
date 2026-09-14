@@ -255,6 +255,34 @@ async def delete_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
     return ToolResult({"deleted": known.task.text}, changed_tasks=True)
 
 
+async def move_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
+    known = await resolve_task(turn.session, turn.user.id, required(args, "task_id"))
+    position = parse_position(args.get("position"))
+    order = await turn.habitica.move_task(known.row.habitica_id, position)
+    where = "top" if position == 0 else "bottom" if position == -1 else f"position {position + 1}"
+    return ToolResult(
+        {
+            "moved": known.task.text,
+            "to": f"{where} of the {known.task.type} list",
+            "list_length": len(order),
+        },
+        changed_tasks=True,
+    )
+
+
+def parse_position(value: Any) -> int:
+    """`top` → 0, `bottom` → -1, or a 1-based slot as the user would count it."""
+    if value in ("top", None):
+        return 0
+    if value == "bottom":
+        return -1
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 1:
+        return value - 1
+    if isinstance(value, str) and value.isdigit() and int(value) >= 1:
+        return int(value) - 1
+    raise ToolArgumentError("position must be top, bottom, or a slot number from 1")
+
+
 async def get_stats(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
     snapshot = await collect_if_stale(
         turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
@@ -446,6 +474,22 @@ TOOLS: dict[str, Tool] = {
             parameters={"properties": {"task_id": TASK_ID}, "required": ["task_id"]},
             run=delete_task,
             destructive=True,
+        ),
+        Tool(
+            name="move_task",
+            description="Reorder a task within its list (habits, dailies and todos each have "
+            "their own order), as dragging it in the Habitica app would.",
+            parameters={
+                "properties": {
+                    "task_id": TASK_ID,
+                    "position": {
+                        "description": '"top", "bottom", or a slot number counted from 1.',
+                        "anyOf": [{"type": "string"}, {"type": "integer"}],
+                    },
+                },
+                "required": ["task_id", "position"],
+            },
+            run=move_task,
         ),
         Tool(
             name="get_stats",

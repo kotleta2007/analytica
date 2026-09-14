@@ -57,6 +57,9 @@ PRIMER_RULES = (
     "critical hits.",
     "Rewards are things the user buys with gold; they are not tasks and this bot does not "
     "manage them.",
+    "Each list (habits, dailies, todos) keeps the order the user gave it, top to bottom; "
+    '"put X first" or "move X to the bottom" is an action (move_task), not a preference '
+    "to remember.",
 )
 PRIMER = (
     "How Habitica works (you cannot look this up; reason from these rules only):\n"

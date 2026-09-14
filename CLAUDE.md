@@ -358,6 +358,7 @@ Thin async client over `https://habitica.com/api/v3`. Required headers on every 
 | All tasks | `GET /tasks/user` (+ `?type=completedTodos`) |
 | Score a task | `POST /tasks/{id}/score/{up\|down}` |
 | Create / update / delete a task | `POST /tasks/user`, `PUT` / `DELETE /tasks/{id}` |
+| Reorder a task within its list | `POST /tasks/{id}/move/to/{position}` (0 = top, −1 = bottom) |
 | Equip an item | `POST /user/equip/equipped/{key}` |
 | Run cron on purpose | `POST /cron` |
 | Game content (gear stats) | `GET /content` (cached on disk, refreshed weekly) |
@@ -416,6 +417,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 | `create_task(type, text, notes?, due_date?, difficulty?, repeat_days?)` | English text only; `repeat_days` for dailies on chosen weekdays | |
 | `update_task(...)` | | |
 | `delete_task(task_id)` | | **yes** |
+| `move_task(task_id, position)` | `top`, `bottom` or a slot number from 1 — the drag in the app | |
 | `get_stats()` | hp/mp/exp/gp/lvl | |
 | `get_consistency_report(window_days)` | findings JSON | |
 | `plot_stat(stat, days)` | attaches a chart to the reply | |

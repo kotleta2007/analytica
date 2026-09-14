@@ -65,6 +65,7 @@ def test_the_primer_states_the_mechanics_so_the_model_does_not_invent_them() -> 
     assert "every daily that was due and not completed costs HP" in prompt
     assert "this bot fires it deliberately one minute after day start" in prompt
     assert "A todo due today is overdue after midnight, not at day start" in prompt
+    assert "is an action (move_task), not a preference to remember" in prompt
 
 
 def test_english_content_rule_is_present() -> None:

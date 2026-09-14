@@ -91,6 +91,15 @@ class FakeHabiticaClient:
         self.calls.append(("delete_task", task_id))
         self.tasks = [task for task in self.tasks if task.id != task_id]
 
+    async def move_task(self, task_id: str, position: int) -> list[str]:
+        self.calls.append(("move_task", (task_id, position)))
+        task = self.find(task_id)
+        same_type = [t for t in self.tasks if t.type == task.type and t.id != task_id]
+        same_type.insert(len(same_type) if position == -1 else position, task)
+        others = [t for t in self.tasks if t.type != task.type]
+        self.tasks = same_type + others
+        return [t.id for t in same_type]
+
     async def equip(self, key: str) -> None:
         self.calls.append(("equip", key))
 
