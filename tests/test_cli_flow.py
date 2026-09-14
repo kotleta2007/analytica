@@ -12,8 +12,9 @@ from app.analytics.charts import to_terminal
 from app.core.harness import Harness
 from app.core.i18n import t
 from app.core.replies import Button, ChartData, Reply, User
-from app.habitica.types import task_from_json
+from app.habitica.types import class_label, task_from_json
 from tests.fakes.habitica import FakeHabiticaClient
+from tests.fakes.llm import FakeLlm, calls_tool, says
 from tests.habitica_fixtures import load_data
 
 USER = User("00000000-0000-4000-8000-000000000001")
@@ -26,8 +27,20 @@ def fake_client() -> FakeHabiticaClient:
 
 
 @pytest.fixture
-async def cli(db_path: Path, tmp_path: Path, fake_client: FakeHabiticaClient) -> Cli:
-    harness = Harness(habitica=fake_client, clock=lambda: NOW, tz=ZoneInfo("Europe/Zurich"))
+def fake_llm() -> FakeLlm:
+    return FakeLlm()
+
+
+@pytest.fixture
+async def cli(
+    db_path: Path, tmp_path: Path, fake_client: FakeHabiticaClient, fake_llm: FakeLlm
+) -> Cli:
+    harness = Harness(
+        habitica=fake_client,  # type: ignore[arg-type]
+        llm=fake_llm,  # type: ignore[arg-type]
+        clock=lambda: NOW,
+        tz=ZoneInfo("Europe/Zurich"),
+    )
     return Cli(harness=harness, user=USER, voice_dir=tmp_path / "voice")
 
 
@@ -38,14 +51,47 @@ async def test_language_then_stats_in_russian(cli: Cli, fake_client: FakeHabitic
 
     user = fake_client.user
     assert shown.startswith(f"❤️ {user.hp:.0f}/{user.max_hp}")
-    assert f"Уровень {user.lvl}, {user.class_name} · на 14:30" in shown
+    assert f"Уровень {user.lvl}, {class_label(user.class_name)} · на 14:30" in shown
     assert fake_client.called("get_user") == [None]
 
 
-async def test_free_text_gets_the_no_llm_line(cli: Cli) -> None:
+async def test_free_text_without_a_model_is_refused(cli: Cli) -> None:
+    cli.harness.llm = None
+
     reply = await cli.handle_line("done with workout")
 
-    assert reply.text == t("no_llm_yet", "en")
+    assert reply.text == t("llm_not_configured", "en")
+
+
+async def test_a_text_turn_scores_a_task_through_the_model(
+    cli: Cli, fake_client: FakeHabiticaClient, fake_llm: FakeLlm
+) -> None:
+    daily = next(task for task in fake_client.tasks if task.type == "daily")
+    fake_llm.queue(
+        calls_tool("score_task", task_id=daily.id[:8], direction="up"),
+        says(f"Ticked off {daily.text}."),
+    )
+
+    reply = await cli.handle_line(f"I did {daily.text.lower()}")
+
+    assert reply.text == f"Ticked off {daily.text}."
+    assert fake_client.called("score_task") == [(daily.id, "up")]
+
+
+async def test_a_confirm_button_turn_deletes_after_the_number_is_typed(
+    cli: Cli, fake_client: FakeHabiticaClient, fake_llm: FakeLlm
+) -> None:
+    habit = next(task for task in fake_client.tasks if task.type == "habit")
+    fake_llm.queue(calls_tool("delete_task", task_id=habit.id[:8]), says("Delete it?"))
+
+    asked = await cli.show(await cli.handle_line(f"delete {habit.text}"))
+    assert asked == "Delete it?\n[1] ✅ Do it  [2] ❌ Cancel\n(type a number to press)"
+    assert fake_client.called("delete_task") == []
+
+    done = await cli.handle_line("1")
+
+    assert done.text == f"Done: delete “{habit.text}”."
+    assert fake_client.called("delete_task") == [habit.id]
 
 
 async def test_buttons_are_numbered_and_a_number_presses_one(cli: Cli) -> None:
@@ -62,10 +108,13 @@ async def test_buttons_are_numbered_and_a_number_presses_one(cli: Cli) -> None:
     assert cli.buttons == []  # an offer is pressed once
 
 
-async def test_a_number_without_buttons_is_plain_text(cli: Cli) -> None:
+async def test_a_number_without_buttons_is_plain_text(cli: Cli, fake_llm: FakeLlm) -> None:
+    fake_llm.queue(says("One what?"))
+
     reply = await cli.handle_line("1")
 
-    assert reply.text == t("no_llm_yet", "en")
+    assert reply.text == "One what?"
+    assert fake_llm.calls[0].messages[-1] == {"role": "user", "content": "1"}
 
 
 async def test_chart_is_drawn_in_the_terminal(cli: Cli) -> None:

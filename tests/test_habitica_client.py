@@ -168,6 +168,21 @@ async def test_score_task_posts_the_direction(tmp_path: Path) -> None:
     assert result.delta == 1.2
 
 
+async def test_move_task_posts_the_position_and_returns_the_new_order(tmp_path: Path) -> None:
+    recorder = Recorder([ok(["task-1", "task-2", "task-3"]), ok(["task-2", "task-3", "task-1"])])
+
+    async with make_client(recorder, tmp_path) as client:
+        top = await client.move_task("task-1", 0)
+        bottom = await client.move_task("task-1", -1)
+
+    assert [r.url.path for r in recorder.requests] == [
+        "/api/v3/tasks/task-1/move/to/0",
+        "/api/v3/tasks/task-1/move/to/-1",
+    ]
+    assert all(r.method == "POST" for r in recorder.requests)
+    assert (top, bottom) == (["task-1", "task-2", "task-3"], ["task-2", "task-3", "task-1"])
+
+
 async def test_create_and_update_send_the_payload(tmp_path: Path) -> None:
     created = {
         "id": "t-new",

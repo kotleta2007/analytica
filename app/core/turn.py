@@ -7,8 +7,11 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.replies import User
-from app.db.models import UserSettings
+from app.core.sessions import Summarizer
+from app.db.models import Message, UserSettings
 from app.habitica.client import HabiticaClient
+from app.llm.client import LlmClient, chat
+from app.llm.models import CHEAP, model_id
 
 
 @dataclass
@@ -19,6 +22,9 @@ class Turn:
     habitica: HabiticaClient
     now: datetime
     tz: ZoneInfo
+    llm: LlmClient | None = None
+    # The row the harness logged for the inbound message, so a handler can attach it to a session.
+    inbound: Message | None = None
 
     @property
     def language(self) -> str:
@@ -33,3 +39,18 @@ async def load_settings(session: AsyncSession, user_id: str) -> UserSettings:
         session.add(settings)
         await session.flush()
     return settings
+
+
+def summarizer(turn: Turn) -> Summarizer | None:
+    """Session summaries use the cheap model; None when no model is configured."""
+    llm = turn.llm
+    if llm is None:
+        return None
+
+    async def summarize(messages: list[dict]) -> str:
+        result = await chat(
+            llm, turn.session, turn.user.id, turn.now, messages, None, model_id(CHEAP)
+        )
+        return result.text.strip()
+
+    return summarize

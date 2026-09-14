@@ -22,6 +22,14 @@ from typing import Any, Literal
 TaskType = Literal["habit", "daily", "todo", "reward"]
 
 GEAR_SLOTS = ("weapon", "armor", "head", "shield", "back", "headAccessory", "eyewear", "body")
+# Habitica's API calls the mage "wizard" (in `stats.class` and in the content's spell table).
+CLASS_LABELS = {"wizard": "mage"}
+
+
+def class_label(class_name: str) -> str:
+    return CLASS_LABELS.get(class_name, class_name)
+
+
 GEAR_STATS = ("str", "int", "per", "con")
 
 
@@ -60,6 +68,11 @@ class UserStats:
     equipped: dict[str, str]
     owned_gear: list[str]
     raw: dict[str, Any] = field(repr=False)
+
+    @property
+    def exp_remaining(self) -> int:
+        """XP still needed for the next level. Computed here, never left to the model."""
+        return max(int(round(self.to_next_level - self.exp)), 0)
 
 
 def user_stats_from_json(data: dict[str, Any]) -> UserStats:

@@ -6,8 +6,32 @@ active language. Keys are plain text; adapters send them without markup, so a
 task name with `*` or `_` in it never breaks a message.
 """
 
+from datetime import date, datetime
+
 LANGUAGES = ("en", "ru", "fr")
 DEFAULT_LANGUAGE = "en"
+
+# Dates are shown the European way in every language: 31.12.2026.
+DATE_FORMAT = "%d.%m.%Y"
+
+
+def format_day(day: date) -> str:
+    return day.strftime(DATE_FORMAT)
+
+
+def format_moment(moment: datetime) -> str:
+    """`31.12.2026 14:05`; the caller converts to the user's timezone first."""
+    return moment.strftime(f"{DATE_FORMAT} %H:%M")
+
+
+def parse_day(value: str) -> date:
+    """Accepts `31.12.2026` and `2026-12-31`; raises ValueError otherwise."""
+    text = value.strip()
+    try:
+        return datetime.strptime(text, DATE_FORMAT).date()
+    except ValueError:
+        return date.fromisoformat(text)
+
 
 STRINGS: dict[str, dict[str, str]] = {
     "welcome": {
@@ -40,11 +64,104 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "снять свежий снимок Habitica прямо сейчас",
         "fr": "prendre un instantané Habitica maintenant",
     },
-    "no_llm_yet": {
-        "en": "I can't hold a conversation yet — that comes in a later version. Try /help.",
-        "ru": "Разговаривать я пока не умею — это появится в следующей версии. Попробуй /help.",
-        "fr": "Je ne sais pas encore discuter — ça viendra dans une prochaine version. "
-        "Essaie /help.",
+    "help_new": {
+        "en": "start a fresh conversation (the current one is summarised)",
+        "ru": "начать разговор заново (текущий будет кратко сохранён)",
+        "fr": "repartir sur une conversation neuve (l'actuelle est résumée)",
+    },
+    "help_session": {
+        "en": "show the current session, or open a long planning one",
+        "ru": "показать текущую сессию или открыть долгую сессию планирования",
+        "fr": "voir la session en cours, ou en ouvrir une longue de planification",
+    },
+    "help_model": {
+        "en": "which model answers you, with what it has cost so far",
+        "ru": "какая модель тебе отвечает и сколько это стоило",
+        "fr": "quel modèle te répond, et ce qu'il a coûté jusqu'ici",
+    },
+    "model_header": {
+        "en": "Models (● is yours):",
+        "ru": "Модели (● — твоя):",
+        "fr": "Modèles (● = le tien) :",
+    },
+    "model_footer": {
+        "en": "/model strong|cheap to switch. The weekly coach always uses strong.",
+        "ru": "/model strong|cheap — переключить. Еженедельный тренер всегда на strong.",
+        "fr": "/model strong|cheap pour changer. Le coach hebdomadaire reste sur strong.",
+    },
+    "model_set": {
+        "en": "Switched to {name} ({id}).",
+        "ru": "Переключено на {name} ({id}).",
+        "fr": "Passé sur {name} ({id}).",
+    },
+    "model_invalid": {
+        "en": "I have two models: strong and cheap. Example: /model cheap",
+        "ru": "У меня две модели: strong и cheap. Например: /model cheap",
+        "fr": "J'ai deux modèles : strong et cheap. Exemple : /model cheap",
+    },
+    "session_none": {
+        "en": "No open session. Just write to me and one starts.",
+        "ru": "Открытой сессии нет. Просто напиши — и она начнётся.",
+        "fr": "Pas de session ouverte. Écris-moi et elle commence.",
+    },
+    "session_closed": {
+        "en": "Session closed. Your next message starts a fresh one.",
+        "ru": "Сессия закрыта. Следующее сообщение начнёт новую.",
+        "fr": "Session fermée. Ton prochain message en ouvre une nouvelle.",
+    },
+    "session_info": {
+        "en": "{kind} session{topic} · started {age} ago · last message {idle} ago · "
+        "{count} messages",
+        "ru": "{kind} сессия{topic} · началась {age} назад · последнее сообщение {idle} назад · "
+        "сообщений: {count}",
+        "fr": "session {kind}{topic} · ouverte depuis {age} · dernier message il y a {idle} · "
+        "{count} messages",
+    },
+    "session_kind_quick": {
+        "en": "Quick",
+        "ru": "Быстрая",
+        "fr": "rapide",
+    },
+    "session_kind_planning": {
+        "en": "Planning",
+        "ru": "Плановая",
+        "fr": "de planification",
+    },
+    "session_planning_opened": {
+        "en": "Planning session opened: {topic}. It survives two hours of silence; "
+        "/new closes it earlier.",
+        "ru": "Сессия планирования открыта: {topic}. Она живёт два часа тишины; "
+        "/new закроет раньше.",
+        "fr": "Session de planification ouverte : {topic}. Elle survit à deux heures de "
+        "silence ; /new la ferme avant.",
+    },
+    "session_planning_needs_topic": {
+        "en": "Give the session a topic: /session planning learning Latin",
+        "ru": "Укажи тему сессии: /session planning выучить латынь",
+        "fr": "Donne un sujet à la session : /session planning apprendre le latin",
+    },
+    "llm_not_configured": {
+        "en": "I can't hold a conversation on this install: OPENROUTER_API_KEY is not set. "
+        "Commands still work — try /help.",
+        "ru": "Разговаривать на этой установке я не могу: не задан OPENROUTER_API_KEY. "
+        "Команды работают — попробуй /help.",
+        "fr": "Je ne peux pas discuter sur cette installation : OPENROUTER_API_KEY n'est pas "
+        "défini. Les commandes marchent — essaie /help.",
+    },
+    "llm_error": {
+        "en": "The model didn't answer: {error}",
+        "ru": "Модель не ответила: {error}",
+        "fr": "Le modèle n'a pas répondu : {error}",
+    },
+    "llm_empty_reply": {
+        "en": "(The model returned an empty answer. Try rephrasing.)",
+        "ru": "(Модель вернула пустой ответ. Попробуй переформулировать.)",
+        "fr": "(Le modèle a renvoyé une réponse vide. Essaie de reformuler.)",
+    },
+    "action_failed": {
+        "en": "Couldn't {action}: {error}",
+        "ru": "Не удалось {action}: {error}",
+        "fr": "Impossible de {action} : {error}",
     },
     "voice_not_yet": {
         "en": "Voice messages come in a later version. Please type for now.",
@@ -100,6 +217,36 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Habitica didn't answer properly: {error}",
         "ru": "Habitica не ответила как следует: {error}",
         "fr": "Habitica n'a pas répondu correctement : {error}",
+    },
+    "confirm_do_it": {
+        "en": "✅ Do it",
+        "ru": "✅ Давай",
+        "fr": "✅ Vas-y",
+    },
+    "confirm_cancel": {
+        "en": "❌ Cancel",
+        "ru": "❌ Отмена",
+        "fr": "❌ Annuler",
+    },
+    "action_delete_task": {
+        "en": "delete “{text}”",
+        "ru": "удалить «{text}»",
+        "fr": "supprimer « {text} »",
+    },
+    "action_done": {
+        "en": "Done: {action}.",
+        "ru": "Готово: {action}.",
+        "fr": "C'est fait : {action}.",
+    },
+    "action_cancelled": {
+        "en": "Cancelled: {action}.",
+        "ru": "Отменено: {action}.",
+        "fr": "Annulé : {action}.",
+    },
+    "action_dropped": {
+        "en": "(The pending action — {action} — is dropped.)",
+        "ru": "(Ожидавшее действие — {action} — отменено.)",
+        "fr": "(L'action en attente — {action} — est abandonnée.)",
     },
     "something_went_wrong": {
         "en": "Something went wrong on my side. It's logged; try again in a moment.",

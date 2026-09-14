@@ -139,7 +139,7 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Analytics | polars | all stats. Load rows via SQLAlchemy, build `pl.DataFrame` from them — no extra connector. |
 | Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
-| LLM | OpenRouter | `openai` SDK with `base_url=https://openrouter.ai/api/v1`. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
+| LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
 | ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | chat completions with an `input_audio` content part (base64); auto language detection; a text part carries context (task names, Habitica vocabulary) to bias recognition. One key for everything. |
 | TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | single voice for all languages: Selene, `reference_id b347db033a6549378b48d00acb0d06cd`. **Verify at build time** that OpenRouter exposes this model with a voice parameter; if it doesn't, STOP and ask — the fallback is Fish's native API behind the same `speak()` interface, not a workaround. |
 | Scheduler | APScheduler (AsyncIOScheduler) | in-process; jobs: snapshots, day-close + cron, reminders, gear, calendar sync, weekly report |
@@ -183,8 +183,11 @@ analytica/
 │   │   ├── replies.py           # Reply, Button, ChartData dataclasses
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
-│   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /target /challenges /plan /sync
+│   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /skills /target /challenges /plan /sync
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
+│   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
+│   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
+│   │   ├── skills.py            # the class skills the user can cast now, from content + stats (F12)
 │   │   ├── outbound.py          # send_to_user() hook for scheduled messages
 │   │   └── i18n.py              # fixed strings in en/ru/fr
 │   ├── llm/
@@ -266,6 +269,7 @@ class Reply:
 @dataclass
 class Harness:
     habitica: HabiticaClient
+    llm: LlmClient | None = None   # None when OPENROUTER_API_KEY is unset: commands work, free text is refused
     async def text_message_received(self, user: User, text: str) -> Reply: ...
     async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply: ...
     async def button_pressed(self, user: User, action: str, payload: dict) -> Reply: ...
@@ -330,7 +334,7 @@ Transcripts are stored (`transcriptions` table: raw, cleaned, accepted) so both 
 
 The model never gets the whole chat history; it gets a **session**.
 
-- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary)`, `kind ∈ {quick, planning}`. Each `messages` row carries a `session_id` and the LLM-formatted turn (role, content, tool calls) as JSON, so a session can be replayed into a prompt.
+- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary, collapsed_summary, collapsed_through_id)`, `kind ∈ {quick, planning}`. Each `messages` row that belongs to a session carries its `session_id` and the LLM-formatted message (role, content, tool calls) in `llm`, so a session can be replayed into a prompt; tool calls and tool results are rows of `kind=tool`.
 - A message arrives → if the user's open session is within its idle limit, append to it; otherwise close it (below) and open a new `quick` one. Idle limits: `quick` 15 min, `planning` 120 min (config).
 - **Planning sessions** are for long conversations — designing the tasks for a new aspiration, reworking a week. Opened by the model via the `start_planning_session(topic)` tool when it recognises the intent, or by the user (`/session planning <topic>`). Closed by the model via `end_session()` once the plan is committed, by the user (`/new`), or by the idle limit.
 - **Closing a session**: the cheap model writes a ≤ 3-line summary ("Discussed learning Latin; agreed on habit *Latin vocab 10 min* and todo *Buy Wheelock*; grammar deferred"), stored on the row. The next system prompts include the last 3 summaries under "Recent context", so continuity survives the reset without carrying the transcript.
@@ -354,10 +358,12 @@ Thin async client over `https://habitica.com/api/v3`. Required headers on every 
 | All tasks | `GET /tasks/user` (+ `?type=completedTodos`) |
 | Score a task | `POST /tasks/{id}/score/{up\|down}` |
 | Create / update / delete a task | `POST /tasks/user`, `PUT` / `DELETE /tasks/{id}` |
+| Reorder a task within its list | `POST /tasks/{id}/move/to/{position}` (0 = top, −1 = bottom) |
 | Equip an item | `POST /user/equip/equipped/{key}` |
 | Run cron on purpose | `POST /cron` |
 | Game content (gear stats) | `GET /content` (cached on disk, refreshed weekly) |
 | Challenges | `GET /challenges/user`, `GET /challenges/{id}`, `POST /challenges/{id}/join` |
+| Cast a class skill | `POST /user/class/cast/{key}?targetId={taskId}` (target only for task skills) |
 | Webhooks | `POST /user/webhook` with `type: taskActivity` (scored, created, updated, deleted) |
 
 Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is always stored too** (`raw` column) so we never regret a field we didn't parse. Collect everything; decide what to use later.
@@ -367,7 +373,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 **Tables**
 
 - `user_snapshots(id, user_id, taken_at, hp, mp, exp, gp, lvl, class, to_next_level, raw)`
-- `tasks(id, user_id, habitica_id, type, text, notes, created_at, first_seen_at, last_seen_at, deleted_at, raw)` — every task we've ever seen
+- `tasks(id, user_id, habitica_id, type, text, notes, created_at, first_seen_at, last_seen_at, deleted_at, position, raw)` — every task we've ever seen; `position` is its index in its type's list as arranged in the app (from `tasksOrder`, and from the bot's own moves — a reorder is remembered, never snapshotted)
 - `task_snapshots(id, task_id, taken_at, completed, is_due, streak, value, counter_up, counter_down, checklist_done, checklist_total, raw_hash)`
 - `task_events(id, task_id, at, kind, direction, delta, source, raw)` — `kind ∈ {scored, created, updated, deleted, completed, uncompleted, checklist, started}`, `source ∈ {bot, snapshot_diff, webhook, backfill, calendar, reminder}`
 - `daily_records(id, task_id, day, was_due, completed, source)` — one row per daily per Habitica day; what analytics reads
@@ -376,11 +382,11 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 - `llm_calls(id, user_id, at, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, tool_calls, ok, error)`
 - `transcriptions(id, user_id, at, provider, model, raw_text, accepted_text, language, latency_ms)`
 - `tts_calls(id, user_id, at, provider, model, chars, latency_ms)`
-- `messages(id, user_id, at, direction, kind, text)` — chat log
+- `messages(id, user_id, at, direction, kind, text, session_id, llm)` — chat log; `session_id` and `llm` (the model-format message) only on rows that belong to a session
 - `user_settings(user_id, language, model, tts, reminder_time, gear_int, gear_per, gear_con, last_reminder_day, dismissed_proposals, recent_suggestions)`
 - `weekly_targets(id, user_id, habit_task_id, daily_task_id, per_week, created_at)`, `weekly_target_weeks(id, target_id, week_start, count, met, sessions_json)`
 - `task_durations(task_id, minutes, source)` — user-stated estimates for the planner
-- `sessions(...)`, `messages.session_id` — F1b
+- `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary, collapsed_summary, collapsed_through_id)` — F1b; the last two hold the running summary once a session outgrows its token budget, and the id of the last message it stands for
 - `asr_glossary(id, user_id, term, added_from, created_at)` — F1
 - `aspirations(...)`, `aspiration_tasks(...)` — F7e
 - `conversation_state(user_id, state, payload, updated_at)`
@@ -397,10 +403,10 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 
 ### F5 — LLM harness (OpenRouter)
 
-- One `chat(messages, tools, model) -> LlmResult` function via the `openai` SDK. Sends `usage: {include: true}`; records every call in `llm_calls`.
+- One `chat(messages, tools, model) -> LlmResult` function via the `openrouter` SDK. OpenRouter returns `usage.cost` on every response; every call is recorded in `llm_calls`.
 - Registry: `strong` = `LLM_STRONG_MODEL`, `cheap` = `LLM_CHEAP_MODEL`. Default `strong`. `/model` shows both with calls / cost / avg latency from `llm_calls`; `/model cheap` switches for this user. The coach always uses `strong`.
 - Tool-calling loop: max 6 tool rounds per turn, then force a text answer.
-- System prompt (built per turn): role, active language + override rule, "Habitica content is English", one-line stats, compact task list (id, type, text, due/completed, streak).
+- System prompt (built per turn): role, active language + override rule, "Habitica content is English", a compact primer on how Habitica works (the model cannot look the game up and is not meant to; this is its whole knowledge of the mechanics), one-line stats, the skills the user can cast now (F12), compact task list (id, type, text, due/completed, streak). **Every derived number is computed in Python and handed to the model** — XP to the next level, MP left after a cast, days overdue — never left to the model's arithmetic.
 
 **Tools exposed to the model**
 
@@ -408,9 +414,10 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 |---|---|---|
 | `list_tasks(type?)` | tasks with ids | |
 | `score_task(task_id, direction)` | complete a daily/todo, +/- a habit | |
-| `create_task(type, text, notes?, due_date?, difficulty?)` | English text only | |
-| `update_task(...)` | | |
+| `create_task(type, text, notes?, checklist?, due_date?, difficulty?, repeat_days?)` | English text only; sub-items go in `checklist`, never in notes; `repeat_days` for dailies on chosen weekdays | |
+| `update_task(task_id, text?, notes?, checklist?, due_date?, difficulty?)` | `checklist` replaces the list; unchanged items keep their tick | |
 | `delete_task(task_id)` | | **yes** |
+| `move_task(task_id, position)` | `top`, `bottom` or a slot number from 1 — the drag in the app | |
 | `get_stats()` | hp/mp/exp/gp/lvl | |
 | `get_consistency_report(window_days)` | findings JSON | |
 | `plot_stat(stat, days)` | attaches a chart to the reply | |
@@ -418,6 +425,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 | `convert_daily_to_habit(task_id)` | demote a daily that isn't working | **yes** |
 | `set_weekly_target(habit_id, per_week)`, `remove_weekly_target(habit_id)` | F7c | set: **yes** |
 | `list_challenges(search?)`, `join_challenge(id)` | | join: **yes** |
+| `cast_skill(skill, task_id?)` | F12 — cast one of the user's class skills; `task_id` for task-targeted ones | **yes** |
 | `start_planning_session(topic)`, `end_session()` | F1b | |
 | `create_plan(aspiration, items[])` | batch-create the agreed todos/habits/dailies for an aspiration, link them | **yes** (one confirm for the whole batch) |
 | `propose_transition(task_id, to_stage)` | F7e — surfaces a lifecycle move with buttons | **yes** |
@@ -543,6 +551,15 @@ Direction: **Habitica → Calendar.** Habitica is the source of tasks; the calen
   - One-directional: undone → done only. The bot never removes ` (done)` and never un-completes anything. If a task is un-completed in Habitica, the link is marked `done=false` and left alone; the event keeps its suffix.
 - **Post-slot check-in**: 10 minutes after a scheduled slot ends, the bot asks "Did you work on *Essay draft*?" with **Done** / **Partly** / **Not yet**. *Done* scores the task; *Partly* records `started` (if not already) and offers to reschedule the remainder; *Not yet* offers to reschedule. This is where "when do you actually start" data comes from for scheduled work.
 - Never touches events that aren't in `calendar_links`.
+
+### F12 — Class skills
+
+Each class unlocks four skills between levels 11 and 14; casting one costs mana and, for the task-targeted ones (Burst of Flames, Brutal Smash, Pickpocket, Backstab), acts on one task. The skill table comes from `GET /content` (`spells.{warrior,wizard,rogue,healer}`: `mana`, `lvl`, `target ∈ {task, self, party, tasks}`), never from code; the API calls the mage `wizard`.
+
+- `core/skills.py`: `available_skills(stats, content)` — the user's class, unlocked at their level, each with `castable = mp ≥ mana` computed locally.
+- The system prompt lists them ("Burst of Flames — fireball, 10 MP, on a task") next to the stats line; the primer says what skills are.
+- `cast_skill(skill, task_id?)` tool: name or key; a task skill without `task_id` is an error result, a non-task skill with one too. Always a confirm button (mana is spent, the app shows it), then a `collect(source=bot)` round: a cast changes stats and a task skill changes the task's value.
+- `/skills` lists what can be cast now with costs. Party-targeted skills are cast as is — the party is Habitica's concern, not the bot's.
 
 ---
 

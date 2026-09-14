@@ -143,3 +143,15 @@ def test_webhook() -> None:
     assert hook.id == "w1"
     assert hook.type == "taskActivity"
     assert hook.options == {"scored": True, "created": False}
+
+
+def test_exp_remaining_is_computed_and_never_negative() -> None:
+    from dataclasses import replace
+
+    from app.habitica.types import class_label
+
+    user = user_stats_from_json(load_data("user"))
+
+    assert user.exp_remaining == round(user.to_next_level - user.exp)
+    assert replace(user, exp=user.to_next_level + 5.0).exp_remaining == 0
+    assert class_label("wizard") == "mage" and class_label("rogue") == "rogue"

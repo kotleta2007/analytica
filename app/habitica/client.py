@@ -133,6 +133,13 @@ class HabiticaClient:
     async def delete_task(self, task_id: str) -> None:
         await self._request("DELETE", f"/tasks/{task_id}")
 
+    async def move_task(self, task_id: str, position: int) -> list[str]:
+        """Move a task within its type's list: 0 is the top, -1 the bottom.
+
+        Returns the new order of ids for that list, as Habitica reports it.
+        """
+        return list(await self._request("POST", f"/tasks/{task_id}/move/to/{position}"))
+
     async def equip(self, key: str) -> None:
         await self._request("POST", f"/user/equip/equipped/{key}")
 

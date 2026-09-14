@@ -87,9 +87,27 @@ long-polls from your machine; `webhook` is for the VPS and needs
 `PUBLIC_BASE_URL` and `WEBHOOK_SECRET` — the app sets the webhook itself at
 startup.
 
-Commands so far: `/start`, `/help`, `/language en|ru|fr`, `/stats` (from the
-latest snapshot, refreshed when older than 10 minutes), `/sync` (a collection
-round right now). Free text gets a polite "not yet" until the LLM phase.
+Commands: `/start`, `/help`, `/language en|ru|fr`, `/stats` (from the latest
+snapshot, refreshed when older than 10 minutes), `/sync` (a collection round
+right now), `/new`, `/session [planning <topic>]`, `/model [strong|cheap]`.
+
+**Free text** goes to a model on [OpenRouter](https://openrouter.ai) once
+`OPENROUTER_API_KEY` is set (without it, commands still work). "I vacuumed the
+floors" completes the daily; "ajoute une tâche : acheter du lait demain" creates
+an English todo due tomorrow; "what are my stats?" reads them. The model sees a
+fresh system prompt every turn — the reply language, your stats, one compact line
+per task — and acts through seven tools (`list_tasks`, `score_task`, `create_task`,
+`update_task`, `delete_task`, `move_task`, `get_stats`), up to six rounds per message.
+Habitica content stays English whatever language you write in. Deleting is never
+done on the model's say-so: it asks, you press **✅ Do it** or **❌ Cancel**, and
+any other message drops the offer.
+
+Context is per **session**: messages within 15 minutes of each other share one
+(120 minutes for a planning session opened with `/session planning <topic>`).
+When a session closes — idle, or `/new` — the cheap model writes a three-line
+summary, and the next prompts carry the last three summaries as "recent
+context". Every model call lands in `llm_calls` with tokens, cost and latency;
+`/model` shows both models side by side and switches between them.
 
 ## Tests
 

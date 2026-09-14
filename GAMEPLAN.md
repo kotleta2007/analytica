@@ -193,20 +193,20 @@ And the same works in the CLI without Telegram
 
 **Action Required:**
 
-- [ ] 1. `app/llm/models.py` (`strong`/`cheap` registry from config), `app/llm/client.py`: `chat(messages, tools, model)` via `openai` SDK on OpenRouter, `usage.include=true`, writes `llm_calls`. Migration. — `feat(p03): openrouter client with call telemetry`
-- [ ] 2. `app/llm/tools.py`: schemas + dispatch for `list_tasks`, `score_task`, `create_task`, `update_task`, `delete_task`, `get_stats`. Tools flagged as destructive return `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. — `feat(p03): habitica tools and confirm mechanism`
-- [ ] 3. `app/llm/prompts.py`: system prompt builder — role, active language + per-message override rule, "Habitica content is English; translate when creating, match semantically when the user speaks RU/FR", compact stats line, compact task list. — `feat(p03): system prompt builder`
-- [ ] 4. `app/core/sessions.py`: `sessions` table, `messages.session_id`; open/append/close with idle limits (quick 15 min); replay a session into prompt messages; close writes a ≤3-line summary with the cheap model; last 3 summaries go into the system prompt as "Recent context"; token budget collapses the oldest half. `/new`, `/session`. Migration. — `feat(p03): sessions and recent-context summaries`
-- [ ] 5. Harness: `text_message_received` → session → tool loop (max 6 rounds) → `Reply`. After any task-changing tool: `snapshot_tasks()` and a `task_events` row with `source=bot`. — `feat(p03): llm turn in the harness`
-- [ ] 6. `/model` shows strong/cheap with calls, cost, avg latency from `llm_calls`; `/model cheap|strong` switches for this user. — `feat(p03): model switching and comparison`
+- [x] 1. `app/llm/models.py` (`strong`/`cheap` registry from config), `app/llm/client.py`: `chat(messages, tools, model)` via the `openrouter` SDK, writes `llm_calls`. Migration. — `feat(p03): openrouter client with call telemetry`
+- [x] 2. `app/llm/tools.py`: schemas + dispatch for `list_tasks`, `score_task`, `create_task`, `update_task`, `delete_task`, `move_task`, `get_stats`. Tools flagged as destructive return `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. — `feat(p03): habitica tools and confirm mechanism`
+- [x] 3. `app/llm/prompts.py`: system prompt builder — role, active language + per-message override rule, "Habitica content is English; translate when creating, match semantically when the user speaks RU/FR", compact stats line, compact task list. — `feat(p03): system prompt builder`
+- [x] 4. `app/core/sessions.py`: `sessions` table, `messages.session_id`; open/append/close with idle limits (quick 15 min); replay a session into prompt messages; close writes a ≤3-line summary with the cheap model; last 3 summaries go into the system prompt as "Recent context"; token budget collapses the oldest half. `/new`, `/session`. Migration. — `feat(p03): sessions and recent-context summaries`
+- [x] 5. Harness: `text_message_received` → session → tool loop (max 6 rounds) → `Reply`. After any task-changing tool: `snapshot_tasks()` and a `task_events` row with `source=bot`. — `feat(p03): llm turn in the harness`
+- [x] 6. `/model` shows strong/cheap with calls, cost, avg latency from `llm_calls`; `/model cheap|strong` switches for this user. — `feat(p03): model switching and comparison`
 
 **Tests**
 
-- [ ] `FakeLlm` with scripted tool calls; assert dispatch, snapshot after change, `task_events` row, final text. — `test(p03): tool loop`
-- [ ] Prompt builder: override sentence present; task list compact; English-only rule present. — `test(p03): prompt builder`
-- [ ] `llm_calls` row on success and on error. — `test(p03): llm telemetry`
-- [ ] `delete_task` → confirm buttons; **Do it** deletes; **Cancel** or any other message cancels. — `test(p03): destructive confirm`
-- [ ] Sessions: a message 16 min after the last one starts a new session and the old one has a summary; the summary appears in the next prompt; `/new` closes immediately; over-budget session is collapsed. — `test(p03): session lifecycle`
+- [x] `FakeLlm` with scripted tool calls; assert dispatch, snapshot after change, `task_events` row, final text. — `test(p03): tool loop`
+- [x] Prompt builder: override sentence present; task list compact; English-only rule present. — `test(p03): prompt builder`
+- [x] `llm_calls` row on success and on error. — `test(p03): llm telemetry`
+- [x] `delete_task` → confirm buttons; **Do it** deletes; **Cancel** or any other message cancels. — `test(p03): destructive confirm`
+- [x] Sessions: a message 16 min after the last one starts a new session and the old one has a summary; the summary appears in the next prompt; `/new` closes immediately; over-budget session is collapsed. — `test(p03): session lifecycle`
 
 **Acceptance**
 
@@ -220,7 +220,29 @@ And llm_calls has a new row with model z-ai/glm-5.3 and cost > 0
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- The client uses the official `openrouter` Python SDK (`openrouter>=1.1`, Speakeasy-generated) instead of the `openai` SDK pointed at OpenRouter, by the operator's choice during review; `openai` is dropped from the dependencies. Three things about it worth knowing: its default retry policy keeps retrying 5xx and connection errors with backoff for up to an *hour* (`max_elapsed_time=3600000`), so `client.py` passes its own (two retries, one second apart); it pins `pydantic<2.13`, which moved the lockfile from 2.13 to 2.12.5; and its response serializer ignores `include=`, so the replay message (role, content, tool calls) is built by hand rather than dumped from the model — otherwise `reasoning` and `refusal` fields would be stored and sent back. `usage.cost` is present on every response without any `usage.include` flag (checked live with both models).
+- Both model ids verified on OpenRouter's public model list at build time (`z-ai/glm-5.3` $1.09/$3.43 per M tokens, `deepseek/deepseek-v4-flash` $0.05/$0.10; both support `tools`). One live call each with the phase's prompt and tool schemas: both return `score_task(task_id="d1a2b3c4", direction="up")` for "j'ai passé l'aspirateur" and both responses carry `usage.cost`. GLM also emits text alongside its tool call ("Bravo ! Je coche ta tâche…"); the loop keeps that content in the assistant message and the user gets the next round's text.
+- Two modules not in the architecture list: `core/conversation.py` holds the free-text turn (session → prompt → tool loop → `Reply`) and the confirm/cancel buttons, so `harness.py` stays the thin entry-point file it was; `core/tasks.py` reads tasks back from our `tasks` table and owns the short ids.
+- **The bot's `task_events` rows come from the collection round it runs right after a task-changing tool, with `source=bot`**, not from a hand-written row next to it. Writing both would record every completion twice (the diff sees the change the bot just made). `collect()` / `snapshot_tasks()` and the event builders take a `source`; the next scheduled round then sees no change, like after a webhook. One imprecision, bounded: a change the user made in the Habitica app within the ≤10 minutes since the previous snapshot is attributed to `bot` by that round.
+- The turn refreshes stats and tasks through `collect_if_stale` (10 minutes, the rule `/stats` already had, now shared) before building the prompt; after `dayStart` a chat message therefore fires cron exactly as a scheduled snapshot would. Tools read tasks from our own `tasks` rows, not live — they are at most 10 minutes old and refreshed after every change — so a turn costs Habitica requests only when something changed. `get_stats` follows the same rule; `score_task` returns the post-score stats Habitica sends back, so "vacuumed, how much HP now?" is still answered live.
+- Task ids are shown to the model as their first 8 characters (in the prompt, in tool results) and resolved by prefix; a full UUID also works. Saves ~700 tokens per call on a 90-task account and copies more reliably. Ambiguous prefix → error result asking for more characters (not seen on the fixture: no collisions in 36 tasks).
+- `create_task` accepts `repeat_days` for dailies (`["mon","wed","fri"]` → `frequency: weekly` + `repeat`), otherwise a daily on chosen days could not be created in chat; the F7b conversion tool will reuse the mapping. `difficulty` maps to Habitica `priority` (0.1 / 1 / 1.5 / 2). A due date on a non-todo, a bad date, or a bad difficulty is an error result the model can correct.
+- Every tool failure — unknown tool, unparsable JSON arguments, a missing task, a Habitica 4xx, Habitica unreachable — becomes `{"error": …}` content for the model; the turn never dies on a tool. An `LlmError` (network, HTTP status, empty choices) ends the turn with the `llm_error` line and still leaves the `llm_calls` row (`ok=false`).
+- `llm_calls.model` records the id that was *requested*, not the one the provider reports (a routed variant would split `/model`'s aggregate). `ok=false` rows count as calls with no tokens and no cost.
+- Sessions: the running summary lives on the row (`collapsed_summary`, `collapsed_through_id`) and message rows are never rewritten; the cut lands on the first user message at or after the midpoint so an assistant tool call is never separated from its results. Tokens are estimated as characters / 4 (no tokenizer dependency). Replay also drops an assistant tool call whose results were never logged (a crash between the two), since the API would refuse it. Tool calls and results are `messages` rows with `kind=tool`, `direction` out/in, the model-format message in `llm`; a confirm/cancel press is logged into the session as `[pressed: confirm]` so the model knows what happened. The summary and collapse prompts live in `sessions.py`; the summariser (cheap model) is injected, so `sessions.py` never imports the LLM client.
+- Pending confirmation: the buttons carry a random token that must match the parked action, so ✅ from an earlier offer cannot fire a newer one. Any text message or command drops the parked action and says so in one line (`action_dropped`) before its own reply.
+- `no_llm_yet` became `llm_not_configured`: the bot boots and every command works without `OPENROUTER_API_KEY`; only free text is refused, with the variable named.
+- Found in the first live conversation: Habitica stores a todo's due date as *local midnight in UTC* (due 14/09 in Zurich is `2026-09-13T22:00:00Z`), and the prompt and `list_tasks` took `.date()` of the UTC value — every due date was announced one day early, and todos due today were listed as overdue. `core/tasks.py` now owns `due_day(task, tz)` (read in `TIMEZONE`) and `due_datetime(day, tz)` (what `create_task`/`update_task` send: local midnight in UTC, the same form the Habitica app writes). The deadline analytics in P07 must use the same helper.
+- Dates are shown the European way, `31.12.2026`, in every language: `DATE_FORMAT` and `format_day` / `format_moment` / `parse_day` in `core/i18n.py`. The model copies the format it is shown, so the prompt's clock line, the task list and every tool result use it, and one prompt rule says so; `due_date` on the tools accepts both `31.12.2026` and `2026-12-31`.
+- The model writes Markdown and Telegram showed the asterisks. The Telegram adapter now converts the common subset (`**bold**`, `*italic*`/`_italic_`, `` `code` ``, fenced blocks, links, `#` headings, `-` bullets, `~~strike~~`) to Telegram HTML and sends with `parse_mode=HTML`; everything else is HTML-escaped, so `<`, `&` and a task name like `snake_case` or `2 * 3` are shown as typed. Telegram's MarkdownV2 was not an option (an unescaped `.` rejects the whole message). If Telegram still refuses the entities, the chunk is resent as plain text and logged. The CLI prints the Markdown as is.
+- Seen live: asked to prioritise overdue todos, the model claimed every overdue todo "damages you daily" and ranked by damage prevented. Todos never cost HP in Habitica; only a due, uncompleted daily does, at cron. The system prompt now carries a compact primer on the game (`PRIMER` in `prompts.py`, ~500 tokens): the three task types, day start and cron (and that this bot fires it), damage and death, streaks, checklists, difficulty, stats and classes, rewards. The model cannot look Habitica up and is not meant to; this is its whole knowledge of the game. Extend it when the coach (P07) starts talking about tiers and transitions.
+- Arithmetic is done in Python and handed to the model, never left to it: `UserStats.exp_remaining` feeds the prompt's stats line ("2009 more XP to reach level 121") and `get_stats` (`exp_remaining_to_next_level`, `next_lvl`). The same rule applies to every derived number added later. The API calls the mage `wizard`; `class_label()` shows "mage" in the prompt, the tools and `/stats`.
+- `move_task(task_id, position)` added during review (operator's request): `POST /tasks/{id}/move/to/{position}`, the drag in the app. `position` is `top`, `bottom` or a slot number counted from 1 (Habitica counts from 0; the tool translates). No confirm — reversible, and no more visible than `score_task`. The primer tells the model that list order is an action, not a preference.
+- Tried live: "move the Dehoarder tasks to the top", then "free on laptop goes under those two, free on phone under that one" — four moves in two rounds, slots 1–4, and Habitica's `tasksOrder` in the next snapshot matched. Two findings. The model's task list was in our first-seen order, so it could only compute "under X" from its own previous moves: `tasks.position` (migration 0007) now remembers each task's index in its type's list, set from `tasksOrder` at every ordinary collection round and directly from the move response, and `load_known_tasks` sorts by it (habits, dailies, todos; a task created since the last look goes last in its type). And a reorder is not telemetry: `move_task` is the one changing tool that does **not** trigger a collection round — no user snapshot, no task snapshots, no event; Habitica's response is the new order and remembering it is all that is needed.
+- Seen live: "Grocery shopping, two subtasks: …" became a todo with the sub-items in the notes, on one line. Two causes, both ours. `create_task`/`update_task` had no `checklist` parameter, so the model had nowhere else to put them — both now take `checklist: [str]` (Habitica's own `checklist` field on create and on PUT; update replaces the list, and an item whose text is unchanged keeps its id and its tick), and the parameter descriptions say bullet points and subtasks go there, never in notes. And Habitica renders notes as Markdown, where `•` is not a list marker and a lone newline is not a line break: `markdown_notes()` turns `•` lines into `- ` lines and puts a blank line between plain lines, so what the model writes is what the app shows.
+- `tests/test_cli_flow.py` now drives a real text turn and a confirm-button turn through the CLI with `FakeLlm`; the voice turn arrives with P04.
 
 ---
 
@@ -304,7 +326,7 @@ And a backup exists the next morning
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
-**Goal**: the scheduled features. Small phase.
+**Goal**: the scheduled features, and the class skills. Small phase.
 
 **Current Status:** Scheduler runs collectors and cron only. No outbound scheduled messages. `equip` unused.
 
@@ -313,12 +335,14 @@ And a backup exists the next morning
 - [ ] 1. `app/jobs/reminders.py`: daily at `reminder_time` (default 21:00): list due-and-incomplete dailies from the latest snapshot (refresh if older than 10 min); skip if none; `last_reminder_day` guard. `/remind HH:MM`, `/remind off`. (The Saturday target line and the Started buttons are added in P07.) — `feat(p06): daily reminder`
 - [ ] 2. `app/jobs/gear.py`: three sets `gear_int/per/con` in `user_settings`; `dayStart − 30 min` job picks CON if any due daily is incomplete else INT; `run_cron` (P01) followed by PER. `/gear` shows sets; `/gear <stat> auto` picks best owned item per slot from content; `/gear <stat> <slot> <key>`; `/gear now <stat>`. — `feat(p06): int/per/con gear sets around day start`
 - [ ] 3. `app/jobs/new_day.py`: after `run_cron`, one message: HP lost (snapshot before vs after), mana, dailies due today. — `feat(p06): new-day message`
+- [ ] 4. Class skills (F12). `habitica/types.py`: `Skill(key, text, class_name, mana, level, target, notes)` + `skills_from_content()` reading `content.spells.{warrior,wizard,rogue,healer}` (the mage is `wizard` in the API; `class_label()` already maps it). `habitica/client.py`: `cast_skill(key, target_id=None)` → `POST /user/class/cast/{key}?targetId=`. `core/skills.py`: `available_skills(stats, content)` — the user's class, `lvl ≥ skill.level`, with `castable = mp ≥ mana` computed here, not by the model. The system prompt gets one line per available skill ("Burst of Flames — fireball, 10 MP, on a task"), and the primer gets a sentence on what skills are. Tool `cast_skill(skill, task_id?)`: resolves the key by name or key, requires `task_id` for `target ∈ {task}` and refuses it otherwise, needs a confirm button (spends mana, visible in the app), then `collect(source=bot)` — a cast changes stats and, for task skills, the task's value. `/skills` lists what can be cast now with mana costs. `scripts/record_fixture.py`: keep `spells` in `trim_content`; re-record the content fixture. — `feat(p06): class skills, listed in the prompt and cast on confirm`
 
 **Tests**
 
 - [ ] Reminder: fires once, lists only due+incomplete, skips when none, respects off. — `test(p06): reminder rules`
 - [ ] Gear: CON chosen when a due daily is incomplete, INT otherwise; PER after cron; auto-pick chooses the highest-stat owned item per slot from the content fixture. — `test(p06): gear selection`
 - [ ] New-day message computes HP lost from two snapshots and lists due dailies. — `test(p06): new day message`
+- [ ] Skills: a level-12 mage sees Burst of Flames and Ethereal Surge only, with `castable` following current MP; `cast_skill("fireball")` without a task → error result; with a task → confirm buttons; **Do it** calls `POST /user/class/cast/fireball?targetId=<id>` and collects; a skill of another class → error. — `test(p06): class skills`
 
 **Acceptance**
 
@@ -330,6 +354,10 @@ Then the INT set is equipped instead
 And at 11:01 I get one message with the damage taken and today's dailies
 Given two dailies are due and one is incomplete at 21:00
 Then I receive exactly one message listing the incomplete one
+Given I am a level 12 mage with 30 MP
+When I send "cast burst of flames on the essay"
+Then the bot asks to confirm "Burst of Flames on Essay draft (10 MP)"
+And after ✅ Do it the cast is sent to Habitica with the task's id
 ```
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
@@ -512,3 +540,7 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - Multi-user — not planned; schema already carries `user_id`.
 - Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
 - Outbound Telegram delivery to an allowlisted id that never pressed Start raises from the scheduled job; catch and log per chat when reminders arrive (P06).
+- Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
+- The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
+- Model cost, measured after a day of use: ~$0.008 per text turn on `z-ai/glm-5.3` (~3k prompt tokens, ~490 completion tokens — it is a reasoning model and the thinking is billed as output). Not a problem at this volume; two levers for later, in order: `reasoning={"effort": "low"}` on the chat request (one field; measure whether GLM honours graded effort or only on/off), and `z-ai/glm-5.3-flash` as strong at a tenth of the price. The prompt is not to be shrunk.
+- `rapidfuzz` fallback for matching RU/FR task references against English titles, if the model proves unreliable at it (CLAUDE.md F2 allows it; not needed on the two models tried).
