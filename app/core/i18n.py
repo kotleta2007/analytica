@@ -208,10 +208,40 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Не удалось {action}: {error}",
         "fr": "Impossible de {action} : {error}",
     },
-    "voice_not_yet": {
-        "en": "Voice messages come in a later version. Please type for now.",
-        "ru": "Голосовые сообщения появятся в следующей версии. Пока напиши текстом.",
-        "fr": "Les messages vocaux arrivent dans une prochaine version. Écris-moi pour l'instant.",
+    "voice_not_configured": {
+        "en": "Voice needs OPENROUTER_API_KEY on the server. Please type for now.",
+        "ru": "Для голоса на сервере нужен OPENROUTER_API_KEY. Пока напиши текстом.",
+        "fr": "La voix demande OPENROUTER_API_KEY sur le serveur. Écris-moi pour l'instant.",
+    },
+    "asr_error": {
+        "en": "I couldn't transcribe that ({error}). Try again, or type it.",
+        "ru": "Не удалось распознать ({error}). Попробуй ещё раз или напиши текстом.",
+        "fr": "Je n'ai pas pu transcrire ça ({error}). Réessaie, ou écris-le.",
+    },
+    "voice_heard_nothing": {
+        "en": "I heard nothing in that voice note.",
+        "ru": "В этом голосовом ничего не слышно.",
+        "fr": "Je n'ai rien entendu dans ce vocal.",
+    },
+    "voice_heard": {
+        "en": "I heard:\n{text}",
+        "ru": "Я услышал:\n{text}",
+        "fr": "J'ai entendu :\n{text}",
+    },
+    "voice_correct": {
+        "en": "✅ Correct",
+        "ru": "✅ Верно",
+        "fr": "✅ Correct",
+    },
+    "voice_amend": {
+        "en": "✏️ Amend",
+        "ru": "✏️ Исправить",
+        "fr": "✏️ Corriger",
+    },
+    "voice_dropped": {
+        "en": "(The unconfirmed transcript is dropped.)",
+        "ru": "(Неподтверждённая расшифровка отброшена.)",
+        "fr": "(La transcription non confirmée est abandonnée.)",
     },
     "unsupported_message": {
         "en": "I can only read text for now.",

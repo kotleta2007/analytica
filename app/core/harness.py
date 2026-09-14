@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core import commands, conversation
+from app.core import commands, conversation, voice
 from app.core.i18n import t
 from app.core.replies import Reply, User
 from app.core.turn import Turn, load_settings
@@ -28,6 +28,7 @@ from app.db.engine import session_scope
 from app.db.models import Message
 from app.habitica.client import HabiticaClient
 from app.llm.client import LlmClient
+from app.speech.asr import AsrClient
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ def utcnow() -> datetime:
 class Harness:
     habitica: HabiticaClient
     llm: LlmClient | None = None
+    asr: AsrClient | None = None
     clock: Callable[[], datetime] = utcnow
     tz: ZoneInfo = field(default_factory=lambda: ZoneInfo(get_settings().timezone))
 
@@ -49,13 +51,16 @@ class Harness:
         async def handle(turn: Turn) -> Reply:
             if not text.strip():
                 return Reply(t("unsupported_message", turn.language))
-            return await conversation.answer(turn, text.strip())
+            dropped = await voice.drop_pending(turn)
+            reply = await conversation.answer(turn, text.strip())
+            reply.text = conversation.prefix(dropped, reply.text)
+            return reply
 
         return await self._turn(user, "text", text, handle)
 
     async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply:
         async def handle(turn: Turn) -> Reply:
-            return Reply(t("voice_not_yet", turn.language))
+            return await voice.receive(turn, self.asr, audio, mime_type)
 
         return await self._turn(user, "voice", f"<{mime_type}, {len(audio)} bytes>", handle)
 
@@ -71,7 +76,7 @@ class Harness:
 
     async def command_received(self, user: User, command: str, args: str) -> Reply:
         async def handle(turn: Turn) -> Reply:
-            dropped = await conversation.drop_pending(turn)
+            dropped = await voice.drop_pending(turn) or await conversation.drop_pending(turn)
             reply = await commands.run(turn, command, args)
             reply.text = conversation.prefix(dropped, reply.text)
             return reply

@@ -118,12 +118,12 @@ async def test_start_greets_and_lists_commands(harness: Harness) -> None:
     assert "/language en|ru|fr — reply language" in reply.text
 
 
-async def test_free_text_and_voice_get_the_not_yet_lines(harness: Harness) -> None:
+async def test_free_text_and_voice_are_declined_without_openrouter(harness: Harness) -> None:
     text_reply = await harness.text_message_received(USER, "complete workout")
     voice_reply = await harness.voice_message_received(USER, b"\x00\x01", "audio/ogg")
 
     assert text_reply.text == t("llm_not_configured", "en")
-    assert voice_reply.text == t("voice_not_yet", "en")
+    assert voice_reply.text == t("voice_not_configured", "en")
 
 
 async def test_empty_text_means_an_unreadable_message(harness: Harness) -> None:
