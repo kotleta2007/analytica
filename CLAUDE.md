@@ -50,7 +50,7 @@ These are the operating rules. They come from Gourze, the Alpi standard for buil
 4. **Work step by step.** Each task in the phase is one commit. After each task: run the tests, tick the box in `GAMEPLAN.md`, commit both the code and `GAMEPLAN.md` **in the same commit**. A commit that completes a task without ticking its box is wrong. A tick without the work is worse.
 5. **Tests are part of the phase, not an afterthought.** Every acceptance criterion in the phase maps to at least one test. Tests must be meaningful, not "it doesn't crash".
 6. **Self-review.** `git diff main..HEAD --stat`, `git log --oneline main..HEAD`, `ruff check .`, `ruff format --check .`, `pytest`. No unrelated changes in the diff.
-7. **Open the PR** with `gh pr create --base main` using the PR template below. Then **STOP.** The operator reads and validates every PR manually. You never merge, never push to `main`, never force-push, never open the next phase's branch until the current PR is merged (or the operator explicitly says to proceed).
+7. **Open the PR** with `gh pr create --base main` using the PR template below, and end the turn with the **reading list**: every changed file sorted into *read thoroughly* / *skim* / *skip*, in the order to read them, one line each saying what to look for or why it can be skipped. The list goes in the PR body and in the final message. Then **STOP.** The operator reads and validates every PR manually. You never merge, never push to `main`, never force-push, never open the next phase's branch until the current PR is merged (or the operator explicitly says to proceed).
 8. **Codex will review your work.** Address every Codex comment with a follow-up commit on the same branch (tick nothing new; fix, then reply in the PR thread). If you disagree with a comment, say why in the thread — don't silently ignore it.
 
 ### Commits
@@ -87,7 +87,12 @@ docs(p06): describe the consistency metrics in README
 <none, or what changed and why>
 
 ### Notes for reviewer
-<what to look at first, anything you're unsure about>
+<anything you're unsure about, anything you did outside the code (live runs, account changes)>
+
+### Reading list
+**Read thoroughly** — `path` — what to look for
+**Skim** — `path` — what it is
+**Skip** — `path` — why (migration mirrors the model, strings, fake, …)
 ```
 
 Say `Relates to`, never `Closes` / `Fixes` / `Resolves`: those keywords make GitHub auto-close an issue on merge, and closing stays a human decision. If GitHub issues are ever used for phases, reference them the same way: `Relates to #N`.
@@ -634,6 +639,7 @@ PLAN_CHECKIN_DELAY_MIN=10
 - Analytics tests build small tables by hand and assert exact numbers (rate, streaks, tiers, habit stability).
 - The CLI adapter doubles as the integration harness: `tests/test_cli_flow.py` drives a full text turn, a voice confirm/amend turn, and a confirm-button turn through the core with fakes.
 - Tests run against a temporary SQLite file; no test touches the network.
+- **Live runs against the operator's real Habitica account are read-only.** Commands, `/stats`, transcription and a look at what the model *would* say are fine; never press a confirm button, never send the model a message it could act on (score, create, change, delete), never call a writing endpoint — unless the operator asks for exactly that in the same turn. "It probably won't match a task" is not a reason. Whatever a live run did or touched goes in the PR under *Notes for reviewer*.
 
 ---
 
