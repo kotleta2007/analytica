@@ -13,6 +13,7 @@ The prompt is never trusted to enforce this.
 """
 
 import logging
+import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -223,6 +224,10 @@ async def create_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
         raise ToolArgumentError("type must be habit, daily or todo")
     payload: dict[str, Any] = {"type": task_type, "text": required(args, "text")}
     payload.update(optional_fields(args, task_type, turn.tz))
+    if args.get("checklist") is not None:
+        if task_type == "habit":
+            raise ToolArgumentError("habits have no checklist")
+        payload["checklist"] = [{"text": item} for item in checklist_texts(args["checklist"])]
     if task_type == "habit":
         payload.setdefault("up", True)
         payload.setdefault("down", False)
@@ -235,8 +240,14 @@ async def update_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
     payload = optional_fields(args, known.task.type, turn.tz)
     if "text" in args:
         payload["text"] = required(args, "text")
+    if args.get("checklist") is not None:
+        if known.task.type == "habit":
+            raise ToolArgumentError("habits have no checklist")
+        payload["checklist"] = replacement_checklist(known.task, checklist_texts(args["checklist"]))
     if not payload:
-        raise ToolArgumentError("nothing to update: pass text, notes, due_date or difficulty")
+        raise ToolArgumentError(
+            "nothing to update: pass text, notes, due_date, difficulty or checklist"
+        )
     task = await turn.habitica.update_task(known.row.habitica_id, payload)
     return ToolResult({"updated": task_summary(task, turn.tz)}, changed_tasks=True)
 
@@ -321,7 +332,7 @@ def optional_fields(args: dict[str, Any], task_type: str, tz: ZoneInfo) -> dict[
     """The Habitica fields behind the optional arguments create and update share."""
     payload: dict[str, Any] = {}
     if "notes" in args and args["notes"] is not None:
-        payload["notes"] = str(args["notes"])
+        payload["notes"] = markdown_notes(str(args["notes"]))
     if args.get("due_date"):
         if task_type != "todo":
             raise ToolArgumentError("only todos have a due date")
@@ -337,6 +348,46 @@ def optional_fields(args: dict[str, Any], task_type: str, tz: ZoneInfo) -> dict[
         payload["frequency"] = "weekly"
         payload["repeat"] = repeat_from_days(args["repeat_days"])
     return payload
+
+
+def markdown_notes(notes: str) -> str:
+    """Habitica renders notes as Markdown: `•` is not a list marker and a lone newline is not
+    a line break, so the model's bullet lines would collapse into one line. Make them lists."""
+    lines = [re.sub(r"^\s*[•·▪‣]\s*", "- ", line) for line in notes.strip().splitlines()]
+    out: list[str] = []
+    for previous, line in zip(["", *lines], lines, strict=False):
+        both_text = bool(previous.strip() and line.strip())
+        if both_text and not (is_list_line(previous) and is_list_line(line)):
+            out.append("")  # a blank line, or Markdown joins the two into one paragraph
+        out.append(line)
+    return "\n".join(out)
+
+
+def is_list_line(line: str) -> bool:
+    return re.match(r"^\s*([-*+]|\d+[.)])\s", line) is not None
+
+
+def checklist_texts(value: Any) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ToolArgumentError("checklist must be a list of strings")
+    texts = [item.strip() for item in value if item.strip()]
+    if not texts:
+        raise ToolArgumentError("checklist must have at least one item")
+    return texts
+
+
+def replacement_checklist(task: Task, texts: list[str]) -> list[dict[str, Any]]:
+    """The whole checklist as Habitica's PUT wants it; an item whose text is unchanged keeps
+    its id and its tick, everything else is new and unticked."""
+    existing = {item.text: item for item in task.checklist}
+    items: list[dict[str, Any]] = []
+    for text in texts:
+        kept = existing.get(text)
+        if kept is not None:
+            items.append({"id": kept.id, "text": text, "completed": kept.completed})
+        else:
+            items.append({"text": text, "completed": False})
+    return items
 
 
 def parse_date(value: Any) -> date:
@@ -364,6 +415,10 @@ def task_summary(task: Task, tz: ZoneInfo) -> dict[str, Any]:
         summary["notes"] = task.notes
     if (day := due_day(task, tz)) is not None:
         summary["due"] = format_day(day)
+    if task.checklist:
+        summary["checklist"] = [
+            {"text": item.text, "done": item.completed} for item in task.checklist
+        ]
     return summary
 
 
@@ -378,16 +433,20 @@ def task_details(known: KnownTask, tz: ZoneInfo) -> dict[str, Any]:
     elif task.type == "habit":
         details["counter_up"] = task.counter_up or 0
         details["counter_down"] = task.counter_down or 0
-    if task.checklist:
-        details["checklist"] = [
-            {"text": item.text, "done": item.completed} for item in task.checklist
-        ]
     return details
 
 
 def compact(arguments: dict[str, Any]) -> str:
     return ", ".join(f"{k}={v!r}" for k, v in arguments.items())
 
+
+NOTES_HELP = (
+    "Free text under the title, in English; Markdown. Not for sub-items — those go in checklist."
+)
+CHECKLIST_HELP = (
+    "Sub-items shown as tickable checklist entries in the app, in English. When the user "
+    "gives bullet points, steps or subtasks for a task, they belong here, never in notes."
+)
 
 TASK_ID = {
     "type": "string",
@@ -428,7 +487,12 @@ TOOLS: dict[str, Tool] = {
                 "properties": {
                     "type": {"type": "string", "enum": ["habit", "daily", "todo"]},
                     "text": {"type": "string", "description": "Title, in English."},
-                    "notes": {"type": "string"},
+                    "notes": {"type": "string", "description": NOTES_HELP},
+                    "checklist": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": CHECKLIST_HELP,
+                    },
                     "due_date": {
                         "type": "string",
                         "description": "DD.MM.YYYY or YYYY-MM-DD; todos only.",
@@ -455,7 +519,13 @@ TOOLS: dict[str, Tool] = {
                 "properties": {
                     "task_id": TASK_ID,
                     "text": {"type": "string", "description": "New title, in English."},
-                    "notes": {"type": "string"},
+                    "notes": {"type": "string", "description": NOTES_HELP},
+                    "checklist": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": CHECKLIST_HELP + " Replaces the whole checklist; items "
+                        "whose text is unchanged keep their tick.",
+                    },
                     "due_date": {
                         "type": "string",
                         "description": "DD.MM.YYYY or YYYY-MM-DD; todos only.",

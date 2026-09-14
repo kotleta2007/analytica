@@ -21,6 +21,11 @@ from app.habitica.types import (
 from tests.habitica_fixtures import load_data
 
 
+def with_item_ids(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Habitica gives every checklist item an id and a `completed` flag."""
+    return [{"id": str(uuid.uuid4()), "completed": False, **item} for item in items]
+
+
 class FakeHabiticaClient:
     def __init__(
         self,
@@ -74,6 +79,7 @@ class FakeHabiticaClient:
                 "updatedAt": self.now.isoformat(),
                 "completed": False,
                 **payload,
+                "checklist": with_item_ids(payload.get("checklist", [])),
             }
         )
         self.tasks.append(task)
@@ -83,6 +89,8 @@ class FakeHabiticaClient:
         self.calls.append(("update_task", (task_id, payload)))
         task = self.find(task_id)
         raw = {**copy.deepcopy(task.raw), **payload}
+        if "checklist" in payload:
+            raw["checklist"] = with_item_ids(payload["checklist"])
         updated = task_from_json(raw)
         self.replace_task(updated)
         return updated

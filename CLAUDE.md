@@ -414,8 +414,8 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 |---|---|---|
 | `list_tasks(type?)` | tasks with ids | |
 | `score_task(task_id, direction)` | complete a daily/todo, +/- a habit | |
-| `create_task(type, text, notes?, due_date?, difficulty?, repeat_days?)` | English text only; `repeat_days` for dailies on chosen weekdays | |
-| `update_task(...)` | | |
+| `create_task(type, text, notes?, checklist?, due_date?, difficulty?, repeat_days?)` | English text only; sub-items go in `checklist`, never in notes; `repeat_days` for dailies on chosen weekdays | |
+| `update_task(task_id, text?, notes?, checklist?, due_date?, difficulty?)` | `checklist` replaces the list; unchanged items keep their tick | |
 | `delete_task(task_id)` | | **yes** |
 | `move_task(task_id, position)` | `top`, `bottom` or a slot number from 1 — the drag in the app | |
 | `get_stats()` | hp/mp/exp/gp/lvl | |

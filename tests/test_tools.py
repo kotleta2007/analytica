@@ -214,6 +214,112 @@ async def test_due_date_is_accepted_in_european_form_too(seeded: FakeHabiticaCli
     assert seeded.called("create_task")[0]["date"] == "2026-09-13T22:00:00+00:00"
 
 
+async def test_create_todo_with_subtasks_puts_them_in_the_checklist(
+    seeded: FakeHabiticaClient,
+) -> None:
+    """Seen live: with no checklist parameter the model wrote the bullet points into notes."""
+    async with TurnScope(seeded) as turn:
+        result = await tools.dispatch(
+            turn,
+            call(
+                "create_task",
+                type="todo",
+                text="Grocery shopping",
+                difficulty="trivial",
+                checklist=["Denner: buy coffee capsules", "Coop: buy toilet paper"],
+            ),
+        )
+
+    (payload,) = seeded.called("create_task")
+    assert payload["checklist"] == [
+        {"text": "Denner: buy coffee capsules"},
+        {"text": "Coop: buy toilet paper"},
+    ]
+    assert "notes" not in payload
+    assert result.content["created"]["checklist"] == [
+        {"text": "Denner: buy coffee capsules", "done": False},
+        {"text": "Coop: buy toilet paper", "done": False},
+    ]
+
+
+async def test_update_replaces_the_checklist_but_keeps_ticks_on_unchanged_items(
+    seeded: FakeHabiticaClient,
+) -> None:
+    ticked = make_task(
+        "todo",
+        "Grocery shopping",
+        task_id="9e0c0000-0000-4000-8000-000000000006",
+        checklist=[
+            {"id": "item-1", "text": "Denner: buy coffee capsules", "completed": True},
+            {"id": "item-2", "text": "Coop: buy toilet paper", "completed": False},
+        ],
+    )
+    seeded.tasks.append(ticked)
+    async with session_scope() as session:
+        await collect(seeded, session, USER.id, NOW)
+    seeded.calls.clear()
+
+    async with TurnScope(seeded) as turn:
+        await tools.dispatch(
+            turn,
+            call(
+                "update_task",
+                task_id="9e0c0000",
+                checklist=["Denner: buy coffee capsules", "Migros: buy milk"],
+            ),
+        )
+
+    ((_, payload),) = seeded.called("update_task")
+    assert payload == {
+        "checklist": [
+            {"id": "item-1", "text": "Denner: buy coffee capsules", "completed": True},
+            {"text": "Migros: buy milk", "completed": False},
+        ]
+    }
+
+
+async def test_checklist_is_refused_on_habits_and_when_empty(seeded: FakeHabiticaClient) -> None:
+    async with TurnScope(seeded) as turn:
+        habit = await tools.dispatch(
+            turn, call("create_task", type="habit", text="Stretch", checklist=["x"])
+        )
+        empty = await tools.dispatch(
+            turn, call("create_task", type="todo", text="X", checklist=["  "])
+        )
+
+    assert habit.content == {"error": "habits have no checklist"}
+    assert empty.content == {"error": "checklist must have at least one item"}
+    assert seeded.called("create_task") == []
+
+
+@pytest.mark.parametrize(
+    ("written", "stored"),
+    [
+        # Seen live: Unicode bullets on single lines render as one line in the app.
+        (
+            "• ALDI: buy coffee capsules\n• Migros: buy toilet cleaner",
+            "- ALDI: buy coffee capsules\n- Migros: buy toilet cleaner",
+        ),
+        ("first line\nsecond line", "first line\n\nsecond line"),
+        ("Intro:\n• x\n• y\nOutro", "Intro:\n\n- x\n- y\n\nOutro"),
+        ("- a\n- b\n\nnote", "- a\n- b\n\nnote"),
+        ("just one", "just one"),
+    ],
+)
+def test_notes_become_markdown_the_app_renders_as_intended(written: str, stored: str) -> None:
+    assert tools.markdown_notes(written) == stored
+
+
+async def test_notes_are_normalised_on_the_way_to_habitica(seeded: FakeHabiticaClient) -> None:
+    async with TurnScope(seeded) as turn:
+        await tools.dispatch(
+            turn, call("update_task", task_id="70d0aaaa", notes="• skimmed\n• milk 2%")
+        )
+
+    ((_, payload),) = seeded.called("update_task")
+    assert payload == {"notes": "- skimmed\n- milk 2%"}
+
+
 async def test_create_habit_is_positive_only_by_default(seeded: FakeHabiticaClient) -> None:
     async with TurnScope(seeded) as turn:
         await tools.dispatch(turn, call("create_task", type="habit", text="Stretch"))
@@ -268,6 +374,7 @@ async def test_update_task_sends_only_the_given_fields(seeded: FakeHabiticaClien
     ]
     assert result.content["updated"]["notes"] == "skimmed"
     assert empty.content["error"].startswith("nothing to update")
+    assert "checklist" in empty.content["error"]
 
 
 async def test_move_task_to_the_top_and_bottom(seeded: FakeHabiticaClient) -> None:
