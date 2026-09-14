@@ -41,4 +41,4 @@ class Reply:
     text: str
     buttons: list[Button] = field(default_factory=list)
     chart: ChartData | None = None
-    voice: bytes | None = None  # opus audio, when TTS is on for this reply
+    voice: bytes | None = None  # mp3 audio, when TTS is on for this reply

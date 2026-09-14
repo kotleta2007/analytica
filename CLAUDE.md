@@ -140,8 +140,8 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
 | LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
-| ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | chat completions with an `input_audio` content part (base64); auto language detection; a text part carries context (task names, Habitica vocabulary) to bias recognition. One key for everything. |
-| TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | single voice for all languages: Selene, `reference_id b347db033a6549378b48d00acb0d06cd`. **Verify at build time** that OpenRouter exposes this model with a voice parameter; if it doesn't, STOP and ask — the fallback is Fish's native API behind the same `speak()` interface, not a workaround. |
+| ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | `POST /audio/transcriptions` with base64 `input_audio` (Ogg/Opus straight from Telegram); auto language detection; the endpoint has no vocabulary field, so task names and the glossary bias the cleanup pass instead (verified 2026-09-14). One key for everything. |
+| TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | `POST /audio/speech`, single voice for all languages: Selene, Fish reference id `b347db033a6549378b48d00acb0d06cd` passed as `voice` (verified 2026-09-14). Output is mp3 (`mp3` or `pcm` only); Telegram sends mp3 as a voice note, so nothing is transcoded. |
 | Scheduler | APScheduler (AsyncIOScheduler) | in-process; jobs: snapshots, day-close + cron, reminders, gear, calendar sync, weekly report |
 | HTTP | httpx | everywhere |
 | TLS / reverse proxy | the operator's existing nginx + certbot | the app binds to `127.0.0.1:8000` only; nginx proxies and terminates TLS. No Caddy, nothing else on 80/443. |
@@ -197,7 +197,7 @@ analytica/
 │   │   └── models.py            # strong / cheap registry
 │   ├── speech/
 │   │   ├── asr.py               # transcribe(audio, mime, context) -> Transcription, via OpenRouter
-│   │   └── tts.py               # speak(text) -> bytes (opus), via OpenRouter
+│   │   └── tts.py               # speak(text) -> bytes (mp3), via OpenRouter
 │   ├── analytics/
 │   │   ├── frames.py            # load tables into polars DataFrames
 │   │   ├── thresholds.py        # every tunable number, in one place
@@ -263,7 +263,7 @@ class Reply:
     text: str
     buttons: list[Button] = field(default_factory=list)
     chart: ChartData | None = None
-    voice: bytes | None = None     # opus audio, when TTS is on for this reply
+    voice: bytes | None = None     # mp3 audio, when TTS is on for this reply
 
 # core/harness.py — the external clients live on the dataclass so adapters and tests inject fakes
 @dataclass
@@ -599,11 +599,11 @@ WEBHOOK_SECRET=
 OPENROUTER_API_KEY=
 LLM_STRONG_MODEL=z-ai/glm-5.3
 LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash
-# verify id at build time
-ASR_MODEL=qwen/qwen3-asr-flash
-# verify id and voice parameter at build time
-TTS_MODEL=fishaudio/s2.1-pro
-# Selene, used for all languages
+# speech -> text, POST /audio/transcriptions; the dated id is the one OpenRouter serves
+ASR_MODEL=qwen/qwen3-asr-flash-2026-02-10
+# text -> speech, POST /audio/speech; returns mp3
+TTS_MODEL=fish-audio/s2.1-pro
+# Fish Audio reference id passed as `voice`: Selene, used for all languages
 TTS_VOICE=b347db033a6549378b48d00acb0d06cd
 
 # ---- sessions and context (phase 03) ----

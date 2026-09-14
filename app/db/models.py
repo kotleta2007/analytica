@@ -269,6 +269,32 @@ class LlmCall(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class Transcription(Base):
+    """One voice note through the recogniser, successful or not.
+
+    `raw_text` is what the recogniser heard, `cleaned_text` what the cleanup
+    pass made of it, `accepted_text` what the user confirmed or typed instead;
+    the last two stay empty until the flow gets there.
+    """
+
+    __tablename__ = "transcriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    model: Mapped[str] = mapped_column(String(64))
+    raw_text: Mapped[str] = mapped_column(Text, default="")
+    cleaned_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    accepted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    language: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    audio_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    latency_ms: Mapped[int] = mapped_column(Integer)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class TelegramButton(Base):
     """One rendered inline button. Telegram callback data is capped at 64 bytes,
     so the callback carries this row's id and the action and payload live here."""
