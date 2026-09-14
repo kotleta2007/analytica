@@ -162,7 +162,7 @@ async def test_several_moves_in_one_round_keep_the_stated_order(
 
     assert reply.text == "Both moved."
     assert habitica.called("move_task") == [(DAILY.id, 0), (HABIT.id, 1)]
-    assert len(habitica.called("get_tasks")) == 1  # one collection for the whole round
+    assert habitica.called("get_tasks") == []  # a move is remembered, never collected
 
 
 async def test_the_loop_stops_after_six_rounds_and_forces_a_text_answer(

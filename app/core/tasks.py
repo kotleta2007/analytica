@@ -14,7 +14,6 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.collector.snapshots import latest_user_snapshot
 from app.db.models import TaskRow
 from app.habitica.types import Task, task_from_json
 
@@ -59,9 +58,9 @@ def due_datetime(day: date, tz: ZoneInfo) -> datetime:
 async def load_known_tasks(session: AsyncSession, user_id: str) -> list[KnownTask]:
     """Every task Habitica still has, in the order the user sees it in the app.
 
-    The order comes from `tasksOrder` in the latest user snapshot (habits, then
-    dailies, then todos, each list as the user arranged it). A task the snapshot
-    does not list yet — created since — goes after the others of its type.
+    Habits, then dailies, then todos, each list as arranged (`tasks.position`,
+    kept from `tasksOrder` and from the bot's own moves); a task not placed yet
+    — created since the last look — goes after the others of its type.
     """
     rows = await session.scalars(
         select(TaskRow)
@@ -69,30 +68,23 @@ async def load_known_tasks(session: AsyncSession, user_id: str) -> list[KnownTas
         .order_by(TaskRow.id)
     )
     known = [KnownTask(row=row, task=task_from_json(row.raw)) for row in rows]
-    position = await habitica_order(session, user_id)
-    return sorted(
-        known,
-        key=lambda k: position.get(
-            k.row.habitica_id, (TYPE_RANK.get(k.task.type, 9), len(position))
-        ),
-    )
+    return sorted(known, key=order_key)
 
 
 TYPE_RANK = {"habit": 0, "daily": 1, "todo": 2, "reward": 3}
-ORDER_LISTS = {"habits": "habit", "dailys": "daily", "todos": "todo", "rewards": "reward"}
 
 
-async def habitica_order(session: AsyncSession, user_id: str) -> dict[str, tuple[int, int]]:
-    """`habitica_id → (type rank, index)` from the latest snapshot's `tasksOrder`."""
-    snapshot = await latest_user_snapshot(session, user_id)
-    if snapshot is None:
-        return {}
-    order = snapshot.raw.get("tasksOrder", {})
-    return {
-        task_id: (TYPE_RANK[task_type], index)
-        for list_name, task_type in ORDER_LISTS.items()
-        for index, task_id in enumerate(order.get(list_name, []))
-    }
+def order_key(known: KnownTask) -> tuple[int, int, int]:
+    """Type, then the app's position, then first-seen; unplaced tasks after the placed ones."""
+    position = known.row.position
+    return (
+        TYPE_RANK.get(known.task.type, 9),
+        UNPLACED if position is None else position,
+        known.row.id,
+    )
+
+
+UNPLACED = 1 << 30
 
 
 def open_tasks(known: list[KnownTask]) -> list[KnownTask]:

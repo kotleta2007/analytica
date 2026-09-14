@@ -79,7 +79,32 @@ async def collect(
     tasks = await snapshot_tasks(
         client, session, user_id, now, reset_by_cron=cron_ran, source=source
     )
+    await remember_task_order(session, user_id, user_snapshot.raw.get("tasksOrder", {}))
     return CollectOutcome(user=user_snapshot, tasks=tasks, cron_ran=cron_ran)
+
+
+ORDER_LISTS = {"habits": "habit", "dailys": "daily", "todos": "todo", "rewards": "reward"}
+
+
+async def remember_task_order(
+    session: AsyncSession, user_id: str, tasks_order: dict[str, list[str]]
+) -> None:
+    """`tasksOrder` from `/user` → `tasks.position`, one list per type."""
+    for list_name in ORDER_LISTS:
+        await remember_list_order(session, user_id, tasks_order.get(list_name, []))
+
+
+async def remember_list_order(session: AsyncSession, user_id: str, ordered_ids: list[str]) -> None:
+    """The new order of one type's list, as the app shows it. No snapshot is involved:
+    a reorder is not telemetry, it is a fact we keep so the model sees the list as the user does."""
+    if not ordered_ids:
+        return
+    rows = await load_task_rows(session, user_id)
+    for index, habitica_id in enumerate(ordered_ids):
+        row = rows.get(habitica_id)
+        if row is not None:
+            row.position = index
+    await session.flush()
 
 
 async def collect_if_stale(

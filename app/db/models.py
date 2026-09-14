@@ -97,6 +97,8 @@ class TaskRow(Base):
     first_seen_at: Mapped[datetime] = mapped_column(UtcDateTime)
     last_seen_at: Mapped[datetime] = mapped_column(UtcDateTime)
     deleted_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    # Index within its type's list as the user arranged it in the app; None until first seen there.
+    position: Mapped[int | None] = mapped_column(Integer, nullable=True)
     raw: Mapped[dict[str, Any]] = mapped_column(JSON)
 
 

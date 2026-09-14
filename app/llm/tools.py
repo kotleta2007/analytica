@@ -22,7 +22,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.collector.snapshots import collect_if_stale
+from app.collector.snapshots import collect_if_stale, remember_list_order
 from app.core.i18n import format_day, format_moment, parse_day, t
 from app.core.replies import Button
 from app.core.state import get_state, set_state
@@ -259,14 +259,15 @@ async def move_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolRe
     known = await resolve_task(turn.session, turn.user.id, required(args, "task_id"))
     position = parse_position(args.get("position"))
     order = await turn.habitica.move_task(known.row.habitica_id, position)
+    # Habitica answers with the list's new order; remembering it is all a move needs.
+    await remember_list_order(turn.session, turn.user.id, order)
     where = "top" if position == 0 else "bottom" if position == -1 else f"position {position + 1}"
     return ToolResult(
         {
             "moved": known.task.text,
             "to": f"{where} of the {known.task.type} list",
             "list_length": len(order),
-        },
-        changed_tasks=True,
+        }
     )
 
 

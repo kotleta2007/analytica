@@ -5,6 +5,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy import func, select
 
 from app.collector.snapshots import collect
 from app.core.replies import User
@@ -12,6 +13,7 @@ from app.core.state import get_state
 from app.core.tasks import short_id
 from app.core.turn import Turn, load_settings
 from app.db.engine import session_scope
+from app.db.models import UserSnapshot
 from app.habitica.client import HabiticaError
 from app.habitica.types import task_from_json, user_stats_from_json
 from app.llm import tools
@@ -280,7 +282,26 @@ async def test_move_task_to_the_top_and_bottom(seeded: FakeHabiticaClient) -> No
     assert top.content == {"moved": "Buy milk", "to": "top of the todo list", "list_length": 1}
     assert bottom.content["to"] == "bottom of the todo list"
     assert third.content["to"] == "position 3 of the daily list"
-    assert top.changed_tasks is True
+    assert top.changed_tasks is False  # a move is remembered, not collected
+
+
+async def test_a_move_updates_our_order_without_a_snapshot(db_path: Path) -> None:
+    first = make_task("todo", "Read GAMEPLAN", task_id="aaaa0001-0000-4000-8000-000000000001")
+    second = make_task("todo", "Free disk space", task_id="aaaa0002-0000-4000-8000-000000000002")
+    client = FakeHabiticaClient(tasks=[first, second])
+    async with session_scope() as session:
+        await collect(client, session, USER.id, NOW)
+    client.calls.clear()
+
+    async with TurnScope(client) as turn:
+        await tools.dispatch(turn, call("move_task", task_id="aaaa0002", position="top"))
+        listed = await tools.dispatch(turn, call("list_tasks"))
+
+    assert [t["text"] for t in listed.content["tasks"]] == ["Free disk space", "Read GAMEPLAN"]
+    assert [name for name, _ in client.calls] == ["move_task"]  # no get_user / get_tasks
+    async with session_scope() as session:
+        snapshots = await session.scalar(select(func.count()).select_from(UserSnapshot))
+    assert snapshots == 1  # the seed round only
 
 
 @pytest.mark.parametrize("position", ["middle", 0, -2, True, "x"])

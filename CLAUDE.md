@@ -373,7 +373,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 **Tables**
 
 - `user_snapshots(id, user_id, taken_at, hp, mp, exp, gp, lvl, class, to_next_level, raw)`
-- `tasks(id, user_id, habitica_id, type, text, notes, created_at, first_seen_at, last_seen_at, deleted_at, raw)` — every task we've ever seen
+- `tasks(id, user_id, habitica_id, type, text, notes, created_at, first_seen_at, last_seen_at, deleted_at, position, raw)` — every task we've ever seen; `position` is its index in its type's list as arranged in the app (from `tasksOrder`, and from the bot's own moves — a reorder is remembered, never snapshotted)
 - `task_snapshots(id, task_id, taken_at, completed, is_due, streak, value, counter_up, counter_down, checklist_done, checklist_total, raw_hash)`
 - `task_events(id, task_id, at, kind, direction, delta, source, raw)` — `kind ∈ {scored, created, updated, deleted, completed, uncompleted, checklist, started}`, `source ∈ {bot, snapshot_diff, webhook, backfill, calendar, reminder}`
 - `daily_records(id, task_id, day, was_due, completed, source)` — one row per daily per Habitica day; what analytics reads
