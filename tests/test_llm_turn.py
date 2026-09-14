@@ -144,6 +144,27 @@ async def test_several_tool_calls_in_one_round(
     assert [m["tool_call_id"] for m in tool_results] == ["c1", "c2"]
 
 
+async def test_several_moves_in_one_round_keep_the_stated_order(
+    harness: Harness, habitica: FakeHabiticaClient, llm: FakeLlm
+) -> None:
+    """ "Put Vacuum then Workout on top": slots 1 and 2 in one round, not top twice."""
+    llm.queue(
+        calls_tools(
+            [
+                ToolCall("c1", "move_task", {"task_id": "d1a2b3c4", "position": 1}),
+                ToolCall("c2", "move_task", {"task_id": "ab1a2b3c", "position": 2}),
+            ]
+        ),
+        says("Both moved."),
+    )
+
+    reply = await harness.text_message_received(USER, "put vacuum first, then workout")
+
+    assert reply.text == "Both moved."
+    assert habitica.called("move_task") == [(DAILY.id, 0), (HABIT.id, 1)]
+    assert len(habitica.called("get_tasks")) == 1  # one collection for the whole round
+
+
 async def test_the_loop_stops_after_six_rounds_and_forces_a_text_answer(
     harness: Harness, llm: FakeLlm, caplog: pytest.LogCaptureFixture
 ) -> None:

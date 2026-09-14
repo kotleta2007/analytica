@@ -478,7 +478,9 @@ TOOLS: dict[str, Tool] = {
         Tool(
             name="move_task",
             description="Reorder a task within its list (habits, dailies and todos each have "
-            "their own order), as dragging it in the Habitica app would.",
+            "their own order), as dragging it in the Habitica app would. To put several tasks "
+            "at the top in a given order, give them slot numbers 1, 2, 3… in one round; moving "
+            'each to "top" in turn would reverse them.',
             parameters={
                 "properties": {
                     "task_id": TASK_ID,
