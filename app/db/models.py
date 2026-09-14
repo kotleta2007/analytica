@@ -295,6 +295,22 @@ class Transcription(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class TtsCall(Base):
+    """One reply through the speech synthesiser, successful or not."""
+
+    __tablename__ = "tts_calls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    model: Mapped[str] = mapped_column(String(64))
+    chars: Mapped[int] = mapped_column(Integer)
+    latency_ms: Mapped[int] = mapped_column(Integer)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class AsrGlossaryTerm(Base):
     """A word the recogniser gets wrong for this user. added_from: command | tool | amendment."""
 
