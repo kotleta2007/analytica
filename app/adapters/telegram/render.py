@@ -73,7 +73,8 @@ async def send_reply(
             photo = BufferedInputFile(to_png(reply.chart), filename="chart.png")
             await bot.send_photo(chat_id, photo)
     if reply.voice is not None:
-        await bot.send_voice(chat_id, BufferedInputFile(reply.voice, filename="reply.ogg"))
+        # mp3 from the synthesiser; Telegram shows it as a voice note like Ogg/Opus.
+        await bot.send_voice(chat_id, BufferedInputFile(reply.voice, filename="reply.mp3"))
 
 
 async def send_formatted(send, text: str) -> None:

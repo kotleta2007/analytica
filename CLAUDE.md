@@ -196,7 +196,7 @@ analytica/
 │   │   ├── prompts.py           # system prompt builder (language, current stats, task list)
 │   │   └── models.py            # strong / cheap registry
 │   ├── speech/
-│   │   ├── asr.py               # transcribe(audio, mime, context) -> Transcription, via OpenRouter
+│   │   ├── asr.py               # transcribe(audio, mime) -> Transcription, via OpenRouter
 │   │   └── tts.py               # speak(text) -> bytes (mp3), via OpenRouter
 │   ├── analytics/
 │   │   ├── frames.py            # load tables into polars DataFrames

@@ -10,6 +10,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import (
     AnswerCallbackQuery,
     DeleteWebhook,
+    GetFile,
     GetUpdates,
     SendMessage,
     SendPhoto,
@@ -47,7 +48,7 @@ class FakeHarness:
         return self.reply
 
     async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply:
-        self.calls.append(("voice", mime_type))
+        self.calls.append(("voice", (audio, mime_type)))
         return self.reply
 
     async def button_pressed(self, user: User, action: str, payload: dict[str, Any]) -> Reply:
@@ -213,10 +214,12 @@ async def test_chart_becomes_a_photo_with_the_text_as_caption() -> None:
 async def test_voice_is_sent_as_a_voice_note_after_the_text() -> None:
     bot, session = recording_bot()
 
-    await send_reply(bot, 42, Reply("Hi", voice=b"OggS-fake"), None)
+    await send_reply(bot, 42, Reply("Hi", voice=b"ID3-fake-mp3"), None)
 
     assert [type(r) for r in session.requests] == [SendMessage, SendVoice]
-    assert session.sent(SendVoice)[0].voice.data == b"OggS-fake"
+    (voice,) = session.sent(SendVoice)
+    assert voice.voice.data == b"ID3-fake-mp3"
+    assert voice.voice.filename == "reply.mp3"
 
 
 async def test_long_text_is_split_and_the_keyboard_rides_on_the_last_chunk() -> None:
@@ -296,6 +299,39 @@ async def test_a_button_stored_for_another_user_is_expired_too(
     await adapter.feed(callback_update(str(row_id)))
 
     assert harness.calls[0][1][0] == EXPIRED_BUTTON
+
+
+async def test_a_voice_note_is_downloaded_and_handed_to_the_voice_entry_point(
+    adapter: TelegramAdapter, harness: FakeHarness
+) -> None:
+    session_of(adapter).file_bytes = b"OggS\x00\x02opus"
+    update = message_update("")
+    del update["message"]["text"]
+    update["message"]["voice"] = {
+        "file_id": "voice-1",
+        "file_unique_id": "u",
+        "duration": 3,
+        "mime_type": "audio/ogg",
+    }
+
+    await adapter.feed(update)
+
+    assert harness.calls == [("voice", (b"OggS\x00\x02opus", "audio/ogg"))]
+    (get_file,) = session_of(adapter).sent(GetFile)
+    assert get_file.file_id == "voice-1"
+
+
+async def test_a_voice_note_without_a_mime_type_is_taken_as_ogg(
+    adapter: TelegramAdapter, harness: FakeHarness
+) -> None:
+    session_of(adapter).file_bytes = b"OggS"
+    update = message_update("")
+    del update["message"]["text"]
+    update["message"]["voice"] = {"file_id": "voice-2", "file_unique_id": "u", "duration": 1}
+
+    await adapter.feed(update)
+
+    assert harness.calls == [("voice", (b"OggS", "audio/ogg"))]
 
 
 async def test_non_text_messages_get_the_text_entry_point_with_nothing_to_say(

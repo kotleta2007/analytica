@@ -76,9 +76,10 @@ uv run python -m app.adapters.cli
 > /stats
 ```
 
-Buttons come back numbered — type the number to press one. Charts are drawn
-with plotext; voice replies land in `data/voice/` and play through `ffplay` or
-`afplay` when one is on `PATH`.
+Buttons come back numbered — type the number to press one. `/voice note.ogg`
+sends an audio file the way Telegram sends a voice note. Charts are drawn with
+plotext; voice replies land in `data/voice/` as mp3 and play through `ffplay`
+or `afplay` when one is on `PATH`.
 
 **Telegram**: put the token from @BotFather in `TELEGRAM_BOT_TOKEN` and your
 numeric id (from @userinfobot) in `TELEGRAM_ALLOWED_USER_IDS`; everyone else is
@@ -89,7 +90,8 @@ startup.
 
 Commands: `/start`, `/help`, `/language en|ru|fr`, `/stats` (from the latest
 snapshot, refreshed when older than 10 minutes), `/sync` (a collection round
-right now), `/new`, `/session [planning <topic>]`, `/model [strong|cheap]`.
+right now), `/new`, `/session [planning <topic>]`, `/model [strong|cheap]`,
+`/glossary [add|remove <term>]`, `/tts on|off`.
 
 **Free text** goes to a model on [OpenRouter](https://openrouter.ai) once
 `OPENROUTER_API_KEY` is set (without it, commands still work). "I vacuumed the
@@ -101,6 +103,20 @@ per task — and acts through seven tools (`list_tasks`, `score_task`, `create_t
 Habitica content stays English whatever language you write in. Deleting is never
 done on the model's say-so: it asks, you press **✅ Do it** or **❌ Cancel**, and
 any other message drops the offer.
+
+**Voice** works in both directions, through the same OpenRouter key. A voice
+note is transcribed (Qwen3-ASR-Flash, any of the three languages), then the
+cheap model fixes punctuation and misheard words against your task names and
+your **glossary**, and the bot shows what it heard with **✅ Correct** and
+**✏️ Amend**. Correct runs it as if you had typed it; Amend asks for the
+correction and the model gets both the transcript and your fix. Words that
+appear only in your correction are offered as glossary terms with one button
+each (`/glossary add Vergil` does the same by hand); the glossary feeds every
+later cleanup. Both passes and what you accepted are kept in `transcriptions`.
+Speaking to the bot never makes it speak: `/tts on` does, and then every short
+answer (up to 600 characters, no chart) also arrives as a voice note in one
+voice for all languages (Fish Audio S2.1 Pro, Selene). Every synthesis is a
+`tts_calls` row.
 
 Context is per **session**: messages within 15 minutes of each other share one
 (120 minutes for a planning session opened with `/session planning <topic>`).
