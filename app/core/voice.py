@@ -115,6 +115,84 @@ def unquote(text: str) -> str:
     return text
 
 
+# ---- the buttons and the amendment ----
+
+
+async def confirm(turn: Turn, payload: dict[str, Any]) -> Reply:
+    """✅ Correct: the cleaned transcript runs exactly as a text message would."""
+    waiting = await matching_pending(turn, payload)
+    if waiting is None:
+        return Reply(t("unknown_button", turn.language))
+    await clear_state(turn.session, turn.user.id)
+    await accept(turn, waiting, waiting["cleaned"])
+    return await conversation.answer(turn, waiting["cleaned"])
+
+
+async def amend(turn: Turn, payload: dict[str, Any]) -> Reply:
+    """✏️ Amend: the next text message is the correction."""
+    waiting = await matching_pending(turn, payload)
+    if waiting is None:
+        return Reply(t("unknown_button", turn.language))
+    await set_state(turn.session, turn.user.id, AWAITING_AMENDMENT, waiting, turn.now)
+    return Reply(t("voice_amend_prompt", turn.language), speak=False)
+
+
+async def amended(turn: Turn, correction: str) -> Reply:
+    """The text that follows ✏️ Amend: the model gets the transcript and the correction together,
+    and words that appear only in the correction are offered for the glossary."""
+    state = await pending(turn)
+    if state is None or state[0] != AWAITING_AMENDMENT:
+        raise RuntimeError("amended() called without a transcript awaiting amendment")
+    waiting = state[1]
+    await clear_state(turn.session, turn.user.id)
+    await accept(turn, waiting, correction)
+    reply = await conversation.answer(turn, combined_message(waiting["cleaned"], correction))
+    known = {term.lower() for term in await glossary.list_terms(turn.session, turn.user.id)}
+    for term in new_terms(waiting["cleaned"], correction, known):
+        reply.buttons.append(
+            Button(t("glossary_offer", turn.language, term=term), ADD_TERM_ACTION, {"term": term})
+        )
+    return reply
+
+
+def combined_message(transcript: str, correction: str) -> str:
+    return f'Voice transcription: "{transcript}"\nUser\'s correction: "{correction}"'
+
+
+def new_terms(transcript: str, correction: str, known: set[str]) -> list[str]:
+    """Words only the correction has, in its order: the spellings the recogniser missed."""
+    heard = {word.lower() for word in WORD.findall(transcript)}
+    offers: list[str] = []
+    for word in WORD.findall(correction):
+        key = word.lower()
+        if len(word) < MIN_TERM_LENGTH or key in heard or key in known:
+            continue
+        if key not in (offer.lower() for offer in offers):
+            offers.append(word)
+    return offers[:MAX_TERM_OFFERS]
+
+
+async def add_term(turn: Turn, payload: dict[str, Any]) -> Reply:
+    """➕ Add “word”: the button after an amendment. Stateless, so it works any time."""
+    term = payload.get("term")
+    if not isinstance(term, str) or not term.strip():
+        return Reply(t("unknown_button", turn.language))
+    added = await glossary.add_term(
+        turn.session, turn.user.id, term, glossary.FROM_AMENDMENT, turn.now
+    )
+    key = "glossary_added" if added else "glossary_exists"
+    return Reply(t(key, turn.language, term=glossary.normalise(term)))
+
+
+async def accept(turn: Turn, waiting: dict[str, Any], text: str) -> None:
+    row = await turn.session.get(TranscriptionRow, waiting["transcription_id"])
+    if row is None:
+        logger.warning("transcription %s is gone; accepted text lost", waiting["transcription_id"])
+        return
+    row.accepted_text = text
+    await turn.session.flush()
+
+
 # ---- the pending transcript ----
 
 
@@ -126,6 +204,11 @@ async def pending(turn: Turn) -> tuple[str, dict[str, Any]] | None:
     return state.state, state.payload
 
 
+async def awaiting_amendment(turn: Turn) -> bool:
+    state = await pending(turn)
+    return state is not None and state[0] == AWAITING_AMENDMENT
+
+
 async def drop_pending(turn: Turn) -> str:
     """Any message other than the buttons drops a waiting transcript; returns the line saying so."""
     if await pending(turn) is None:
@@ -134,5 +217,10 @@ async def drop_pending(turn: Turn) -> str:
     return t("voice_dropped", turn.language)
 
 
-async def transcription_row(turn: Turn, payload: dict[str, Any]) -> TranscriptionRow | None:
-    return await turn.session.get(TranscriptionRow, payload["transcription_id"])
+async def matching_pending(turn: Turn, payload: dict[str, Any]) -> dict[str, Any] | None:
+    """The waiting transcript, only if this button was made for it. Either button is fine in
+    either state: Amend then Correct means "the original was right after all"."""
+    state = await pending(turn)
+    if state is None or payload.get("token") != state[1].get("token"):
+        return None
+    return state[1]

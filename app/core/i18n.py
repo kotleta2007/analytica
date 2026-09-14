@@ -238,6 +238,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "✏️ Исправить",
         "fr": "✏️ Corriger",
     },
+    "voice_amend_prompt": {
+        "en": "What should it say? Type the correction.",
+        "ru": "Как должно быть? Напиши исправление.",
+        "fr": "Que fallait-il comprendre ? Écris la correction.",
+    },
+    "glossary_offer": {
+        "en": "➕ Add “{term}”",
+        "ru": "➕ Добавить «{term}»",
+        "fr": "➕ Ajouter « {term} »",
+    },
     "voice_dropped": {
         "en": "(The unconfirmed transcript is dropped.)",
         "ru": "(Неподтверждённая расшифровка отброшена.)",

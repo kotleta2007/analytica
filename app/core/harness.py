@@ -51,6 +51,8 @@ class Harness:
         async def handle(turn: Turn) -> Reply:
             if not text.strip():
                 return Reply(t("unsupported_message", turn.language))
+            if await voice.awaiting_amendment(turn):
+                return await voice.amended(turn, text.strip())
             dropped = await voice.drop_pending(turn)
             reply = await conversation.answer(turn, text.strip())
             reply.text = conversation.prefix(dropped, reply.text)
@@ -70,6 +72,12 @@ class Harness:
                 return await conversation.confirm(turn, payload)
             if action == conversation.tools.CANCEL_ACTION:
                 return await conversation.cancel(turn, payload)
+            if action == voice.CONFIRM_ACTION:
+                return await voice.confirm(turn, payload)
+            if action == voice.AMEND_ACTION:
+                return await voice.amend(turn, payload)
+            if action == voice.ADD_TERM_ACTION:
+                return await voice.add_term(turn, payload)
             return Reply(t("unknown_button", turn.language))
 
         return await self._turn(user, "button", action, handle)

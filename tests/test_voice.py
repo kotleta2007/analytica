@@ -254,3 +254,168 @@ async def test_a_voice_note_drops_a_parked_tool_action(
     assert reply.text.startswith("(The pending action — delete “Morning stretch” — is dropped.)\n")
     kind, _ = await state()
     assert kind == "awaiting_confirmation"
+
+
+# ---- confirm, amend, cancel ----
+
+
+async def heard(harness: Harness, asr: FakeAsr, llm: FakeLlm, raw: str, cleaned: str):
+    asr.queue(hears(raw))
+    llm.queue(says(cleaned))
+    return await harness.voice_message_received(USER, AUDIO, "audio/ogg")
+
+
+async def test_correct_runs_the_transcript_as_a_text_message(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm, habitica: FakeHabiticaClient
+) -> None:
+    shown = await heard(harness, asr, llm, "i did my morning sketch", "I did my morning stretch.")
+    llm.queue(calls_tool("score_task", task_id="d1a2b3c4", direction="up"), says("Stretched!"))
+
+    reply = await harness.button_pressed(USER, "confirm_transcription", shown.buttons[0].payload)
+
+    assert reply.text == "Stretched!"
+    assert habitica.called("score_task") == [(DAILY.id, "up")]
+    assert await state() is None
+    (row,) = await transcriptions()
+    assert row.accepted_text == "I did my morning stretch."
+    # The model saw the transcript as a plain user message.
+    turn_call = llm.calls[1]
+    assert turn_call.messages[-1] == {"role": "user", "content": "I did my morning stretch."}
+    rows = await logged()
+    assert rows[:3] == [
+        ("in", "voice", "I did my morning stretch."),
+        ("out", "text", "I heard:\nI did my morning stretch."),
+        ("in", "button", "confirm_transcription"),
+    ]
+    assert rows[-1] == ("out", "text", "Stretched!")
+
+
+async def test_amend_asks_and_the_model_gets_transcript_and_correction_together(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    shown = await heard(harness, asr, llm, "i did my morning sketch", "I did my morning sketch.")
+
+    asked = await harness.button_pressed(USER, "amend_transcription", shown.buttons[1].payload)
+
+    assert asked.text == t("voice_amend_prompt", "en")
+    assert asked.speak is False
+    kind, _ = await state()
+    assert kind == "awaiting_amendment"
+
+    llm.queue(says("Got it: stretch."))
+    reply = await harness.text_message_received(USER, "stretch, not sketch")
+
+    assert reply.text == "Got it: stretch."
+    assert llm.calls[-1].messages[-1] == {
+        "role": "user",
+        "content": 'Voice transcription: "I did my morning sketch."\n'
+        'User\'s correction: "stretch, not sketch"',
+    }
+    assert await state() is None
+    (row,) = await transcriptions()
+    assert row.cleaned_text == "I did my morning sketch."
+    assert row.accepted_text == "stretch, not sketch"
+    # "stretch" is new and long enough; "sketch" was heard; "not" is too short.
+    assert buttons_of(reply) == [("➕ Add “stretch”", "add_glossary_term")]
+    assert reply.buttons[0].payload == {"term": "stretch"}
+
+
+async def test_amendment_offers_glossary_terms_and_the_button_adds_one(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    await harness.command_received(USER, "glossary", "add Wheelock")
+    shown = await heard(harness, asr, llm, "read virgil and wheelock", "Read Virgil and Wheelock.")
+    await harness.button_pressed(USER, "amend_transcription", shown.buttons[1].payload)
+    llm.queue(says("Noted."))
+
+    reply = await harness.text_message_received(USER, "Vergil, not Virgil, and Wheelock")
+
+    # Vergil is new; Virgil was heard; Wheelock is already in the glossary.
+    assert buttons_of(reply) == [("➕ Add “Vergil”", "add_glossary_term")]
+
+    added = await harness.button_pressed(USER, "add_glossary_term", reply.buttons[0].payload)
+    assert added.text == "Added “Vergil” to your glossary."
+    again = await harness.button_pressed(USER, "add_glossary_term", reply.buttons[0].payload)
+    assert again.text == "“Vergil” is already in your glossary."
+
+    # The next cleanup pass knows the spelling.
+    await heard(harness, asr, llm, "virgil again", "Vergil again.")
+    assert "User's glossary (these spellings are right): Vergil, Wheelock" in llm.calls[-1].system
+
+
+def test_new_terms_keeps_order_dedupes_and_caps_the_offers() -> None:
+    offers = voice.new_terms(
+        "i read the book",
+        "I read Wheelock, Vergil, Vergil, Cicero and Tacitus — the book, yes",
+        known={"cicero"},
+    )
+
+    assert offers == ["Wheelock", "Vergil", "Tacitus"]
+
+
+async def test_correct_after_amend_takes_the_original(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    shown = await heard(harness, asr, llm, "fine as it is", "Fine as it is.")
+    await harness.button_pressed(USER, "amend_transcription", shown.buttons[1].payload)
+    llm.queue(says("OK."))
+
+    reply = await harness.button_pressed(USER, "confirm_transcription", shown.buttons[0].payload)
+
+    assert reply.text == "OK."
+    assert llm.calls[-1].messages[-1] == {"role": "user", "content": "Fine as it is."}
+    assert await state() is None
+
+
+async def test_a_stale_button_does_not_confirm_a_newer_transcript(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    old = await heard(harness, asr, llm, "first", "First.")
+    await heard(harness, asr, llm, "second", "Second.")
+
+    reply = await harness.button_pressed(USER, "confirm_transcription", old.buttons[0].payload)
+
+    assert reply.text == t("unknown_button", "en")
+    kind, payload = await state()
+    assert (kind, payload["cleaned"]) == ("awaiting_confirmation", "Second.")
+    assert len(llm.calls) == 2  # the two cleanup passes; no turn ran
+
+
+async def test_buttons_without_a_pending_transcript_are_expired(harness: Harness) -> None:
+    assert (await harness.button_pressed(USER, "confirm_transcription", {"token": "x"})).text == t(
+        "unknown_button", "en"
+    )
+    assert (await harness.button_pressed(USER, "amend_transcription", {"token": "x"})).text == t(
+        "unknown_button", "en"
+    )
+    assert (await harness.button_pressed(USER, "add_glossary_term", {})).text == t(
+        "unknown_button", "en"
+    )
+
+
+async def test_a_command_while_awaiting_the_amendment_drops_the_transcript(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    shown = await heard(harness, asr, llm, "first", "First.")
+    await harness.button_pressed(USER, "amend_transcription", shown.buttons[1].payload)
+
+    reply = await harness.command_received(USER, "glossary", "")
+
+    assert reply.text.startswith(t("voice_dropped", "en"))
+    assert await state() is None
+    (row,) = await transcriptions()
+    assert row.accepted_text is None
+
+
+async def test_the_flow_speaks_the_users_language(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    await harness.command_received(USER, "language", "ru")
+
+    shown = await heard(harness, asr, llm, "я сделал зарядку", "Я сделал зарядку.")
+
+    assert shown.text == "Я услышал:\nЯ сделал зарядку."
+    assert buttons_of(shown) == [
+        ("✅ Верно", "confirm_transcription"),
+        ("✏️ Исправить", "amend_transcription"),
+    ]
