@@ -11,14 +11,15 @@ from app.collector.snapshots import collect
 from app.core import voice
 from app.core.harness import Harness
 from app.core.i18n import t
-from app.core.replies import User
+from app.core.replies import ChartData, Reply, User
 from app.db.engine import session_scope
-from app.db.models import ConversationState, Message
+from app.db.models import ConversationState, Message, TtsCall
 from app.db.models import Transcription as TranscriptionRow
 from app.speech.asr import AsrError
 from tests.fakes.asr import FakeAsr, hears
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.fakes.llm import FakeLlm, calls_tool, fails, says
+from tests.fakes.tts import FAKE_MP3, FakeTts
 from tests.task_factory import make_task
 
 USER = User("00000000-0000-4000-8000-000000000001")
@@ -419,3 +420,102 @@ async def test_the_flow_speaks_the_users_language(
         ("✅ Верно", "confirm_transcription"),
         ("✏️ Исправить", "amend_transcription"),
     ]
+
+
+# ---- voice out ----
+
+
+async def test_tts_is_off_by_default_even_after_voice_input(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    tts = FakeTts()
+    harness.tts = tts  # type: ignore[assignment]
+    shown = await heard(harness, asr, llm, "hello there", "Hello there.")
+    llm.queue(says("Hi!"))
+
+    reply = await harness.button_pressed(USER, "confirm_transcription", shown.buttons[0].payload)
+
+    assert shown.voice is None and reply.voice is None
+    assert tts.calls == []
+    assert (await harness.command_received(USER, "tts", "")).text == t("tts_off", "en")
+
+
+async def test_tts_on_speaks_text_and_voice_turns_but_never_the_transcript_echo(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    tts = FakeTts()
+    harness.tts = tts  # type: ignore[assignment]
+    switched = await harness.command_received(USER, "tts", "on")
+    assert switched.text == t("tts_on", "en")
+    assert switched.voice == FAKE_MP3  # the confirmation itself is spoken
+
+    llm.queue(says("**Stretched!** Nice *work*."))
+    typed = await harness.text_message_received(USER, "did my stretch")
+    assert typed.voice == FAKE_MP3
+    assert tts.calls[-1] == "Stretched! Nice work."
+
+    shown = await heard(harness, asr, llm, "and the vacuum", "And the vacuum.")
+    assert shown.voice is None  # the user's own words are not read back
+
+    llm.queue(says("Vacuumed."))
+    spoken = await harness.button_pressed(USER, "confirm_transcription", shown.buttons[0].payload)
+    assert spoken.voice == FAKE_MP3
+    assert tts.calls[-1] == "Vacuumed."
+
+    async with session_scope() as db:
+        rows = list(await db.scalars(select(TtsCall).order_by(TtsCall.id)))
+    assert [(row.chars, row.ok) for row in rows] == [
+        (len(t("tts_on", "en")), True),
+        (len("Stretched! Nice work."), True),
+        (len("Vacuumed."), True),
+    ]
+
+
+async def test_long_replies_and_charts_are_text_only(harness: Harness, llm: FakeLlm) -> None:
+    tts = FakeTts()
+    harness.tts = tts  # type: ignore[assignment]
+    await harness.command_received(USER, "tts", "on")
+    llm.queue(says("word " * 130))
+
+    reply = await harness.text_message_received(USER, "tell me everything")
+
+    assert len(reply.text) > voice.TTS_MAX_CHARS
+    assert reply.voice is None
+    assert voice.wants_voice("on", Reply("short", chart=ChartData("t", [], {}))) is False
+    assert voice.wants_voice("on", Reply("")) is False
+    assert voice.wants_voice("on", Reply("short")) is True
+
+
+async def test_a_failed_synthesis_still_sends_the_text(harness: Harness, llm: FakeLlm) -> None:
+    harness.tts = FakeTts(fail=True)  # type: ignore[assignment]
+    await harness.command_received(USER, "tts", "on")
+    llm.queue(says("Fine."))
+
+    reply = await harness.text_message_received(USER, "hi")
+
+    assert reply.text == "Fine."
+    assert reply.voice is None
+    async with session_scope() as db:
+        rows = list(await db.scalars(select(TtsCall)))
+    assert [row.ok for row in rows] == [False, False]
+
+
+async def test_tts_on_is_refused_without_a_synthesiser(harness: Harness) -> None:
+    reply = await harness.command_received(USER, "tts", "on")
+
+    assert reply.text == t("tts_not_configured", "en")
+    assert (await harness.command_received(USER, "tts", "")).text == t("tts_off", "en")
+    assert (await harness.command_received(USER, "tts", "loud")).text == t("tts_usage", "en")
+
+
+@pytest.mark.parametrize(
+    ("markdown", "spoken"),
+    [
+        ("**Done:** *Vacuum the floors*.", "Done: Vacuum the floors."),
+        ("# Today\n- one\n- two", "Today one two"),
+        ("see [the docs](https://x.y) and `code`", "see the docs and code"),
+        ("snake_case stays, 2*3 stays", "snake_case stays, 2*3 stays"),
+    ],
+)
+def test_spoken_text_drops_the_markdown(markdown: str, spoken: str) -> None:
+    assert voice.spoken_text(markdown) == spoken

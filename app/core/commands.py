@@ -1,6 +1,6 @@
 """Slash commands. Each one is a function of the turn and its arguments.
 
-    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session, /model, /glossary
+    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session, /model, /glossary, /tts
 
 Later phases add theirs to `COMMANDS`. Free text is not a command and never
 lands here.
@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, collect_if_stale
-from app.core import glossary, sessions
+from app.core import glossary, sessions, voice
 from app.core.i18n import LANGUAGES, t
 from app.core.replies import Reply
 from app.core.turn import Turn, summarizer
@@ -181,6 +181,19 @@ async def glossary_(turn: Turn, args: str) -> Reply:
     return Reply(t(key, turn.language, term=glossary.normalise(term)))
 
 
+async def tts(turn: Turn, args: str) -> Reply:
+    wanted = args.strip().lower()
+    if not wanted:
+        return Reply(t(f"tts_{turn.settings.tts}", turn.language))
+    if wanted not in (voice.TTS_ON, voice.TTS_OFF):
+        return Reply(t("tts_usage", turn.language))
+    if wanted == voice.TTS_ON and not turn.can_speak:
+        return Reply(t("tts_not_configured", turn.language))
+    turn.settings.tts = wanted
+    await turn.session.flush()
+    return Reply(t(f"tts_{wanted}", turn.language))
+
+
 @dataclass
 class ModelUsage:
     calls: int
@@ -256,6 +269,7 @@ COMMANDS: dict[str, Handler] = {
     "session": session,
     "model": model,
     "glossary": glossary_,
+    "tts": tts,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -267,4 +281,5 @@ HELP: list[tuple[str, str]] = [
     ("/session [planning <topic>]", "help_session"),
     ("/model [strong|cheap]", "help_model"),
     ("/glossary [add|remove <term>]", "help_glossary"),
+    ("/tts on|off", "help_tts"),
 ]

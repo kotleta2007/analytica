@@ -104,6 +104,31 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "слова, которые распознавание речи путает",
         "fr": "les mots que la reconnaissance vocale écorche",
     },
+    "help_tts": {
+        "en": "answer with a voice note too",
+        "ru": "отвечать ещё и голосом",
+        "fr": "répondre aussi par message vocal",
+    },
+    "tts_on": {
+        "en": "Voice replies are on: I'll send a voice note with every short answer.",
+        "ru": "Голосовые ответы включены: к каждому короткому ответу будет голосовое.",
+        "fr": "Réponses vocales activées : chaque réponse courte arrive aussi en vocal.",
+    },
+    "tts_off": {
+        "en": "Voice replies are off. /tts on turns them on.",
+        "ru": "Голосовые ответы выключены. /tts on — включить.",
+        "fr": "Réponses vocales désactivées. /tts on les active.",
+    },
+    "tts_usage": {
+        "en": "Usage: /tts on, /tts off",
+        "ru": "Использование: /tts on, /tts off",
+        "fr": "Usage : /tts on, /tts off",
+    },
+    "tts_not_configured": {
+        "en": "Voice replies need OPENROUTER_API_KEY on the server.",
+        "ru": "Для голосовых ответов на сервере нужен OPENROUTER_API_KEY.",
+        "fr": "Les réponses vocales demandent OPENROUTER_API_KEY sur le serveur.",
+    },
     "glossary_empty": {
         "en": "Your glossary is empty. /glossary add <term> teaches me a spelling.",
         "ru": "Глоссарий пуст. /glossary add <слово> — научить меня написанию.",

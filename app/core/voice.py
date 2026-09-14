@@ -27,6 +27,7 @@ from app.db.models import Transcription as TranscriptionRow
 from app.llm.client import LlmError, chat
 from app.llm.models import CHEAP, model_id
 from app.speech.asr import AsrClient, AsrError, transcribe
+from app.speech.tts import TtsClient, TtsError, speak
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +192,44 @@ async def accept(turn: Turn, waiting: dict[str, Any], text: str) -> None:
         return
     row.accepted_text = text
     await turn.session.flush()
+
+
+# ---- voice out ----
+
+TTS_ON = "on"
+TTS_OFF = "off"
+TTS_MAX_CHARS = 600
+MARKDOWN_MARKS = re.compile(r"\*\*|__|`+|~~|^#{1,6}\s+|^\s*[-*]\s+", re.MULTILINE)
+EMPHASIS = re.compile(r"(?<!\w)[*_](?!\s)(.+?)(?<!\s)[*_](?!\w)")
+LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+
+
+def wants_voice(settings_tts: str, reply: Reply) -> bool:
+    """The setting decides; long replies, charts and echoes of the user's own words stay text."""
+    return (
+        settings_tts == TTS_ON
+        and reply.speak
+        and reply.chart is None
+        and 0 < len(reply.text) <= TTS_MAX_CHARS
+    )
+
+
+async def voice_for(turn: Turn, tts: TtsClient | None, reply: Reply) -> bytes | None:
+    """The mp3 for a reply when the policy says so; None on failure, the text still goes out."""
+    if tts is None or not wants_voice(turn.settings.tts, reply):
+        return None
+    try:
+        return await speak(tts, turn.session, turn.user.id, turn.now, spoken_text(reply.text))
+    except TtsError:
+        return None
+
+
+def spoken_text(text: str) -> str:
+    """The model's Markdown, read aloud: marks off, link text kept."""
+    text = LINK.sub(r"\1", text)
+    text = MARKDOWN_MARKS.sub("", text)
+    text = EMPHASIS.sub(r"\1", text)
+    return " ".join(text.split())
 
 
 # ---- the pending transcript ----

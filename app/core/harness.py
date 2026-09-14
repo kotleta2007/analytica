@@ -5,7 +5,8 @@ returned `Reply` back into platform messages. Nothing here knows about
 Telegram or terminals.
 
 Every entry point runs one database transaction: it logs the inbound message,
-loads the user's settings, produces the reply and logs that too. A handler
+loads the user's settings, produces the reply, speaks it when the user asked
+for voice replies, and logs it too. A handler
 that raises still leaves the inbound message logged, and the user gets a
 "something went wrong" line in their language instead of silence.
 """
@@ -29,6 +30,7 @@ from app.db.models import Message
 from app.habitica.client import HabiticaClient
 from app.llm.client import LlmClient
 from app.speech.asr import AsrClient
+from app.speech.tts import TtsClient
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,7 @@ class Harness:
     habitica: HabiticaClient
     llm: LlmClient | None = None
     asr: AsrClient | None = None
+    tts: TtsClient | None = None
     clock: Callable[[], datetime] = utcnow
     tz: ZoneInfo = field(default_factory=lambda: ZoneInfo(get_settings().timezone))
 
@@ -98,12 +101,23 @@ class Harness:
             now = self.clock()
             settings = await load_settings(session, user.id)
             inbound = await log_message(session, user.id, now, "in", kind, text)
-            turn = Turn(session, user, settings, self.habitica, now, self.tz, self.llm, inbound)
+            turn = Turn(
+                session,
+                user,
+                settings,
+                self.habitica,
+                now,
+                self.tz,
+                self.llm,
+                inbound,
+                can_speak=self.tts is not None,
+            )
             try:
                 reply = await handle(turn)
             except Exception:
                 logger.exception("%s turn failed for user %s", kind, user.id)
                 reply = Reply(t("something_went_wrong", settings.language))
+            reply.voice = await voice.voice_for(turn, self.tts, reply)
             # The reply belongs to the session the inbound message was attached to, if any.
             await log_message(
                 session,
