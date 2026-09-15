@@ -1,0 +1,34 @@
+# The app, bound to the host's loopback only. nginx on the host proxies to it.
+#
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#   docker compose -f deploy/docker-compose.yml logs -f
+#
+# Paths are relative to this file; the repo root holds .env and data/.
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: analytica
+    container_name: analytica
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      # The same .env serves local polling (scripts/dev.sh) and the VPS.
+      TELEGRAM_MODE: webhook
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 60s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
