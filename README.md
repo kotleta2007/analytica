@@ -128,6 +128,42 @@ context". Every model call lands in `llm_calls` with tokens, cost and latency;
 
 ## Deploying on a VPS
 
+One container behind the nginx you already run; the app binds to
+`127.0.0.1:8000` and nothing else listens. Assumes Docker with the compose
+plugin, nginx and certbot on the host, and a hostname such as
+`bot.example.com` — a wildcard DNS record already covers a subdomain, otherwise
+add an A record for it.
+
+```sh
+git clone <this repo> /opt/analytica && cd /opt/analytica
+cp .env.example .env            # Habitica, Telegram, OpenRouter keys as for local use, plus:
+                                #   PUBLIC_BASE_URL=https://bot.example.com
+                                #   WEBHOOK_SECRET=$(openssl rand -hex 24)
+mkdir -p data                   # the container is uid 1000: chown 1000:1000 data if that isn't you
+
+sudo cp deploy/nginx-analytica.conf /etc/nginx/sites-available/analytica
+sudo sed -i 's/bot.example.com/<your host>/' /etc/nginx/sites-available/analytica
+sudo ln -s /etc/nginx/sites-available/analytica /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d <your host>   # adds the TLS lines to that block
+
+docker compose -f deploy/docker-compose.yml up -d --build
+docker compose -f deploy/docker-compose.yml logs -f
+```
+
+Compose forces `TELEGRAM_MODE=webhook`, so the same `.env` serves `scripts/dev.sh`
+at home and the VPS. On startup the app migrates the database, sets the Telegram
+webhook, and a few seconds later runs a **self-check** whose lines to look for in
+the log start with `self-check:` — it fetches its own `/health` through the public
+URL (DNS, nginx and TLS in one go), registers the Habitica webhook itself (or
+moves a stale one, or re-enables one Habitica switched off while the VPS was
+down), and asks Telegram whether deliveries are getting through. Each missing
+piece is one WARNING. `uv run python scripts/register_webhook.py` does the
+Habitica part by hand if you want to see it without starting the app.
+
+Updating is `git pull` and the same `up -d --build`. Google Calendar
+authentication is a later step (phase 10) and needs nothing here yet.
+
 **Backups.** `deploy/backup.sh` copies the database into `data/backups/` with
 `sqlite3 .backup`, checks the copy, and keeps the last 30. It runs on the host
 (`apt install sqlite3`); one cron line, adjusting the path:

@@ -310,7 +310,7 @@ Then the model receives both the transcript and my correction
 - [x] 2. `deploy/nginx-analytica.conf` — a server block to copy into `sites-available`: `server_name` from the operator, `proxy_pass http://127.0.0.1:8000`, the usual `Host` / `X-Real-IP` / `X-Forwarded-For` / `X-Forwarded-Proto` headers, and `client_max_body_size 25M` so long voice notes don't 413. TLS lines are left to `certbot --nginx`. — `chore(p05): nginx reverse proxy config`
 - [x] 3. `deploy/backup.sh`: nightly `sqlite3 .backup` into `data/backups/`, keep 30. Cron line in the README. — `chore(p05): sqlite backup`
 - [x] 4. Switch to webhook mode: `TELEGRAM_MODE=webhook` mounts the Telegram route and sets the webhook at startup; run `scripts/register_webhook.py` to point Habitica at `PUBLIC_BASE_URL`. Startup self-check verifies both webhooks are registered to the current `PUBLIC_BASE_URL` and re-registers if the URL changed; logs clearly what is missing. — `feat(p05): webhook mode and startup self-check`
-- [ ] 5. README "Deploy" section: DNS A record (a wildcard `*` record already covers the subdomain), nginx block, `certbot --nginx -d <host>`, `.env`, `docker compose up -d`, register the Habitica webhook, backup cron. Note that Google Calendar auth comes later, in P10. — `docs(p05): deployment guide`
+- [x] 5. README "Deploy" section: DNS A record (a wildcard `*` record already covers the subdomain), nginx block, `certbot --nginx -d <host>`, `.env`, `docker compose up -d`, register the Habitica webhook, backup cron. Note that Google Calendar auth comes later, in P10. — `docs(p05): deployment guide`
 
 **Tests**
 
@@ -329,7 +329,15 @@ And a backup exists the next morning
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- Not deployed yet: the branch was built and smoke-tested locally (image builds, migrations run, `/health` green, the db lands in the mount as uid 1000, compose config resolves, nginx block passes `nginx -t`). The acceptance scenario can only be run on the VPS once the operator has a host; whatever the first deploy shows goes here.
+- `deploy/entrypoint.sh` (migrate, then serve) is an extra file: the app still does not migrate in its lifespan (backlog line below stays), so the container does what `scripts/dev.sh` does.
+- The self-check is a background task started by the lifespan, not part of it: uvicorn accepts connections only once the lifespan has yielded, so fetching our own `/health` through the public URL from inside startup would always fail. It runs 3 s after start (`app/selfcheck.py`).
+- Beyond the plan, the self-check also **re-enables** a Habitica webhook that is aimed right but switched off — Habitica disables a hook after repeated delivery failures, which is exactly what a VPS that was down for a day comes back to. `HabiticaClient.update_webhook` (`PUT /user/webhook/{id}`, verified against the server source) carries `enabled: true` with every update. `scripts/register_webhook.py` shares the logic and now moves a stale hook instead of registering a second one.
+- The self-check reads Telegram's `getWebhookInfo`: `set_webhook` accepts any https URL, and a certificate or connection problem shows up only there, in `last_error_message`, with the number of pending updates.
+- The image is 1.21 GB (matplotlib, seaborn, polars, aiogram); fine for a VPS, not worth a multi-stage build.
+- The webhook paths carry `WEBHOOK_SECRET`; the nginx block keeps them out of the access log. The app's own log still prints the full URLs (as P01/P02 already did).
 
 ---
 
