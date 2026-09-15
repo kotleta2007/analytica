@@ -1,8 +1,9 @@
 """The single process: a FastAPI app whose lifespan owns everything else.
 
-The lifespan configures logging, builds one Habitica client and one
-OpenRouter client, starts the collector schedule and the Telegram adapter
-when their credentials are present, and disposes the engine at the end.
+The lifespan configures logging, builds one Habitica client and the
+OpenRouter clients (chat, speech in, speech out), starts the collector
+schedule and the Telegram adapter when their credentials are present, and
+disposes the engine at the end.
 """
 
 import logging
@@ -21,6 +22,8 @@ from app.db.engine import dispose_engine, session_scope
 from app.habitica.client import HabiticaClient
 from app.jobs.scheduler import build_collector
 from app.llm.client import client_from_settings as llm_client_from_settings
+from app.speech.asr import client_from_settings as asr_client_from_settings
+from app.speech.tts import client_from_settings as tts_client_from_settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +38,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("analytica starting up")
     client = habitica_client_if_configured()
     llm = llm_client_from_settings()
+    asr = asr_client_from_settings()
+    tts = tts_client_from_settings()
     collector = None if client is None else build_collector(client, settings.habitica_user_id)
-    harness = None if client is None else Harness(habitica=client, llm=llm)
+    harness = None if client is None else Harness(habitica=client, llm=llm, asr=asr, tts=tts)
     adapter = telegram.start_telegram_if_configured(harness)
     app.state.telegram = adapter
     if collector is not None:
@@ -50,8 +55,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await adapter.stop()
         if collector is not None:
             await collector.stop()  # also closes the shared Habitica client
-        if llm is not None:
-            await llm.aclose()
+        for openrouter_client in (llm, asr, tts):
+            if openrouter_client is not None:
+                await openrouter_client.aclose()
         app.state.telegram = None
         await dispose_engine()
         logger.info("analytica shut down")

@@ -13,6 +13,7 @@ from app.core.harness import Harness
 from app.core.i18n import t
 from app.core.replies import Button, ChartData, Reply, User
 from app.habitica.types import class_label, task_from_json
+from tests.fakes.asr import FakeAsr, hears
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.fakes.llm import FakeLlm, calls_tool, says
 from tests.habitica_fixtures import load_data
@@ -152,10 +153,10 @@ async def test_voice_is_saved_and_played_when_a_player_exists(
         played.append(path)
 
     monkeypatch.setattr(cli_module, "play", fake_play)
-    shown = await cli.show(Reply("Hi", voice=b"OggS-fake"))
+    shown = await cli.show(Reply("Hi", voice=b"ID3-fake-mp3"))
 
-    saved = cli.voice_dir / "reply-0001.ogg"
-    assert saved.read_bytes() == b"OggS-fake"
+    saved = cli.voice_dir / "reply-0001.mp3"
+    assert saved.read_bytes() == b"ID3-fake-mp3"
     assert shown == f"Hi\n[voice] {saved}"
     assert played == [saved]
 
@@ -165,4 +166,73 @@ async def test_play_without_a_player_only_logs(
 ) -> None:
     monkeypatch.setattr(cli_module.shutil, "which", lambda name: None)
 
-    await cli_module.play(tmp_path / "x.ogg")  # no player found, no exception
+    await cli_module.play(tmp_path / "x.mp3")  # no player found, no exception
+
+
+# ---- a voice turn: /voice <file>, then Correct or Amend by number ----
+
+
+@pytest.fixture
+def fake_asr() -> FakeAsr:
+    return FakeAsr()
+
+
+@pytest.fixture
+def voice_file(tmp_path: Path) -> Path:
+    path = tmp_path / "note.ogg"
+    path.write_bytes(b"OggS\x00\x02opus")
+    return path
+
+
+async def test_a_voice_turn_is_confirmed_by_number_and_scores_the_task(
+    cli: Cli,
+    fake_client: FakeHabiticaClient,
+    fake_llm: FakeLlm,
+    fake_asr: FakeAsr,
+    voice_file: Path,
+) -> None:
+    cli.harness.asr = fake_asr  # type: ignore[assignment]
+    daily = next(task for task in fake_client.tasks if task.type == "daily")
+    fake_asr.queue(hears(f"i did {daily.text.lower()}"))
+    fake_llm.queue(says(f"I did {daily.text}."))
+
+    shown = await cli.show(await cli.handle_line(f"/voice {voice_file}"))
+
+    assert shown == (
+        f"I heard:\nI did {daily.text}.\n[1] ✅ Correct  [2] ✏️ Amend\n(type a number to press)"
+    )
+    assert fake_asr.calls == [(b"OggS\x00\x02opus", "audio/ogg")]
+
+    fake_llm.queue(calls_tool("score_task", task_id=daily.id[:8], direction="up"), says("Done."))
+    done = await cli.handle_line("1")
+
+    assert done.text == "Done."
+    assert fake_client.called("score_task") == [(daily.id, "up")]
+
+
+async def test_a_voice_turn_is_amended_by_number_then_text(
+    cli: Cli, fake_llm: FakeLlm, fake_asr: FakeAsr, voice_file: Path
+) -> None:
+    cli.harness.asr = fake_asr  # type: ignore[assignment]
+    fake_asr.queue(hears("morning sketch done"))
+    fake_llm.queue(says("Morning sketch done."))
+    await cli.show(await cli.handle_line(f"/voice {voice_file}"))
+
+    asked = await cli.handle_line("2")
+    assert asked.text == t("voice_amend_prompt", "en")
+
+    fake_llm.queue(says("Stretch it is."))
+    reply = await cli.handle_line("stretch, not sketch")
+
+    assert reply.text == "Stretch it is."
+    assert fake_llm.calls[-1].messages[-1]["content"] == (
+        'Voice transcription: "Morning sketch done."\nUser\'s correction: "stretch, not sketch"'
+    )
+    assert [b.label for b in reply.buttons] == ["➕ Add “stretch”"]
+
+
+async def test_voice_command_reports_a_missing_or_unknown_file(cli: Cli, tmp_path: Path) -> None:
+    assert (await cli.handle_line("/voice")).text == "Usage: /voice <audio file>"
+    assert (await cli.handle_line("/voice notes.txt")).text.startswith("Unknown audio type '.txt'")
+    missing = await cli.handle_line(f"/voice {tmp_path / 'nope.ogg'}")
+    assert missing.text.startswith("Can't read ")

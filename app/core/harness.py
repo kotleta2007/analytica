@@ -5,7 +5,8 @@ returned `Reply` back into platform messages. Nothing here knows about
 Telegram or terminals.
 
 Every entry point runs one database transaction: it logs the inbound message,
-loads the user's settings, produces the reply and logs that too. A handler
+loads the user's settings, produces the reply, speaks it when the user asked
+for voice replies, and logs it too. A handler
 that raises still leaves the inbound message logged, and the user gets a
 "something went wrong" line in their language instead of silence.
 """
@@ -20,7 +21,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core import commands, conversation
+from app.core import commands, conversation, voice
 from app.core.i18n import t
 from app.core.replies import Reply, User
 from app.core.turn import Turn, load_settings
@@ -28,6 +29,8 @@ from app.db.engine import session_scope
 from app.db.models import Message
 from app.habitica.client import HabiticaClient
 from app.llm.client import LlmClient
+from app.speech.asr import AsrClient
+from app.speech.tts import TtsClient
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,8 @@ def utcnow() -> datetime:
 class Harness:
     habitica: HabiticaClient
     llm: LlmClient | None = None
+    asr: AsrClient | None = None
+    tts: TtsClient | None = None
     clock: Callable[[], datetime] = utcnow
     tz: ZoneInfo = field(default_factory=lambda: ZoneInfo(get_settings().timezone))
 
@@ -49,13 +54,18 @@ class Harness:
         async def handle(turn: Turn) -> Reply:
             if not text.strip():
                 return Reply(t("unsupported_message", turn.language))
-            return await conversation.answer(turn, text.strip())
+            if await voice.awaiting_amendment(turn):
+                return await voice.amended(turn, text.strip())
+            dropped = await voice.drop_pending(turn)
+            reply = await conversation.answer(turn, text.strip())
+            reply.text = conversation.prefix(dropped, reply.text)
+            return reply
 
         return await self._turn(user, "text", text, handle)
 
     async def voice_message_received(self, user: User, audio: bytes, mime_type: str) -> Reply:
         async def handle(turn: Turn) -> Reply:
-            return Reply(t("voice_not_yet", turn.language))
+            return await voice.receive(turn, self.asr, audio, mime_type)
 
         return await self._turn(user, "voice", f"<{mime_type}, {len(audio)} bytes>", handle)
 
@@ -65,13 +75,19 @@ class Harness:
                 return await conversation.confirm(turn, payload)
             if action == conversation.tools.CANCEL_ACTION:
                 return await conversation.cancel(turn, payload)
+            if action == voice.CONFIRM_ACTION:
+                return await voice.confirm(turn, payload)
+            if action == voice.AMEND_ACTION:
+                return await voice.amend(turn, payload)
+            if action == voice.ADD_TERM_ACTION:
+                return await voice.add_term(turn, payload)
             return Reply(t("unknown_button", turn.language))
 
         return await self._turn(user, "button", action, handle)
 
     async def command_received(self, user: User, command: str, args: str) -> Reply:
         async def handle(turn: Turn) -> Reply:
-            dropped = await conversation.drop_pending(turn)
+            dropped = await voice.drop_pending(turn) or await conversation.drop_pending(turn)
             reply = await commands.run(turn, command, args)
             reply.text = conversation.prefix(dropped, reply.text)
             return reply
@@ -85,12 +101,23 @@ class Harness:
             now = self.clock()
             settings = await load_settings(session, user.id)
             inbound = await log_message(session, user.id, now, "in", kind, text)
-            turn = Turn(session, user, settings, self.habitica, now, self.tz, self.llm, inbound)
+            turn = Turn(
+                session,
+                user,
+                settings,
+                self.habitica,
+                now,
+                self.tz,
+                self.llm,
+                inbound,
+                can_speak=self.tts is not None,
+            )
             try:
                 reply = await handle(turn)
             except Exception:
                 logger.exception("%s turn failed for user %s", kind, user.id)
                 reply = Reply(t("something_went_wrong", settings.language))
+            reply.voice = await voice.voice_for(turn, self.tts, reply)
             # The reply belongs to the session the inbound message was attached to, if any.
             await log_message(
                 session,

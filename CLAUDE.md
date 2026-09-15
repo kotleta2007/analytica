@@ -50,7 +50,7 @@ These are the operating rules. They come from Gourze, the Alpi standard for buil
 4. **Work step by step.** Each task in the phase is one commit. After each task: run the tests, tick the box in `GAMEPLAN.md`, commit both the code and `GAMEPLAN.md` **in the same commit**. A commit that completes a task without ticking its box is wrong. A tick without the work is worse.
 5. **Tests are part of the phase, not an afterthought.** Every acceptance criterion in the phase maps to at least one test. Tests must be meaningful, not "it doesn't crash".
 6. **Self-review.** `git diff main..HEAD --stat`, `git log --oneline main..HEAD`, `ruff check .`, `ruff format --check .`, `pytest`. No unrelated changes in the diff.
-7. **Open the PR** with `gh pr create --base main` using the PR template below. Then **STOP.** The operator reads and validates every PR manually. You never merge, never push to `main`, never force-push, never open the next phase's branch until the current PR is merged (or the operator explicitly says to proceed).
+7. **Open the PR** with `gh pr create --base main` using the PR template below, and end the turn with the **reading list**: every changed file sorted into *read thoroughly* / *skim* / *skip*, in the order to read them, one line each saying what to look for or why it can be skipped. The list goes in the PR body and in the final message. Then **STOP.** The operator reads and validates every PR manually. You never merge, never push to `main`, never force-push, never open the next phase's branch until the current PR is merged (or the operator explicitly says to proceed).
 8. **Codex will review your work.** Address every Codex comment with a follow-up commit on the same branch (tick nothing new; fix, then reply in the PR thread). If you disagree with a comment, say why in the thread — don't silently ignore it.
 
 ### Commits
@@ -87,7 +87,12 @@ docs(p06): describe the consistency metrics in README
 <none, or what changed and why>
 
 ### Notes for reviewer
-<what to look at first, anything you're unsure about>
+<anything you're unsure about, anything you did outside the code (live runs, account changes)>
+
+### Reading list
+**Read thoroughly** — `path` — what to look for
+**Skim** — `path` — what it is
+**Skip** — `path` — why (migration mirrors the model, strings, fake, …)
 ```
 
 Say `Relates to`, never `Closes` / `Fixes` / `Resolves`: those keywords make GitHub auto-close an issue on merge, and closing stays a human decision. If GitHub issues are ever used for phases, reference them the same way: `Relates to #N`.
@@ -140,8 +145,8 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
 | LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
-| ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | chat completions with an `input_audio` content part (base64); auto language detection; a text part carries context (task names, Habitica vocabulary) to bias recognition. One key for everything. |
-| TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | single voice for all languages: Selene, `reference_id b347db033a6549378b48d00acb0d06cd`. **Verify at build time** that OpenRouter exposes this model with a voice parameter; if it doesn't, STOP and ask — the fallback is Fish's native API behind the same `speak()` interface, not a workaround. |
+| ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | `POST /audio/transcriptions` with base64 `input_audio` (Ogg/Opus straight from Telegram); auto language detection; the endpoint has no vocabulary field, so task names and the glossary bias the cleanup pass instead (verified 2026-09-14). One key for everything. |
+| TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | `POST /audio/speech`, single voice for all languages: Selene, Fish reference id `b347db033a6549378b48d00acb0d06cd` passed as `voice` (verified 2026-09-14). Output is mp3 (`mp3` or `pcm` only); Telegram sends mp3 as a voice note, so nothing is transcoded. |
 | Scheduler | APScheduler (AsyncIOScheduler) | in-process; jobs: snapshots, day-close + cron, reminders, gear, calendar sync, weekly report |
 | HTTP | httpx | everywhere |
 | TLS / reverse proxy | the operator's existing nginx + certbot | the app binds to `127.0.0.1:8000` only; nginx proxies and terminates TLS. No Caddy, nothing else on 80/443. |
@@ -196,8 +201,8 @@ analytica/
 │   │   ├── prompts.py           # system prompt builder (language, current stats, task list)
 │   │   └── models.py            # strong / cheap registry
 │   ├── speech/
-│   │   ├── asr.py               # transcribe(audio, mime, context) -> Transcription, via OpenRouter
-│   │   └── tts.py               # speak(text) -> bytes (opus), via OpenRouter
+│   │   ├── asr.py               # transcribe(audio, mime) -> Transcription, via OpenRouter
+│   │   └── tts.py               # speak(text) -> bytes (mp3), via OpenRouter
 │   ├── analytics/
 │   │   ├── frames.py            # load tables into polars DataFrames
 │   │   ├── thresholds.py        # every tunable number, in one place
@@ -263,7 +268,7 @@ class Reply:
     text: str
     buttons: list[Button] = field(default_factory=list)
     chart: ChartData | None = None
-    voice: bytes | None = None     # opus audio, when TTS is on for this reply
+    voice: bytes | None = None     # mp3 audio, when TTS is on for this reply
 
 # core/harness.py — the external clients live on the dataclass so adapters and tests inject fakes
 @dataclass
@@ -599,11 +604,11 @@ WEBHOOK_SECRET=
 OPENROUTER_API_KEY=
 LLM_STRONG_MODEL=z-ai/glm-5.3
 LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash
-# verify id at build time
-ASR_MODEL=qwen/qwen3-asr-flash
-# verify id and voice parameter at build time
-TTS_MODEL=fishaudio/s2.1-pro
-# Selene, used for all languages
+# speech -> text, POST /audio/transcriptions; the dated id is the one OpenRouter serves
+ASR_MODEL=qwen/qwen3-asr-flash-2026-02-10
+# text -> speech, POST /audio/speech; returns mp3
+TTS_MODEL=fish-audio/s2.1-pro
+# Fish Audio reference id passed as `voice`: Selene, used for all languages
 TTS_VOICE=b347db033a6549378b48d00acb0d06cd
 
 # ---- sessions and context (phase 03) ----
@@ -634,6 +639,7 @@ PLAN_CHECKIN_DELAY_MIN=10
 - Analytics tests build small tables by hand and assert exact numbers (rate, streaks, tiers, habit stability).
 - The CLI adapter doubles as the integration harness: `tests/test_cli_flow.py` drives a full text turn, a voice confirm/amend turn, and a confirm-button turn through the core with fakes.
 - Tests run against a temporary SQLite file; no test touches the network.
+- **Live runs against the operator's real Habitica account are read-only.** Commands, `/stats`, transcription and a look at what the model *would* say are fine; never press a confirm button, never send the model a message it could act on (score, create, change, delete), never call a writing endpoint — unless the operator asks for exactly that in the same turn. "It probably won't match a task" is not a reason. Whatever a live run did or touched goes in the PR under *Notes for reviewer*.
 
 ---
 

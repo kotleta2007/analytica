@@ -25,6 +25,8 @@ class Turn:
     llm: LlmClient | None = None
     # The row the harness logged for the inbound message, so a handler can attach it to a session.
     inbound: Message | None = None
+    # Whether a speech synthesiser is configured: `/tts on` is refused without one.
+    can_speak: bool = False
 
     @property
     def language(self) -> str:

@@ -9,6 +9,7 @@ without a reply.
 """
 
 import asyncio
+import io
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
@@ -33,6 +34,8 @@ from app.db.models import TelegramButton
 logger = logging.getLogger(__name__)
 
 EXPIRED_BUTTON = "expired"
+# Telegram voice notes are Ogg/Opus; the field is optional in the API, so this is the fallback.
+DEFAULT_VOICE_MIME = "audio/ogg"
 
 
 class Allowlist(BaseMiddleware):
@@ -72,6 +75,7 @@ class TelegramAdapter:
     def router(self) -> Router:
         router = Router()
         router.message.register(self.on_text, F.text)
+        router.message.register(self.on_voice, F.voice)
         router.message.register(self.on_other)
         router.callback_query.register(self.on_callback)
         return router
@@ -116,8 +120,18 @@ class TelegramAdapter:
             reply = await self.harness.text_message_received(self.user, text)
         await self.send(message.chat.id, reply)
 
+    async def on_voice(self, message: Message) -> None:
+        voice = message.voice
+        assert voice is not None  # the filter guarantees it
+        buffer = await self.bot.download(voice, destination=io.BytesIO())
+        audio = buffer.getvalue() if isinstance(buffer, io.BytesIO) else b""
+        reply = await self.harness.voice_message_received(
+            self.user, audio, voice.mime_type or DEFAULT_VOICE_MIME
+        )
+        await self.send(message.chat.id, reply)
+
     async def on_other(self, message: Message) -> None:
-        # Voice arrives in P04; stickers, photos and the rest get a polite line.
+        # Stickers, photos, audio files and the rest get a polite line.
         reply = await self.harness.text_message_received(self.user, "")
         await self.send(message.chat.id, reply)
 

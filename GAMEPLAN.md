@@ -255,20 +255,20 @@ And llm_calls has a new row with model z-ai/glm-5.3 and cost > 0
 
 **Action Required:**
 
-- [ ] 1. `app/speech/asr.py`: `transcribe(audio, mime, context_text) -> Transcription(text, language, latency_ms)` via OpenRouter chat completions with an `input_audio` part (base64) and a text part carrying the context (task names, Habitica vocabulary, command names). `transcriptions` table. First step of this task: confirm the model id and payload shape on openrouter.ai; STOP if it isn't there. — `feat(p04): qwen3 asr via openrouter and transcription log`
-- [ ] 2. `asr_glossary` table + `/glossary` commands; bias context = glossary + task names + Habitica vocabulary + command names. — `feat(p04): asr glossary`
-- [ ] 3. Cleanup pass: cheap model fixes punctuation and terms (glossary + task list), returns text only; raw and cleaned stored. Harness `voice_message_received`: transcribe → clean → state `awaiting_confirmation{transcript}` → `Reply(cleaned, [✅ Correct, ✏️ Amend])`. — `feat(p04): two-pass transcription and confirm flow`
-- [ ] 4. `button_pressed`: confirm → run as text; amend → `awaiting_amendment`, ask what to fix; next text → combined message → LLM turn; anything else while awaiting → cancel. Accepted text saved. After an amendment, diff cleaned vs amended; words only in the amendment are offered as glossary terms with one button each. — `feat(p04): amend flow, state transitions, glossary suggestions`
-- [ ] 5. `app/speech/tts.py`: `speak(text) -> bytes` (opus) via OpenRouter with `TTS_MODEL` and `TTS_VOICE`; `tts_calls` table. First step: confirm on openrouter.ai that the model is served and accepts a voice/reference id; STOP if not. — `feat(p04): fish audio tts via openrouter`
-- [ ] 6. TTS policy in the harness: `user_settings.tts ∈ {on, off}`, default `off`. `/tts on|off`. Skip voice for replies > 600 chars or with charts. — `feat(p04): voice replies and /tts`
-- [ ] 7. Telegram: download voice (`audio/ogg`), send voice notes. CLI: `/voice file.ogg`, save/play replies. — `feat(p04): voice in adapters`
+- [x] 1. `app/speech/asr.py`: `transcribe(audio, mime, context_text) -> Transcription(text, language, latency_ms)` via OpenRouter chat completions with an `input_audio` part (base64) and a text part carrying the context (task names, Habitica vocabulary, command names). `transcriptions` table. First step of this task: confirm the model id and payload shape on openrouter.ai; STOP if it isn't there. — `feat(p04): qwen3 asr via openrouter and transcription log`
+- [x] 2. `asr_glossary` table + `/glossary` commands; bias context = glossary + task names + Habitica vocabulary + command names. — `feat(p04): asr glossary`
+- [x] 3. Cleanup pass: cheap model fixes punctuation and terms (glossary + task list), returns text only; raw and cleaned stored. Harness `voice_message_received`: transcribe → clean → state `awaiting_confirmation{transcript}` → `Reply(cleaned, [✅ Correct, ✏️ Amend])`. — `feat(p04): two-pass transcription and confirm flow`
+- [x] 4. `button_pressed`: confirm → run as text; amend → `awaiting_amendment`, ask what to fix; next text → combined message → LLM turn; anything else while awaiting → cancel. Accepted text saved. After an amendment, diff cleaned vs amended; words only in the amendment are offered as glossary terms with one button each. — `feat(p04): amend flow, state transitions, glossary suggestions`
+- [x] 5. `app/speech/tts.py`: `speak(text) -> bytes` (opus) via OpenRouter with `TTS_MODEL` and `TTS_VOICE`; `tts_calls` table. First step: confirm on openrouter.ai that the model is served and accepts a voice/reference id; STOP if not. — `feat(p04): fish audio tts via openrouter`
+- [x] 6. TTS policy in the harness: `user_settings.tts ∈ {on, off}`, default `off`. `/tts on|off`. Skip voice for replies > 600 chars or with charts. — `feat(p04): voice replies and /tts`
+- [x] 7. Telegram: download voice (`audio/ogg`), send voice notes. CLI: `/voice file.ogg`, save/play replies. — `feat(p04): voice in adapters`
 
 **Tests**
 
-- [ ] State machine: confirm, amend, cancel paths with `FakeAsr` + `FakeLlm`. — `test(p04): voice state machine`
-- [ ] Combined amendment message shape exact. — `test(p04): amendment message format`
-- [ ] Cleanup pass gets glossary and task names in its prompt; raw and cleaned both stored; amendment "Vergil" vs cleaned "virgil" proposes the glossary term; adding it changes the next bias context. — `test(p04): glossary and cleanup`
-- [ ] TTS policy: off by default even after voice input; on speaks for text and voice input; long reply never; `tts_calls` row written. — `test(p04): tts policy`
+- [x] State machine: confirm, amend, cancel paths with `FakeAsr` + `FakeLlm`. — `test(p04): voice state machine`
+- [x] Combined amendment message shape exact. — `test(p04): amendment message format`
+- [x] Cleanup pass gets glossary and task names in its prompt; raw and cleaned both stored; amendment "Vergil" vs cleaned "virgil" proposes the glossary term; adding it changes the next bias context. — `test(p04): glossary and cleanup`
+- [x] TTS policy: off by default even after voice input; on speaks for text and voice input; long reply never; `tts_calls` row written. — `test(p04): tts policy`
 
 **Acceptance**
 
@@ -283,7 +283,17 @@ Then the model receives both the transcript and my correction
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- Verified on OpenRouter on 2026-09-14, with one real call each. Both models are served, under ids that differ from the spec: ASR is `qwen/qwen3-asr-flash-2026-02-10` (the undated `qwen/qwen3-asr-flash` does not exist), TTS is `fish-audio/s2.1-pro` (hyphen, not `fishaudio/`). `config.py`, `.env.example` and CLAUDE.md now carry the served ids.
+- ASR is not a chat completion with an `input_audio` part: OpenRouter has a dedicated `POST /audio/transcriptions` taking `{model, input_audio: {data, format}}` and answering `{text, usage: {seconds, cost}}`. It has no field for a vocabulary hint — the top-level `prompt` is documented as ignored, and a made-up word transcribed the same with and without a `provider.options.alibaba` context — so `transcribe()` takes no `context_text`; the glossary and task names bias the **cleanup pass** only (task 3). The endpoint reports no detected language for this model (`verbose_json` is refused), so `transcriptions.language` stays empty. Ogg/Opus from Telegram is accepted as `format: ogg`. $0.000035 per second of audio.
+- TTS: `POST /audio/speech` with `voice: <Fish reference id>` works — Selene speaks — but the output is `mp3` or `pcm`, no opus. Telegram's `sendVoice` takes mp3 as a voice note, so `Reply.voice` carries mp3 and nothing is transcoded; the CLI writes `.mp3`. $0.000015 per character.
+- Live run through the CLI on 2026-09-14 (`/tts on`, `/voice hard.ogg`, Correct, `/voice ru2.ogg`, `/glossary`): English and Russian notes transcribed in 1.2–1.5 s ($0.00014 / $0.00035), the confirmed transcript ran a real model turn, three replies were spoken. The cleanup pass corrected a misheard Russian verb to a *different* wrong verb (“пополюсил” → “прополоскал”, rinsed, instead of “пропылесосил”, vacuumed): the model guesses when the context does not contain the term — Amend and the glossary are the remedy, as designed.
+- The operator's `.env` still carried the old ids from the previous `.env.example` (`qwen/qwen3-asr-flash`, `fishaudio/s2.1-pro`); both fail with a clear `HTTP 400: Model … does not exist`, logged in `transcriptions` / `tts_calls`, and the text still goes out. Update `ASR_MODEL` and `TTS_MODEL` in `.env`.
+- Voice out: the reply that echoes the transcript back ("I heard: …") is never spoken even with `/tts on` — `Reply.speak=False` — so a voice turn produces one voice note (the answer), not two. Markdown marks are stripped before synthesis. A failed synthesis is logged in `tts_calls` and the text goes out alone.
+- Glossary offers after an amendment: words of ≥ 4 letters that appear in the correction but not in the cleaned transcript and not in the glossary, at most three, in the correction's order. "stretch, not sketch" offers *stretch* only. Pressing ✅ Correct after ✏️ Amend takes the original transcript — the button token is the same, and changing one's mind is allowed.
+- The `add_glossary_term` tool from the F5 table came with task 2 (the glossary did not exist before this phase): one function, and the model needs it to act on "the transcript wrote Virgil, it's Vergil".
+- Auto language detection: a 10-second Russian clip transcribed correctly; a 3-second synthetic one came back transliterated into Latin letters. `language: "ru"` fixes it. Kept auto-detect per spec; if it misfires on real voice notes, the user's `/language` setting can be passed as the hint (one line).
 
 ---
 
@@ -543,4 +553,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
 - Model cost, measured after a day of use: ~$0.008 per text turn on `z-ai/glm-5.3` (~3k prompt tokens, ~490 completion tokens — it is a reasoning model and the thinking is billed as output). Not a problem at this volume; two levers for later, in order: `reasoning={"effort": "low"}` on the chat request (one field; measure whether GLM honours graded effort or only on/off), and `z-ai/glm-5.3-flash` as strong at a tenth of the price. The prompt is not to be shrunk.
+- TTS latency, measured: 2.7 s for ~100 characters, 9.2 s for 313 (Fish S2.1 Pro via OpenRouter). The harness synthesises before returning the reply, so with `/tts on` the text waits that long too. **Decided 2026-09-14: keep it** — text and voice note go out together; the alternative (text first, voice note when ready, via a pending synthesis on `Reply`) is not wanted.
+- Qwen3-ASR-Flash accepts a language hint (`language: "ru"`), and `provider.options.alibaba.asr_options` is forwarded (a hint given that way changed the output). Neither is sent today: auto-detect worked on a natural 10-second clip. If short notes come back transliterated, pass the user's `/language` setting as `language` — one line in `AsrClient.transcribe`.
 - `rapidfuzz` fallback for matching RU/FR task references against English titles, if the model proves unreliable at it (CLAUDE.md F2 allows it; not needed on the two models tried).

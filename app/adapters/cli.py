@@ -2,10 +2,11 @@
 
     uv run python -m app.adapters.cli
 
-Text goes to `text_message_received`, `/commands` to `command_received`, and
-a bare number presses that button from the last reply. Charts are drawn with
-plotext; voice replies are written to `data/voice/` and played with `ffplay`
-or `afplay` when one is on PATH, otherwise the path is printed.
+Text goes to `text_message_received`, `/commands` to `command_received`,
+`/voice <file>` sends an audio file to `voice_message_received`, and a bare
+number presses that button from the last reply. Charts are drawn with
+plotext; voice replies are written to `data/voice/` as mp3 and played with
+`ffplay` or `afplay` when one is on PATH, otherwise the path is printed.
 """
 
 import asyncio
@@ -26,13 +27,27 @@ from app.core.replies import Button, Reply, User
 from app.db.engine import dispose_engine
 from app.habitica.client import client_from_settings
 from app.llm.client import client_from_settings as llm_client_from_settings
+from app.speech.asr import client_from_settings as asr_client_from_settings
+from app.speech.tts import client_from_settings as tts_client_from_settings
 
 logger = logging.getLogger(__name__)
 
 VOICE_DIR = Path("data/voice")
 PLAYERS = (("ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"), ("afplay",))
 QUIT = ("/quit", "/exit")
+VOICE_COMMAND = "voice"
 PROMPT = "> "
+# By extension, for `/voice <file>`: what the file most likely holds.
+AUDIO_TYPES = {
+    ".ogg": "audio/ogg",
+    ".oga": "audio/ogg",
+    ".opus": "audio/ogg",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+    ".wav": "audio/wav",
+    ".webm": "audio/webm",
+    ".flac": "audio/flac",
+}
 
 
 @dataclass
@@ -51,9 +66,25 @@ class Cli:
             self.buttons = []  # an offer is pressed once
             return await self.harness.button_pressed(self.user, button.action, button.payload)
         command = parse_command(stripped)
+        if command is not None and command[0] == VOICE_COMMAND:
+            return await self.send_voice_file(command[1])
         if command is not None:
             return await self.harness.command_received(self.user, *command)
         return await self.harness.text_message_received(self.user, stripped)
+
+    async def send_voice_file(self, argument: str) -> Reply:
+        """`/voice notes/today.ogg`: the file stands in for a Telegram voice note."""
+        path = Path(argument.strip().strip("'\""))
+        if not argument.strip():
+            return Reply("Usage: /voice <audio file>")
+        mime = AUDIO_TYPES.get(path.suffix.lower())
+        if mime is None:
+            return Reply(f"Unknown audio type {path.suffix!r}; try one of {', '.join(AUDIO_TYPES)}")
+        try:
+            audio = path.read_bytes()
+        except OSError as error:
+            return Reply(f"Can't read {path}: {error.strerror or error}")
+        return await self.harness.voice_message_received(self.user, audio, mime)
 
     async def show(self, reply: Reply) -> str:
         """Render a reply for the terminal; returns what gets printed."""
@@ -73,7 +104,7 @@ class Cli:
     def save_voice(self, audio: bytes) -> Path:
         self.voice_dir.mkdir(parents=True, exist_ok=True)
         self.voice_counter += 1
-        path = self.voice_dir / f"reply-{self.voice_counter:04d}.ogg"
+        path = self.voice_dir / f"reply-{self.voice_counter:04d}.mp3"
         path.write_bytes(audio)
         return path
 
@@ -119,11 +150,15 @@ async def main() -> None:
     logging.basicConfig(level="WARNING", format="%(levelname)s %(name)s %(message)s")
     await migrate()
     llm = llm_client_from_settings()
+    asr = asr_client_from_settings()
+    tts = tts_client_from_settings()
     async with client_from_settings() as client:
-        cli = Cli(harness=Harness(habitica=client, llm=llm), user=User(settings.habitica_user_id))
+        harness = Harness(habitica=client, llm=llm, asr=asr, tts=tts)
+        cli = Cli(harness=harness, user=User(settings.habitica_user_id))
         await cli.run()
-    if llm is not None:
-        await llm.aclose()
+    for openrouter_client in (llm, asr, tts):
+        if openrouter_client is not None:
+            await openrouter_client.aclose()
     await dispose_engine()
 
 

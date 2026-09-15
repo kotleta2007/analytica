@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     llm_strong_model: str = "z-ai/glm-5.3"
     llm_cheap_model: str = "deepseek/deepseek-v4-flash"
-    asr_model: str = "qwen/qwen3-asr-flash"
-    tts_model: str = "fishaudio/s2.1-pro"
+    asr_model: str = "qwen/qwen3-asr-flash-2026-02-10"
+    tts_model: str = "fish-audio/s2.1-pro"
     tts_voice: str = "b347db033a6549378b48d00acb0d06cd"
 
     # ---- sessions and context (phase 03) ----

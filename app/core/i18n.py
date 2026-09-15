@@ -99,6 +99,76 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "У меня две модели: strong и cheap. Например: /model cheap",
         "fr": "J'ai deux modèles : strong et cheap. Exemple : /model cheap",
     },
+    "help_glossary": {
+        "en": "words the voice recogniser gets wrong for you",
+        "ru": "слова, которые распознавание речи путает",
+        "fr": "les mots que la reconnaissance vocale écorche",
+    },
+    "help_tts": {
+        "en": "answer with a voice note too",
+        "ru": "отвечать ещё и голосом",
+        "fr": "répondre aussi par message vocal",
+    },
+    "tts_on": {
+        "en": "Voice replies are on: I'll send a voice note with every short answer.",
+        "ru": "Голосовые ответы включены: к каждому короткому ответу будет голосовое.",
+        "fr": "Réponses vocales activées : chaque réponse courte arrive aussi en vocal.",
+    },
+    "tts_off": {
+        "en": "Voice replies are off. /tts on turns them on.",
+        "ru": "Голосовые ответы выключены. /tts on — включить.",
+        "fr": "Réponses vocales désactivées. /tts on les active.",
+    },
+    "tts_usage": {
+        "en": "Usage: /tts on, /tts off",
+        "ru": "Использование: /tts on, /tts off",
+        "fr": "Usage : /tts on, /tts off",
+    },
+    "tts_not_configured": {
+        "en": "Voice replies need OPENROUTER_API_KEY on the server.",
+        "ru": "Для голосовых ответов на сервере нужен OPENROUTER_API_KEY.",
+        "fr": "Les réponses vocales demandent OPENROUTER_API_KEY sur le serveur.",
+    },
+    "glossary_empty": {
+        "en": "Your glossary is empty. /glossary add <term> teaches me a spelling.",
+        "ru": "Глоссарий пуст. /glossary add <слово> — научить меня написанию.",
+        "fr": "Ton glossaire est vide. /glossary add <terme> m'apprend une orthographe.",
+    },
+    "glossary_list": {
+        "en": "Glossary:\n{terms}",
+        "ru": "Глоссарий:\n{terms}",
+        "fr": "Glossaire :\n{terms}",
+    },
+    "glossary_usage": {
+        "en": "Usage: /glossary, /glossary add <term>, /glossary remove <term>",
+        "ru": "Использование: /glossary, /glossary add <слово>, /glossary remove <слово>",
+        "fr": "Usage : /glossary, /glossary add <terme>, /glossary remove <terme>",
+    },
+    "glossary_added": {
+        "en": "Added “{term}” to your glossary.",
+        "ru": "«{term}» добавлено в глоссарий.",
+        "fr": "« {term} » ajouté au glossaire.",
+    },
+    "glossary_exists": {
+        "en": "“{term}” is already in your glossary.",
+        "ru": "«{term}» уже есть в глоссарии.",
+        "fr": "« {term} » est déjà dans le glossaire.",
+    },
+    "glossary_removed": {
+        "en": "Removed “{term}” from your glossary.",
+        "ru": "«{term}» удалено из глоссария.",
+        "fr": "« {term} » retiré du glossaire.",
+    },
+    "glossary_missing": {
+        "en": "“{term}” is not in your glossary.",
+        "ru": "«{term}» нет в глоссарии.",
+        "fr": "« {term} » n'est pas dans le glossaire.",
+    },
+    "glossary_bad_term": {
+        "en": "Can't add that: {reason}.",
+        "ru": "Не могу добавить: {reason}.",
+        "fr": "Impossible d'ajouter ça : {reason}.",
+    },
     "session_none": {
         "en": "No open session. Just write to me and one starts.",
         "ru": "Открытой сессии нет. Просто напиши — и она начнётся.",
@@ -163,10 +233,50 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Не удалось {action}: {error}",
         "fr": "Impossible de {action} : {error}",
     },
-    "voice_not_yet": {
-        "en": "Voice messages come in a later version. Please type for now.",
-        "ru": "Голосовые сообщения появятся в следующей версии. Пока напиши текстом.",
-        "fr": "Les messages vocaux arrivent dans une prochaine version. Écris-moi pour l'instant.",
+    "voice_not_configured": {
+        "en": "Voice needs OPENROUTER_API_KEY on the server. Please type for now.",
+        "ru": "Для голоса на сервере нужен OPENROUTER_API_KEY. Пока напиши текстом.",
+        "fr": "La voix demande OPENROUTER_API_KEY sur le serveur. Écris-moi pour l'instant.",
+    },
+    "asr_error": {
+        "en": "I couldn't transcribe that ({error}). Try again, or type it.",
+        "ru": "Не удалось распознать ({error}). Попробуй ещё раз или напиши текстом.",
+        "fr": "Je n'ai pas pu transcrire ça ({error}). Réessaie, ou écris-le.",
+    },
+    "voice_heard_nothing": {
+        "en": "I heard nothing in that voice note.",
+        "ru": "В этом голосовом ничего не слышно.",
+        "fr": "Je n'ai rien entendu dans ce vocal.",
+    },
+    "voice_heard": {
+        "en": "I heard:\n{text}",
+        "ru": "Я услышал:\n{text}",
+        "fr": "J'ai entendu :\n{text}",
+    },
+    "voice_correct": {
+        "en": "✅ Correct",
+        "ru": "✅ Верно",
+        "fr": "✅ Correct",
+    },
+    "voice_amend": {
+        "en": "✏️ Amend",
+        "ru": "✏️ Исправить",
+        "fr": "✏️ Corriger",
+    },
+    "voice_amend_prompt": {
+        "en": "What should it say? Type the correction.",
+        "ru": "Как должно быть? Напиши исправление.",
+        "fr": "Que fallait-il comprendre ? Écris la correction.",
+    },
+    "glossary_offer": {
+        "en": "➕ Add “{term}”",
+        "ru": "➕ Добавить «{term}»",
+        "fr": "➕ Ajouter « {term} »",
+    },
+    "voice_dropped": {
+        "en": "(The unconfirmed transcript is dropped.)",
+        "ru": "(Неподтверждённая расшифровка отброшена.)",
+        "fr": "(La transcription non confirmée est abandonnée.)",
     },
     "unsupported_message": {
         "en": "I can only read text for now.",

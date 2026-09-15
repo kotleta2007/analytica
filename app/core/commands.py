@@ -1,6 +1,6 @@
 """Slash commands. Each one is a function of the turn and its arguments.
 
-    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session, /model
+    /start, /help, /language [en|ru|fr], /stats, /sync, /new, /session, /model, /glossary, /tts
 
 Later phases add theirs to `COMMANDS`. Free text is not a command and never
 lands here.
@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, collect_if_stale
-from app.core import sessions
+from app.core import glossary, sessions, voice
 from app.core.i18n import LANGUAGES, t
 from app.core.replies import Reply
 from app.core.turn import Turn, summarizer
@@ -156,6 +156,44 @@ async def model(turn: Turn, args: str) -> Reply:
     return Reply("\n".join(lines))
 
 
+async def glossary_(turn: Turn, args: str) -> Reply:
+    """`/glossary` lists; `/glossary add <term>` and `/glossary remove <term>` edit."""
+    verb, _, term = args.partition(" ")
+    verb = verb.lower()
+    if not verb:
+        terms = await glossary.list_terms(turn.session, turn.user.id)
+        if not terms:
+            return Reply(t("glossary_empty", turn.language))
+        return Reply(t("glossary_list", turn.language, terms="\n".join(f"• {x}" for x in terms)))
+    if verb not in ("add", "remove") or not term.strip():
+        return Reply(t("glossary_usage", turn.language))
+    try:
+        if verb == "add":
+            added = await glossary.add_term(
+                turn.session, turn.user.id, term, glossary.FROM_COMMAND, turn.now
+            )
+            key = "glossary_added" if added else "glossary_exists"
+        else:
+            removed = await glossary.remove_term(turn.session, turn.user.id, term)
+            key = "glossary_removed" if removed else "glossary_missing"
+    except glossary.GlossaryTermError as problem:
+        return Reply(t("glossary_bad_term", turn.language, reason=problem))
+    return Reply(t(key, turn.language, term=glossary.normalise(term)))
+
+
+async def tts(turn: Turn, args: str) -> Reply:
+    wanted = args.strip().lower()
+    if not wanted:
+        return Reply(t(f"tts_{turn.settings.tts}", turn.language))
+    if wanted not in (voice.TTS_ON, voice.TTS_OFF):
+        return Reply(t("tts_usage", turn.language))
+    if wanted == voice.TTS_ON and not turn.can_speak:
+        return Reply(t("tts_not_configured", turn.language))
+    turn.settings.tts = wanted
+    await turn.session.flush()
+    return Reply(t(f"tts_{wanted}", turn.language))
+
+
 @dataclass
 class ModelUsage:
     calls: int
@@ -230,6 +268,8 @@ COMMANDS: dict[str, Handler] = {
     "new": new,
     "session": session,
     "model": model,
+    "glossary": glossary_,
+    "tts": tts,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -240,4 +280,6 @@ HELP: list[tuple[str, str]] = [
     ("/new", "help_new"),
     ("/session [planning <topic>]", "help_session"),
     ("/model [strong|cheap]", "help_model"),
+    ("/glossary [add|remove <term>]", "help_glossary"),
+    ("/tts on|off", "help_tts"),
 ]

@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from app.collector.snapshots import collect_if_stale, remember_list_order
+from app.core import glossary
 from app.core.i18n import format_day, format_moment, parse_day, t
 from app.core.replies import Button
 from app.core.state import get_state, set_state
@@ -321,6 +322,17 @@ async def get_stats(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolRe
 # ---- arguments and shapes ----
 
 
+async def add_glossary_term(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
+    term = required(args, "term")
+    try:
+        added = await glossary.add_term(
+            turn.session, turn.user.id, term, glossary.FROM_TOOL, turn.now
+        )
+    except glossary.GlossaryTermError as problem:
+        raise ToolArgumentError(str(problem)) from None
+    return ToolResult({"term": glossary.normalise(term), "added": added})
+
+
 def required(args: dict[str, Any], name: str) -> str:
     value = args.get(name)
     if not isinstance(value, str) or not value.strip():
@@ -569,6 +581,16 @@ TOOLS: dict[str, Tool] = {
             description="Current HP, mana, experience, gold and level.",
             parameters={"properties": {}},
             run=get_stats,
+        ),
+        Tool(
+            name="add_glossary_term",
+            description="Remember a word or name the voice recogniser misheard, so future "
+            "transcripts spell it right. Use when the user says a transcript got a term wrong.",
+            parameters={
+                "properties": {"term": {"type": "string"}},
+                "required": ["term"],
+            },
+            run=add_glossary_term,
         ),
     )
 }
