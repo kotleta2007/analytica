@@ -314,7 +314,7 @@ Then the model receives both the transcript and my correction
 
 **Tests**
 
-- [ ] Self-check reports each missing piece (no `PUBLIC_BASE_URL`, webhook registered to a stale URL, unreachable app) with fakes. — `test(p05): startup self-check`
+- [x] Self-check reports each missing piece (no `PUBLIC_BASE_URL`, webhook registered to a stale URL, unreachable app) with fakes. — `test(p05): startup self-check`
 
 **Acceptance**
 
