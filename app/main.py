@@ -9,7 +9,7 @@ off the deployment self-check, and disposes the engine at the end.
 import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -55,6 +55,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         checker.cancel()
+        with suppress(asyncio.CancelledError):
+            await checker  # before the clients it may be using are closed
         if adapter is not None:
             await adapter.stop()
         if collector is not None:
