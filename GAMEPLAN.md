@@ -308,7 +308,7 @@ Then the model receives both the transcript and my correction
 
 - [x] 1. `deploy/Dockerfile` (uv, non-root, `data/` as a volume) and `deploy/docker-compose.yml` — app only, bound to `127.0.0.1:8000`. The operator already runs nginx and certbot on the host; **no Caddy, no second web server, nothing listening on 80 or 443.** — `chore(p05): dockerfile and compose`
 - [x] 2. `deploy/nginx-analytica.conf` — a server block to copy into `sites-available`: `server_name` from the operator, `proxy_pass http://127.0.0.1:8000`, the usual `Host` / `X-Real-IP` / `X-Forwarded-For` / `X-Forwarded-Proto` headers, and `client_max_body_size 25M` so long voice notes don't 413. TLS lines are left to `certbot --nginx`. — `chore(p05): nginx reverse proxy config`
-- [ ] 3. `deploy/backup.sh`: nightly `sqlite3 .backup` into `data/backups/`, keep 30. Cron line in the README. — `chore(p05): sqlite backup`
+- [x] 3. `deploy/backup.sh`: nightly `sqlite3 .backup` into `data/backups/`, keep 30. Cron line in the README. — `chore(p05): sqlite backup`
 - [ ] 4. Switch to webhook mode: `TELEGRAM_MODE=webhook` mounts the Telegram route and sets the webhook at startup; run `scripts/register_webhook.py` to point Habitica at `PUBLIC_BASE_URL`. Startup self-check verifies both webhooks are registered to the current `PUBLIC_BASE_URL` and re-registers if the URL changed; logs clearly what is missing. — `feat(p05): webhook mode and startup self-check`
 - [ ] 5. README "Deploy" section: DNS A record (a wildcard `*` record already covers the subdomain), nginx block, `certbot --nginx -d <host>`, `.env`, `docker compose up -d`, register the Habitica webhook, backup cron. Note that Google Calendar auth comes later, in P10. — `docs(p05): deployment guide`
 

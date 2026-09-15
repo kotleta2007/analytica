@@ -41,8 +41,9 @@ curl http://127.0.0.1:8000/health
 # {"ok":true,"db":true}
 ```
 
-The database is one SQLite file at `data/analytica.db` (WAL mode). Backing it up is
-copying the file.
+The database is one SQLite file at `data/analytica.db` (WAL mode). A backup is a
+copy of that file, taken with SQLite's online backup so it is consistent while the
+app is writing: `deploy/backup.sh` (see *Deploying on a VPS*).
 
 ## Collecting Habitica telemetry
 
@@ -124,6 +125,16 @@ When a session closes — idle, or `/new` — the cheap model writes a three-lin
 summary, and the next prompts carry the last three summaries as "recent
 context". Every model call lands in `llm_calls` with tokens, cost and latency;
 `/model` shows both models side by side and switches between them.
+
+## Deploying on a VPS
+
+**Backups.** `deploy/backup.sh` copies the database into `data/backups/` with
+`sqlite3 .backup`, checks the copy, and keeps the last 30. It runs on the host
+(`apt install sqlite3`); one cron line, adjusting the path:
+
+```
+0 4 * * * /opt/analytica/deploy/backup.sh
+```
 
 ## Tests
 
