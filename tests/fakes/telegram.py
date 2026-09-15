@@ -11,9 +11,9 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.client.session.base import BaseSession
-from aiogram.methods import GetFile, GetMe, GetUpdates, TelegramMethod
+from aiogram.methods import GetFile, GetMe, GetUpdates, GetWebhookInfo, SetWebhook, TelegramMethod
 from aiogram.methods.base import TelegramType
-from aiogram.types import File, User
+from aiogram.types import File, User, WebhookInfo
 
 TOKEN = "42:TEST-token-for-the-recording-session"
 
@@ -25,6 +25,8 @@ class RecordingSession(BaseSession):
         self.closed = False
         # What a download returns; None means the test did not expect one.
         self.file_bytes: bytes | None = None
+        # What getWebhookInfo answers; None means "whatever setWebhook last set".
+        self.webhook_info: WebhookInfo | None = None
 
     async def make_request(
         self, bot: Bot, method: TelegramMethod[TelegramType], timeout: int | None = None
@@ -39,7 +41,15 @@ class RecordingSession(BaseSession):
             return File(  # type: ignore[return-value]
                 file_id=method.file_id, file_unique_id="u", file_path="voice/file_1.oga"
             )
+        if isinstance(method, GetWebhookInfo):
+            return self.webhook_info or self.webhook_info_from_set_webhook()  # type: ignore[return-value]
         return True  # type: ignore[return-value]  # nothing here reads the result
+
+    def webhook_info_from_set_webhook(self) -> WebhookInfo:
+        urls = [request.url for request in self.requests if isinstance(request, SetWebhook)]
+        return WebhookInfo(
+            url=urls[-1] if urls else "", has_custom_certificate=False, pending_update_count=0
+        )
 
     async def close(self) -> None:
         self.closed = True

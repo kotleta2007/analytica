@@ -128,6 +128,15 @@ class FakeHabiticaClient:
         self.webhooks.append(hook)
         return hook
 
+    async def update_webhook(self, webhook_id: str, url: str) -> Webhook:
+        self.calls.append(("update_webhook", (webhook_id, url)))
+        for index, hook in enumerate(self.webhooks):
+            if hook.id == webhook_id:
+                updated = replace(hook, url=url, enabled=True)
+                self.webhooks[index] = updated
+                return updated
+        raise KeyError(webhook_id)
+
     async def aclose(self) -> None:
         pass
 

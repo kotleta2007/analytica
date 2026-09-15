@@ -2,10 +2,11 @@
 
 The lifespan configures logging, builds one Habitica client and the
 OpenRouter clients (chat, speech in, speech out), starts the collector
-schedule and the Telegram adapter when their credentials are present, and
-disposes the engine at the end.
+schedule and the Telegram adapter when their credentials are present, kicks
+off the deployment self-check, and disposes the engine at the end.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -14,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app import selfcheck
 from app.adapters.telegram import bot as telegram
 from app.collector import webhooks
 from app.config import get_settings
@@ -48,9 +50,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await collector.start()
     if adapter is not None:
         await adapter.start()
+    checker = asyncio.create_task(selfcheck.run_after_startup(settings, client, adapter))
     try:
         yield
     finally:
+        checker.cancel()
         if adapter is not None:
             await adapter.stop()
         if collector is not None:

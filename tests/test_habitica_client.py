@@ -266,3 +266,24 @@ async def test_webhook_registration_payload(tmp_path: Path) -> None:
     assert payload["type"] == "taskActivity"
     assert payload["options"]["scored"] is True
     assert payload["options"]["created"] is True
+
+
+async def test_update_webhook_moves_it_and_enables_it(tmp_path: Path) -> None:
+    moved = {
+        "id": "w1",
+        "url": "https://new.example.com/webhooks/habitica/s",
+        "type": "taskActivity",
+        "enabled": True,
+        "options": {"scored": True},
+    }
+    recorder = Recorder([ok(moved)])
+
+    async with make_client(recorder, tmp_path) as client:
+        updated = await client.update_webhook("w1", moved["url"])
+
+    request = recorder.requests[0]
+    assert request.method == "PUT"
+    assert request.url.path.endswith("/user/webhook/w1")
+    assert json.loads(request.content) == {"url": moved["url"], "enabled": True}
+    assert updated.url == moved["url"]
+    assert updated.enabled is True

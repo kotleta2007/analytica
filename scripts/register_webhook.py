@@ -1,16 +1,19 @@
-"""Register our taskActivity webhook with Habitica, once.
+"""Register our taskActivity webhook with Habitica by hand.
 
     uv run python scripts/register_webhook.py
 
-Needs PUBLIC_BASE_URL and WEBHOOK_SECRET in .env. With no PUBLIC_BASE_URL it
-says so and exits 0: until the VPS exists (phase 05) there is nothing to
-register and snapshots carry the load.
+The app does the same on every startup (app/selfcheck.py); this is for
+checking the registration without starting it. Needs PUBLIC_BASE_URL and
+WEBHOOK_SECRET in .env. With no PUBLIC_BASE_URL it says so and exits 0:
+without a public URL there is nothing to register and snapshots carry the
+load.
 """
 
 import asyncio
 import logging
 import sys
 
+from app.collector.webhooks import ensure_webhook, receiver_url
 from app.config import get_settings
 from app.habitica.client import client_from_settings
 
@@ -25,7 +28,7 @@ def webhook_url() -> str | None:
     if not settings.webhook_secret:
         logger.error("WEBHOOK_SECRET is empty; set it before registering (openssl rand -hex 24)")
         sys.exit(1)
-    return f"{settings.public_base_url.rstrip('/')}/webhooks/habitica/{settings.webhook_secret}"
+    return receiver_url(settings.public_base_url, settings.webhook_secret)
 
 
 async def main() -> None:
@@ -34,12 +37,7 @@ async def main() -> None:
     if url is None:
         return
     async with client_from_settings() as client:
-        for hook in await client.list_webhooks():
-            if hook.url == url:
-                logger.info("webhook already registered (id %s)", hook.id)
-                return
-        hook = await client.create_webhook(url)
-    logger.info("registered webhook %s for %s", hook.id, url)
+        logger.info(await ensure_webhook(client, url))
 
 
 if __name__ == "__main__":
