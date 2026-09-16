@@ -165,9 +165,11 @@ Habitica part by hand if you want to see it without starting the app.
 Updating is `git pull` and the same `up -d --build`. Google Calendar
 authentication is a later step (phase 10) and needs nothing here yet.
 
-**Backups.** `deploy/backup.sh` copies the database into `data/backups/` with
-`sqlite3 .backup`, checks the copy, and keeps the last 30. It runs on the host
-(`apt install sqlite3`); one cron line, adjusting the path:
+**Backups.** `deploy/backup.sh` runs `scripts/backup.py` inside the container:
+SQLite's online backup of the database into `data/backups/` (on the bind mount,
+so on the host too), a `quick_check` of the copy, the last 30 kept. The host
+needs nothing beyond Docker. One cron line for a user in the `docker` group,
+adjusting the path; run it once by hand to see the first copy appear:
 
 ```
 0 4 * * * /opt/analytica/deploy/backup.sh
