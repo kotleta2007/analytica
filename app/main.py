@@ -24,6 +24,7 @@ from app.db.engine import dispose_engine, session_scope
 from app.habitica.client import HabiticaClient
 from app.jobs.scheduler import build_collector
 from app.llm.client import client_from_settings as llm_client_from_settings
+from app.logs import configure_logging
 from app.speech.asr import client_from_settings as asr_client_from_settings
 from app.speech.tts import client_from_settings as tts_client_from_settings
 
@@ -33,10 +34,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level.upper(),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    configure_logging(settings)
     logger.info("analytica starting up")
     client = habitica_client_if_configured()
     llm = llm_client_from_settings()

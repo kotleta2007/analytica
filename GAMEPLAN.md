@@ -340,7 +340,7 @@ And a backup exists the next morning
 - Beyond the plan, the self-check also **re-enables** a Habitica webhook that is aimed right but switched off — Habitica disables a hook after repeated delivery failures, which is exactly what a VPS that was down for a day comes back to. `HabiticaClient.update_webhook` (`PUT /user/webhook/{id}`, verified against the server source) carries `enabled: true` with every update. `scripts/register_webhook.py` shares the logic and now moves a stale hook instead of registering a second one.
 - The self-check reads Telegram's `getWebhookInfo`: `set_webhook` accepts any https URL, and a certificate or connection problem shows up only there, in `last_error_message`, with the number of pending updates.
 - The image is 1.21 GB (matplotlib, seaborn, polars, aiogram); fine for a VPS, not worth a multi-stage build.
-- The webhook paths carry `WEBHOOK_SECRET`; the nginx block keeps them out of the access log. The app's own log still prints the full URLs (as P01/P02 already did).
+- The webhook paths carry `WEBHOOK_SECRET`; the nginx block keeps them out of the access log, and `app/logs.py` installs one filter that replaces the secret with `19c8…` in every record — our own lines and uvicorn's access log, which has its own handler. Decided after the first deploy's log paste carried the secret into a chat; the secret on the VPS is rotated once the PR is reviewed.
 
 ---
 
