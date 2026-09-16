@@ -5,6 +5,7 @@ filled in, and a group's `require_*` accessor raises a clear error the first
 time code that actually needs those credentials runs.
 """
 
+import re
 from functools import lru_cache
 from typing import Annotated, Literal
 
@@ -14,6 +15,11 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 class MissingSettings(RuntimeError):
     """A group of settings is needed now and is not filled in."""
+
+
+# The secret is a path segment of both webhook URLs; RFC 3986 unreserved
+# characters need no escaping anywhere.
+URL_SAFE = re.compile(r"^[A-Za-z0-9._~-]*$")
 
 
 class Settings(BaseSettings):
@@ -74,6 +80,19 @@ class Settings(BaseSettings):
         if not isinstance(value, str):
             return value
         return [int(part) for part in value.split(",") if part.strip()]
+
+    @field_validator("webhook_secret")
+    @classmethod
+    def _secret_is_url_safe(cls, value: str) -> str:
+        # `WEBHOOK_SECRET=$(openssl rand -hex 24)` pasted literally is the
+        # mistake this catches: dotenv runs no shell, and Habitica rejects
+        # the resulting URL with a bare 400.
+        if not URL_SAFE.match(value):
+            raise ValueError(
+                "WEBHOOK_SECRET must contain only letters, digits and . _ ~ - "
+                "(it is part of the webhook URLs); paste the output of: openssl rand -hex 24"
+            )
+        return value
 
     @model_validator(mode="after")
     def _webhook_mode_needs_a_public_url(self) -> "Settings":

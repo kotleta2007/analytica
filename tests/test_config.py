@@ -89,6 +89,19 @@ def test_webhook_mode_is_fine_once_both_are_set() -> None:
     assert settings.telegram_mode == "webhook"
 
 
+def test_a_shell_substitution_pasted_as_the_secret_is_refused() -> None:
+    # What the first deploy did: the README's `$(openssl rand -hex 24)`
+    # copied into .env as is. Habitica answered 400 to the resulting URL.
+    with pytest.raises(ValidationError, match="openssl rand -hex 24"):
+        make_settings(webhook_secret="$(openssl rand -hex 24)")
+
+
+def test_a_hex_secret_is_accepted() -> None:
+    settings = make_settings(webhook_secret="19c85d22acb863e3e66940117720806a")
+
+    assert settings.webhook_secret == "19c85d22acb863e3e66940117720806a"
+
+
 def test_get_settings_is_cached() -> None:
     get_settings.cache_clear()
     try:

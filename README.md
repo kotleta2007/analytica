@@ -136,9 +136,10 @@ add an A record for it.
 
 ```sh
 git clone <this repo> /opt/analytica && cd /opt/analytica
-cp .env.example .env            # Habitica, Telegram, OpenRouter keys as for local use, plus:
-                                #   PUBLIC_BASE_URL=https://bot.example.com
-                                #   WEBHOOK_SECRET=$(openssl rand -hex 24)
+cp .env.example .env            # Habitica, Telegram, OpenRouter keys as for local use, plus
+                                # PUBLIC_BASE_URL=https://bot.example.com and WEBHOOK_SECRET
+openssl rand -hex 24            # paste the printed string as the WEBHOOK_SECRET value
+                                # (dotenv runs no shell: `$(...)` in .env stays literal)
 mkdir -p data                   # the container is uid 1000: chown 1000:1000 data if that isn't you
 
 sudo cp deploy/nginx-analytica.conf /etc/nginx/sites-available/analytica
