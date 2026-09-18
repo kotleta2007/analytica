@@ -388,7 +388,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 - `transcriptions(id, user_id, at, provider, model, raw_text, accepted_text, language, latency_ms)`
 - `tts_calls(id, user_id, at, provider, model, chars, latency_ms)`
 - `messages(id, user_id, at, direction, kind, text, session_id, llm)` — chat log; `session_id` and `llm` (the model-format message) only on rows that belong to a session
-- `user_settings(user_id, language, model, tts, reminder_time, gear_int, gear_per, gear_con, last_reminder_day, dismissed_proposals, recent_suggestions)`
+- `user_settings(user_id, language, model, tts, reminder_time, gear_int, gear_per, gear_con, last_reminder_day, cron_hold_until, dismissed_proposals, recent_suggestions)` — `cron_hold_until`: while the "still unticked" question is open, our cron waits until this instant at most (P05c)
 - `weekly_targets(id, user_id, habit_task_id, daily_task_id, per_week, created_at)`, `weekly_target_weeks(id, target_id, week_start, count, met, sessions_json)`
 - `task_durations(task_id, minutes, source)` — user-stated estimates for the planner
 - `sessions(id, user_id, kind, topic, started_at, last_activity_at, ended_at, summary, collapsed_summary, collapsed_through_id)` — F1b; the last two hold the running summary once a session outgrows its token budget, and the id of the last message it stands for
@@ -619,6 +619,8 @@ SESSION_TOKEN_BUDGET=24000
 # ---- schedule (phase 05) ----
 REMINDER_TIME=21:00
 WEEKLY_REPORT=sun 19:00
+# minutes after day start that the bot waits for your "still unticked" answer before running cron
+CRON_GRACE_MIN=90
 
 # ---- Google Calendar (phase 09) ----
 GOOGLE_CLIENT_SECRETS_PATH=./data/google_client_secrets.json

@@ -190,6 +190,8 @@ class UserSettings(Base):
     gear_per: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
     gear_con: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
     last_reminder_day: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # While the "still unticked" question is open, our cron waits until this instant at most.
+    cron_hold_until: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     dismissed_proposals: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     recent_suggestions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
 

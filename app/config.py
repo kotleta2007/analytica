@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     # ---- schedule (phase 05) ----
     reminder_time: str = "21:00"
     weekly_report: str = "sun 19:00"
+    # How long after day start our cron waits for the "still unticked" answer, at most.
+    cron_grace_min: int = 90
 
     # ---- Google Calendar (phase 09) ----
     google_client_secrets_path: str = "./data/google_client_secrets.json"

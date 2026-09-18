@@ -3,10 +3,18 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.collector.day_close import DayConfig, close_day, run_cron
+from app.collector.day_close import (
+    DayConfig,
+    close_day,
+    cron_hold,
+    ending_day,
+    run_cron,
+    set_cron_hold,
+    turn_day,
+)
 from app.collector.snapshots import collect
 from app.db.engine import session_scope
-from app.db.models import DailyRecord, TaskRow, UserSnapshot
+from app.db.models import DailyRecord, TaskRow, UserSettings, UserSnapshot
 from app.habitica.types import user_stats_from_json
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.habitica_fixtures import load_data
@@ -145,3 +153,79 @@ async def test_run_cron_calls_habitica_and_snapshots_after(db_path: Path) -> Non
     async with session_scope() as session:
         snapshots = list(await session.scalars(select(UserSnapshot).order_by(UserSnapshot.id)))
     assert [s.hp for s in snapshots] == [49, 41.2]
+
+
+def user_raw(**fields: object) -> dict:
+    return {**load_data("user"), **fields}
+
+
+def test_the_ending_day_is_yesterday_once_the_account_needs_cron() -> None:
+    """After day start and before cron the calendar has moved on, the account has not."""
+    after_start = datetime(2026, 9, 11, 9, 20, tzinfo=UTC)  # 11:20 CEST, dayStart 11
+
+    assert ending_day(user_raw(needsCron=False), after_start) == date(2026, 9, 11)
+    assert ending_day(user_raw(needsCron=True), after_start) == date(2026, 9, 10)
+
+
+async def test_close_day_in_the_window_writes_records_for_the_day_that_is_ending(
+    db_path: Path,
+) -> None:
+    client = FakeHabiticaClient(
+        user=user_stats_from_json(user_raw(needsCron=True)),
+        tasks=[make_task("daily", "Floss", completed=True, isDue=True)],
+    )
+
+    async with session_scope() as session:
+        await close_day(client, session, USER, datetime(2026, 9, 11, 9, 20, tzinfo=UTC))
+
+    assert await records_for(date(2026, 9, 10)) == {"Floss": (True, True, "close_day")}
+    assert await records_for(date(2026, 9, 11)) == {}
+
+
+async def test_turn_day_closes_with_the_latest_ticks_then_crons_and_releases_the_hold(
+    db_path: Path,
+) -> None:
+    milk = make_task("daily", "Glass of milk", completed=False, isDue=True)
+    client = FakeHabiticaClient(tasks=[milk])
+    async with session_scope() as session:
+        await close_day(client, session, USER, datetime(2026, 9, 11, 8, 58, tzinfo=UTC))
+        await set_cron_hold(session, USER, datetime(2026, 9, 11, 10, 30, tzinfo=UTC))
+    assert await records_for(date(2026, 9, 10)) == {"Glass of milk": (True, False, "close_day")}
+
+    # Ticked in the window, after the 10:58 close; the account now waits for cron.
+    client.tasks = [with_fields(milk, completed=True)]
+    client.user = user_stats_from_json(user_raw(needsCron=True))
+    async with session_scope() as session:
+        outcome = await turn_day(client, session, USER, datetime(2026, 9, 11, 9, 20, tzinfo=UTC))
+        assert await cron_hold(session, USER) is None
+
+    assert client.called("run_cron") == [None]
+    assert outcome.after.user.raw["needsCron"] is True  # the fake does not model the reset
+    assert await records_for(date(2026, 9, 10)) == {"Glass of milk": (True, True, "close_day")}
+    assert await records_for(date(2026, 9, 11)) == {}
+
+
+async def test_turn_day_after_the_app_already_turned_it_only_crons(db_path: Path) -> None:
+    """Habitica's cron is a no-op then; we must not write records for the wrong day."""
+    client = FakeHabiticaClient(tasks=[make_task("daily", "Floss", completed=False, isDue=True)])
+
+    async with session_scope() as session:
+        await turn_day(client, session, USER, datetime(2026, 9, 11, 10, 31, tzinfo=UTC))
+
+    assert client.called("run_cron") == [None]
+    assert await records_for(date(2026, 9, 10)) == {}
+    assert await records_for(date(2026, 9, 11)) == {}
+
+
+async def test_the_hold_is_kept_on_the_settings_row(db_path: Path) -> None:
+    until = datetime(2026, 9, 11, 10, 30, tzinfo=UTC)
+    async with session_scope() as session:
+        assert await cron_hold(session, USER) is None
+        await set_cron_hold(session, USER, until)
+    async with session_scope() as session:
+        assert await cron_hold(session, USER) == until
+        settings = await session.get(UserSettings, USER)
+        assert settings is not None and settings.language == "en"  # created with the defaults
+        await set_cron_hold(session, USER, None)
+    async with session_scope() as session:
+        assert await cron_hold(session, USER) is None

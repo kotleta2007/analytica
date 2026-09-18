@@ -6,8 +6,15 @@ UTC (Zurich in summer: -120), and the app updates it when the user logs in
 after a DST change — so the boundary in UTC moves with the season, and we
 always take both numbers from the latest `/user` response.
 
+Nothing turns the day but `POST /cron` (Habitica's server runs cron nowhere
+else; verified in its source). After day start, `/user` reports `needsCron`
+and every read and score keeps working against the day that is ending — the
+window in which the app shows "Record Yesterday's Dailies". So:
+
     dayStart - 2 min   close_day(): final snapshot, daily_records for the ending day
-    dayStart + 1 min   run_cron():  POST /cron, snapshot again
+    dayStart + 1 min   turn_day():  records again (they may have changed in the
+                       window), POST /cron, snapshot — unless the question about
+                       unticked dailies is still open (`user_settings.cron_hold_until`)
 """
 
 import logging
@@ -24,7 +31,7 @@ from app.collector.snapshots import (
     latest_user_snapshot,
     load_latest_snapshots,
 )
-from app.db.models import DailyRecord, TaskRow, UserSnapshot
+from app.db.models import DailyRecord, TaskRow, UserSettings, UserSnapshot
 from app.habitica.client import HabiticaClient
 
 logger = logging.getLogger(__name__)
@@ -58,6 +65,18 @@ class DayConfig:
         return self.day_start_utc(self.habitica_day(after) + timedelta(days=1))
 
 
+def ending_day(user_raw: dict[str, Any], now: datetime) -> date:
+    """The Habitica day the next cron will close.
+
+    Before day start that is the current day; after it, while `needsCron` is
+    set, the calendar has moved on but the account has not.
+    """
+    day = DayConfig.from_user_raw(user_raw).habitica_day(now)
+    if user_raw.get("needsCron"):
+        day -= timedelta(days=1)
+    return day
+
+
 async def close_day(
     client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
 ) -> list[DailyRecord]:
@@ -66,8 +85,13 @@ async def close_day(
     Idempotent: a second run for the same day updates the rows it wrote.
     """
     outcome = await collect(client, session, user_id, now)
-    config = DayConfig.from_user_raw(outcome.user.raw)
-    day = config.habitica_day(now)
+    return await close_from(session, user_id, outcome, now)
+
+
+async def close_from(
+    session: AsyncSession, user_id: str, outcome: CollectOutcome, now: datetime
+) -> list[DailyRecord]:
+    day = ending_day(outcome.user.raw, now)
     records = await write_daily_records(session, user_id, day)
     logger.info("closed habitica day %s: %d daily records", day, len(records))
     return records
@@ -137,3 +161,34 @@ async def run_cron(
         after.user.mp,
     )
     return CronOutcome(before=before, after=after)
+
+
+async def turn_day(
+    client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
+) -> CronOutcome:
+    """Close the ending day as it stands now, run cron, and release the hold.
+
+    The records written at `dayStart - 2` may be stale by now: the user can
+    tick dailies until cron, from the bot's buttons or the app. Harmless when
+    the app already turned the day — Habitica's cron is a no-op then.
+    """
+    outcome = await collect(client, session, user_id, now)
+    if outcome.user.raw.get("needsCron"):
+        await close_from(session, user_id, outcome, now)
+    result = await run_cron(client, session, user_id, now)
+    await set_cron_hold(session, user_id, None)
+    return result
+
+
+async def cron_hold(session: AsyncSession, user_id: str) -> datetime | None:
+    settings = await session.get(UserSettings, user_id)
+    return None if settings is None else settings.cron_hold_until
+
+
+async def set_cron_hold(session: AsyncSession, user_id: str, until: datetime | None) -> None:
+    settings = await session.get(UserSettings, user_id)
+    if settings is None:
+        settings = UserSettings(user_id=user_id)
+        session.add(settings)
+    settings.cron_hold_until = until
+    await session.flush()
