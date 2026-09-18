@@ -52,9 +52,13 @@ class Window:
 
 
 def window(user_raw: dict[str, Any], now: datetime, grace: timedelta) -> Window:
+    """Asked on time, the wait ends `grace` after day start; asked late (a restart
+    after day start), the user still gets `grace` from the question."""
     day = ending_day(user_raw, now)
     start = DayConfig.from_user_raw(user_raw).day_start_utc(day + timedelta(days=1))
-    return Window(day=day, cron_at=start + RUN_CRON_AFTER, hold_until=start + grace)
+    return Window(
+        day=day, cron_at=start + RUN_CRON_AFTER, hold_until=max(start + grace, now + grace)
+    )
 
 
 def unticked_dailies(known: list[KnownTask]) -> list[KnownTask]:
@@ -152,7 +156,8 @@ async def settle(turn: Turn, outcome: CollectOutcome) -> str:
             hp_lost=fmt(round(result.hp_lost, 1)),
             mp=fmt(round(result.after.user.mp)),
         )
-    await set_cron_hold(turn.session, turn.user.id, None)
+    # Answered: a hold in the past lets the scheduled cron proceed (None would mean "not asked").
+    await set_cron_hold(turn.session, turn.user.id, turn.now)
     cron_at = window(outcome.user.raw, turn.now, timedelta(0)).cron_at
     return t("day_turn_ok", turn.language, cron_time=format_clock(cron_at.astimezone(turn.tz)))
 

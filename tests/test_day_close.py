@@ -200,7 +200,7 @@ async def test_turn_day_closes_with_the_latest_ticks_then_crons_and_releases_the
         assert await cron_hold(session, USER) is None
 
     assert client.called("run_cron") == [None]
-    assert outcome.after.user.raw["needsCron"] is True  # the fake does not model the reset
+    assert outcome.after.user.raw["needsCron"] is False
     assert await records_for(date(2026, 9, 10)) == {"Glass of milk": (True, True, "close_day")}
     assert await records_for(date(2026, 9, 11)) == {}
 

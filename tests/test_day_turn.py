@@ -120,8 +120,11 @@ def test_the_window_brackets_the_day_that_is_ending() -> None:
         cron_at=datetime(2026, 9, 12, 9, 1, tzinfo=UTC),
         hold_until=datetime(2026, 9, 12, 10, 30, tzinfo=UTC),
     )
-    # After day start the account still waits for cron: same window, same ending day.
-    assert window(user_raw(needsCron=True), AFTER_START, GRACE) == before
+    # Asked late (a restart after day start): same ending day, but the user still gets
+    # the full grace from the question.
+    late = window(user_raw(needsCron=True), AFTER_START, GRACE)
+    assert (late.day, late.cron_at) == (before.day, before.cron_at)
+    assert late.hold_until == AFTER_START + GRACE
 
 
 def test_the_day_has_turned_once_last_cron_is_past_its_end() -> None:
@@ -192,7 +195,7 @@ async def test_the_last_tick_before_day_start_releases_the_hold_and_waits_for_th
     assert reply.buttons == []
     assert milk_and_supplements.called("run_cron") == []
     async with session_scope() as session:
-        assert await cron_hold(session, USER.id) is None
+        assert await cron_hold(session, USER.id) == ASK_AT  # answered: in the past, not None
 
 
 async def test_the_last_tick_after_day_start_turns_the_day_at_once(
@@ -247,7 +250,7 @@ async def test_nothing_else_before_day_start_only_releases_the_hold(
     assert reply.text == "OK — the day turns at 11:01."
     assert milk_and_supplements.called("run_cron") == []
     async with session_scope() as session:
-        assert await cron_hold(session, USER.id) is None
+        assert await cron_hold(session, USER.id) == ASK_AT  # answered: in the past, not None
 
 
 async def test_a_tick_after_the_day_turned_is_refused_and_scores_nothing(

@@ -186,6 +186,8 @@ async def turn_day(
 
 
 async def cron_hold(session: AsyncSession, user_id: str) -> datetime | None:
+    """`user_settings.cron_hold_until`: None = the question was not asked for this
+    day turn; in the future = asked, our cron waits; in the past = answered."""
     settings = await session.get(UserSettings, user_id)
     return None if settings is None else settings.cron_hold_until
 

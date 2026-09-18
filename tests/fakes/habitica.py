@@ -114,6 +114,8 @@ class FakeHabiticaClient:
 
     async def run_cron(self) -> None:
         self.calls.append(("run_cron", None))
+        # The one thing cron always does to the user object; tests model damage themselves.
+        self.user = user_stats_from_json({**self.user.raw, "needsCron": False})
 
     async def get_content(self, *, force_refresh: bool = False) -> dict[str, Any]:
         self.calls.append(("get_content", force_refresh))

@@ -418,14 +418,14 @@ Then the reply is Russian throughout and calls a streak "серия"
 
 - [x] 1. Telemetry keeps running; only our `POST /cron` waits. `app/collector/day_close.py`: `close_day` writes the records for the day that is ending — the previous Habitica day when `needsCron` is set — so a close after day start is right; `turn_day()` = records for the ending day, `POST /cron`, snapshot, and it clears the hold. `app/db/models.py` + migration `0011`: `user_settings.cron_hold_until`. `CRON_GRACE_MIN=90` in config, `.env.example`, CLAUDE.md. — `feat(p05c): day-aware close and a cron hold`
 - [x] 2. `app/core/day_turn.py`: `unticked_dailies()` (due, not completed, `yesterDaily` not off); the ask (one button per daily + *Nothing else*, the text says when cron runs and until when the bot waits); the `tick_daily` and `day_turn_done` buttons: refuse when the day already turned (`lastCron` past the asked day's end), score up, re-ask with what is left, and once nothing is left after day start turn the day at once. i18n strings in en/ru/fr; `harness.button_pressed` routes the two actions. — `feat(p05c): ask about unticked dailies, tick them from the buttons`
-- [ ] 3. `app/jobs/scheduler.py`: `ask_unticked_job` at `dayStart − 30` (collect, ask through `outbound`, set the hold to `dayStart + CRON_GRACE_MIN`; nothing unticked or no adapter → no hold); `run_cron_job` re-arms itself at the hold instead of running while the question is open; `plan_day_jobs` keeps the cron job at the hold, not tomorrow, while it is active. — `feat(p05c): hold our cron until the answer or the grace deadline`
+- [x] 3. `app/jobs/scheduler.py`: `ask_unticked_job` at `dayStart − 30` (collect, ask through `outbound`, set the hold to `dayStart + CRON_GRACE_MIN`; nothing unticked or no adapter → no hold); `run_cron_job` re-arms itself at the hold instead of running while the question is open; `plan_day_jobs` keeps the cron job at the hold, not tomorrow, while it is active. — `feat(p05c): hold our cron until the answer or the grace deadline`
 - [ ] 4. Correct the premise everywhere it was written: CLAUDE.md (*read this twice* section, schedule, F4, config block, `user_settings`, tree), README (*Collecting*), the primer line in `app/llm/prompts.py`, the gear line under *Decisions already made*. — `docs(p05c): cron runs only on POST /cron; the day-turn window`
 
 **Tests**
 
 - [x] `unticked_dailies` picks due + incomplete and skips `yesterDaily: false`, not-due and completed ones. — with task 2
-- [ ] The ask job sends one button per daily plus *Nothing else* and sets the hold; sends nothing and holds nothing when all are ticked or no adapter is registered. — with task 3
-- [ ] While the hold is open `run_cron_job` re-arms at the hold and the half-hourly replan keeps it there; at the deadline it closes the ending day and posts cron. — with task 3
+- [x] The ask job sends one button per daily plus *Nothing else* and sets the hold; sends nothing and holds nothing when all are ticked or no adapter is registered. — with task 3
+- [x] While the hold is open `run_cron_job` re-arms at the hold and the half-hourly replan keeps it there; at the deadline it closes the ending day and posts cron. — with task 3
 - [x] A tick before day start scores and re-asks with the rest; the last tick after day start scores, then turns the day, and the record for the ending day says completed; *Nothing else* after day start turns the day at once; a tick after the day turned is refused and scores nothing. — with task 2
 - [x] `close_day` with `needsCron` writes records for the previous Habitica day. — with task 1
 
@@ -445,6 +445,9 @@ Then the day turns at 12:30, not before, and snapshots kept arriving every 30 mi
 **Notes & deviations**:
 
 - The backlog entry asked to hold *every* Habitica request. Not needed: the collector keeps its schedule through the window, because no read runs cron. The rest of the sketch (ask at `dayStart − 30`, buttons, `CRON_GRACE_MIN`) stands.
+- `cron_hold_until` carries three states, not two: `None` = not asked for this day turn, a future instant = asked and waiting, a past instant = answered (also: nothing to ask, or no adapter to deliver to). `turn_day` resets it to `None` after every cron. Without the third state `run_cron_job` could not tell "Nothing else, at 10:40" from "the process was down at 10:30 and nobody asked" — and in the latter case it now asks first, with the full grace from the late question, instead of firing cron blind.
+- The scheduler's date jobs get `misfire_grace_time` = 10 min (APScheduler's default is 1 s: a busy loop at 11:01:00 would have dropped the day turn). A restart after day start plans the cron job at once instead of tomorrow.
+- `FakeHabiticaClient.score_task` now re-parses the task so `raw` agrees with `completed` (the collector stores `raw`; the old `dataclasses.replace` left it stale), and `run_cron` clears `needsCron` on its user, the one thing cron always does.
 
 ---
 
