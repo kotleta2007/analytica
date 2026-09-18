@@ -86,7 +86,8 @@ def test_the_primer_states_the_mechanics_so_the_model_does_not_invent_them() -> 
     assert "How Habitica works" in prompt
     assert "Todos never cost HP, overdue or not" in prompt
     assert "every daily that was due and not completed costs HP" in prompt
-    assert "this bot fires it deliberately one minute after day start" in prompt
+    assert "only an explicit request runs it" in prompt
+    assert "runs cron one minute after day start or once they have answered" in prompt
     assert "A todo due today is overdue after midnight, not at day start" in prompt
     assert "is an action (move_task), not a preference to remember" in prompt
 

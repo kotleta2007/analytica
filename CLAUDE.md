@@ -189,6 +189,7 @@ analytica/
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
 │   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /skills /target /challenges /plan /sync
+│   │   ├── day_turn.py          # "still unticked: X, Y?" before our cron; the tick / nothing-else buttons
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
 │   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
 │   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
@@ -294,18 +295,25 @@ Single user per deployment. Still: every table has a `user_id`, and the Telegram
 
 ### Habitica day, timezone, and cron — read this twice
 
-Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 11) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs *lazily*: on the first authenticated request after `dayStart`. That includes *our* collector's requests, so once the day has turned, any snapshot we take fires the reset. There is no way to keep collecting and not trigger it. So we make it deterministic:
+Habitica's "day" does not start at midnight. `GET /user` returns `preferences.dayStart` (hour, 0–23; the operator's is 11) and `preferences.timezoneOffset` (minutes). **Cron** — the moment Habitica applies damage for missed dailies, regenerates mana, resets dailies — runs **only on `POST /cron`**. No read and no score triggers it (Habitica's server source, `libs/cron.js` + `routes.js`, verified 2026-09-18; it has been so since the *Record Yesterday's Dailies* feature). After `dayStart`, `GET /user` reports `needsCron: true` and everything keeps working against the day that is ending: that is the window in which the app lists yesterday's unticked dailies, scores what you tick with the ordinary score endpoint, and only then posts `/cron`. The collector therefore never disturbs anything; the bot's own cron is the only thing that must wait. So the bot does what the app does, on a schedule:
 
 ```
-dayStart − 30 min   gear job: incomplete due dailies? → equip CON set, else → equip INT set
+dayStart − 30 min   ask: "still unticked: X, Y — did you do them?" — one button per due, unticked
+                    daily (those with `yesterDaily: false` are left out, as in the app) and
+                    *Nothing else*; a pressed daily is scored up and counts for the ending day.
+                    Same moment, gear job: incomplete due dailies? → equip CON set, else → INT set
 dayStart − 2 min    close_day: final snapshot, write daily_records for the ending day,
                     complete any weekly-target daily whose target was met (F7c)
-dayStart + 1 min    POST /cron explicitly (with the right gear on), snapshot again, equip PER set,
-                    send the "new day" message: HP lost, mana now, dailies due today
+dayStart + 1 min    turn_day: daily_records again as they stand now, POST /cron (with the right
+                    gear on), snapshot again, equip PER set, send the "new day" message: HP lost,
+                    mana now, dailies due today — unless the question is still unanswered, in
+                    which case our cron waits until the answer or dayStart + CRON_GRACE_MIN (90)
 rest of the day     PER stays on; snapshots every 30 min; webhooks in real time
 ```
 
-The bot owns the reset. The operator never needs to open the app for it, and no data window is lost. The before/after snapshots around `POST /cron` are themselves telemetry: damage taken, mana regenerated, streaks that broke.
+`user_settings.cron_hold_until` carries the question's state: `None` = not asked for this day turn, a future instant = asked and waiting, a past instant = answered. A restart after day start does not fire cron blind: `run_cron_job` asks first if nobody did. If the operator opens the app meanwhile and presses *Start my day*, Habitica's cron runs there; ours is a no-op then and the buttons answer "too late".
+
+The bot owns the reset. The operator never needs to open the app for it, no streak is lost for a daily that was done and not ticked, and no data window is lost. The before/after snapshots around `POST /cron` are themselves telemetry: damage taken, mana regenerated, streaks that broke.
 
 All Habitica-day arithmetic uses `dayStart` + `timezoneOffset` from the API. Human clock times (reminder, weekly report) use `TIMEZONE` from config (`Europe/Zurich`).
 
@@ -401,7 +409,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 **Jobs**
 
 - `snapshot_user` + `snapshot_tasks` every 30 min. Diff tasks against the previous snapshot → `task_events` with `source=snapshot_diff`.
-- `close_day` / `run_cron` as described in the day-start section above.
+- `ask_unticked` / `close_day` / `turn_day` as described in the day-start section above; only our own `POST /cron` waits for the answer, the snapshots do not.
 - `backfill` on first run: import each daily's and habit's `history[]` (`date`, `isDue`, `completed`) into `daily_records` / `task_events` with `source=backfill`. Idempotent. Partial for non-subscribers; that's fine.
 - `new_day_message` right after `run_cron`: HP lost overnight, current mana, dailies due today, one line (F8b).
 - Webhooks: `POST /webhooks/habitica/{secret}` receives `taskActivity` events with timestamps → `task_events` with `source=webhook`, plus the raw row. Registered once by `scripts/register_webhook.py`. This gives second-resolution data; snapshots remain the safety net.
