@@ -398,9 +398,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "fr": " — portée",
     },
     "gear_unset": {
-        "en": "{stat}: not set — /gear {stat} auto picks the best owned item per slot",
-        "ru": "{stat}: не задан — /gear {stat} auto выберет лучший предмет на каждый слот",
-        "fr": "{stat} : non définie — /gear {stat} auto choisit le meilleur objet par emplacement",
+        "en": "{stat}: not set — /gear {cmd} auto picks the best owned item per slot",
+        "ru": "{stat}: не задан — /gear {cmd} auto выберет лучший предмет на каждый слот",
+        "fr": "{stat} : non définie — /gear {cmd} auto choisit le meilleur objet par emplacement",
     },
     "gear_equipped": {
         "en": "{stat} set on: {items}",

@@ -177,7 +177,8 @@ async def test_gear_command_builds_shows_sets_and_equips(db_path: Path) -> None:
     harness = Harness(habitica=client, tz=ZURICH)
 
     overview = (await harness.command_received(USER, "gear", "")).text
-    assert "INT: not set" in overview and "PER: not set" in overview and "CON: not set" in overview
+    assert "INT: not set — /gear int auto" in overview
+    assert "PER: not set" in overview and "CON: not set" in overview
 
     built = (await harness.command_received(USER, "gear", "int auto")).text
     assert built.startswith("INT (+92): weapon: ")

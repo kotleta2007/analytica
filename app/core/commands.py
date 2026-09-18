@@ -276,7 +276,7 @@ def gear_line(
     equipped: dict[str, str],
 ) -> str:
     if not gear_set:
-        return t("gear_unset", turn.language, stat=stat.upper())
+        return t("gear_unset", turn.language, stat=stat.upper(), cmd=stat)
     items = " · ".join(
         f"{slot}: {gear.item_name(gear_set[slot], content)}"
         for slot in gear.SLOTS
@@ -298,7 +298,7 @@ async def gear_now(turn: Turn, content: dict[str, Any], stat: str) -> str:
     so a stale view of what is on would take items off."""
     gear_set = gear.set_for(turn.settings, stat)
     if not gear_set:
-        return t("gear_unset", turn.language, stat=stat.upper())
+        return t("gear_unset", turn.language, stat=stat.upper(), cmd=stat)
     outcome = await collect(turn.habitica, turn.session, turn.user.id, turn.now)
     equipped = user_stats_from_json(outcome.user.raw).equipped
     keys = await gear.equip_set(turn.habitica, equipped, gear_set)
