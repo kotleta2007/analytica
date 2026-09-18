@@ -97,9 +97,9 @@ def test_a_shell_substitution_pasted_as_the_secret_is_refused() -> None:
 
 
 def test_a_hex_secret_is_accepted() -> None:
-    settings = make_settings(webhook_secret="19c85d22acb863e3e66940117720806a")
+    settings = make_settings(webhook_secret="0123456789abcdef0123456789abcdef")
 
-    assert settings.webhook_secret == "19c85d22acb863e3e66940117720806a"
+    assert settings.webhook_secret == "0123456789abcdef0123456789abcdef"
 
 
 def test_get_settings_is_cached() -> None:

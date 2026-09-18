@@ -5,7 +5,7 @@ import logging
 
 from app.logs import secret_redactor
 
-SECRET = "19c85d22acb863e3e66940117720806a1236afa4c82e853d"
+SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef"
 URL = f"https://bot.example.com/webhooks/telegram/{SECRET}"
 
 
@@ -30,7 +30,7 @@ def test_secret_in_an_argument_is_hidden() -> None:
     assert SECRET not in out.getvalue()
     assert (
         out.getvalue()
-        == "telegram webhook set to https://bot.example.com/webhooks/telegram/19c8…\n"
+        == "telegram webhook set to https://bot.example.com/webhooks/telegram/0123…\n"
     )
 
 
@@ -42,7 +42,7 @@ def test_secret_in_the_message_itself_is_hidden() -> None:
     logger.info(f"Habitica webhook w1 created for {URL}")
 
     assert SECRET not in out.getvalue()
-    assert "19c8…" in out.getvalue()
+    assert "0123…" in out.getvalue()
 
 
 def test_uvicorn_access_line_is_hidden_via_the_handler() -> None:
@@ -55,7 +55,7 @@ def test_uvicorn_access_line_is_hidden_via_the_handler() -> None:
     path = f"/webhooks/habitica/{SECRET}"
     logger.info('%s - "%s %s HTTP/%s" %d', "172.18.0.1:44782", "POST", path, "1.1", 200)
 
-    assert out.getvalue() == '172.18.0.1:44782 - "POST /webhooks/habitica/19c8… HTTP/1.1" 200\n'
+    assert out.getvalue() == '172.18.0.1:44782 - "POST /webhooks/habitica/0123… HTTP/1.1" 200\n'
 
 
 def test_lines_without_the_secret_are_untouched() -> None:
