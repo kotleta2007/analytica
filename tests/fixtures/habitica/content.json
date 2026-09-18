@@ -1828,6 +1828,150 @@
      "value": 200
     }
    }
+  },
+  "spells": {
+   "healer": {
+    "brightness": {
+     "key": "brightness",
+     "lvl": 12,
+     "mana": 15,
+     "notes": "A burst of light makes your tasks more blue/less red! (Based on: INT)",
+     "target": "tasks",
+     "text": "Searing Brightness"
+    },
+    "heal": {
+     "key": "heal",
+     "lvl": 11,
+     "mana": 15,
+     "notes": "Shining light restores your health! (Based on: CON and INT)",
+     "target": "self",
+     "text": "Healing Light"
+    },
+    "healAll": {
+     "key": "healAll",
+     "lvl": 14,
+     "mana": 25,
+     "notes": "Your soothing spell restores your whole Party's health! (Based on: CON and INT)",
+     "target": "party",
+     "text": "Blessing"
+    },
+    "protectAura": {
+     "bulk": true,
+     "key": "protectAura",
+     "lvl": 13,
+     "mana": 30,
+     "notes": "You shield your Party by buffing their Constitution! (Based on: Unbuffed CON)",
+     "target": "party",
+     "text": "Protective Aura"
+    }
+   },
+   "rogue": {
+    "backStab": {
+     "key": "backStab",
+     "lvl": 12,
+     "mana": 15,
+     "notes": "You betray a foolish task and gain gold and XP! (Based on: STR)",
+     "target": "task",
+     "text": "Backstab"
+    },
+    "pickPocket": {
+     "key": "pickPocket",
+     "lvl": 11,
+     "mana": 10,
+     "notes": "You rob a nearby task and gain gold! (Based on: PER)",
+     "target": "task",
+     "text": "Pickpocket"
+    },
+    "stealth": {
+     "key": "stealth",
+     "lvl": 14,
+     "mana": 45,
+     "notes": "With each cast, a few of your undone Dailies won't cause damage tonight. Their streaks and colors won't change. (Based on: PER)",
+     "target": "self",
+     "text": "Stealth"
+    },
+    "toolsOfTrade": {
+     "bulk": true,
+     "key": "toolsOfTrade",
+     "lvl": 13,
+     "mana": 25,
+     "notes": "Your tricky talents buff your whole Party's Perception! (Based on: Unbuffed PER)",
+     "target": "party",
+     "text": "Tools of the Trade"
+    }
+   },
+   "warrior": {
+    "defensiveStance": {
+     "key": "defensiveStance",
+     "lvl": 12,
+     "mana": 25,
+     "notes": "You crouch low and gain a buff to Constitution! (Based on: Unbuffed CON)",
+     "target": "self",
+     "text": "Defensive Stance"
+    },
+    "intimidate": {
+     "bulk": true,
+     "key": "intimidate",
+     "lvl": 14,
+     "mana": 15,
+     "notes": "Your fierce stare buffs your whole Party's Constitution! (Based on: Unbuffed CON)",
+     "target": "party",
+     "text": "Intimidating Gaze"
+    },
+    "smash": {
+     "key": "smash",
+     "lvl": 11,
+     "mana": 10,
+     "notes": "You make a task more blue/less red and deal extra damage to Bosses! (Based on: STR)",
+     "target": "task",
+     "text": "Brutal Smash"
+    },
+    "valorousPresence": {
+     "bulk": true,
+     "key": "valorousPresence",
+     "lvl": 13,
+     "mana": 20,
+     "notes": "Your boldness buffs your whole Party's Strength! (Based on: Unbuffed STR)",
+     "target": "party",
+     "text": "Valorous Presence"
+    }
+   },
+   "wizard": {
+    "earth": {
+     "bulk": true,
+     "key": "earth",
+     "lvl": 13,
+     "mana": 35,
+     "notes": "Your mental power shakes the earth and buffs your Party's Intelligence! (Based on: Unbuffed INT)",
+     "target": "party",
+     "text": "Earthquake"
+    },
+    "fireball": {
+     "key": "fireball",
+     "lvl": 11,
+     "mana": 10,
+     "notes": "You summon XP and deal fiery damage to Bosses! (Based on: INT)",
+     "target": "task",
+     "text": "Burst of Flames"
+    },
+    "frost": {
+     "key": "frost",
+     "lvl": 14,
+     "mana": 40,
+     "notes": "With one cast, ice freezes all your streaks so they won't reset to zero tomorrow!",
+     "target": "self",
+     "text": "Chilling Frost"
+    },
+    "mpheal": {
+     "bulk": true,
+     "key": "mpheal",
+     "lvl": 12,
+     "mana": 30,
+     "notes": "You sacrifice Mana so the rest of your Party, except Mages, gains MP! (Based on: INT)",
+     "target": "party",
+     "text": "Ethereal Surge"
+    }
+   }
   }
  },
  "success": true

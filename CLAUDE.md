@@ -189,7 +189,8 @@ analytica/
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
 │   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /skills /target /challenges /plan /sync
-│   │   ├── day_turn.py          # "still unticked: X, Y?" before our cron; the tick / nothing-else buttons
+│   │   ├── day_turn.py          # "still unticked: X, Y?" before our cron; the buttons; the turn itself: gear, cron, gear, new-day message
+│   │   ├── gear.py              # INT / PER / CON sets: auto-pick from owned gear, wear one (F9)
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
 │   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
 │   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
@@ -219,9 +220,7 @@ analytica/
 │   │   └── aspirations.py       # planning-session prompt, create_plan
 │   ├── jobs/
 │   │   ├── scheduler.py
-│   │   ├── reminders.py         # 21:00 "you still have N dailies"
-│   │   ├── gear.py              # INT / PER / CON switching around day start
-│   │   ├── new_day.py           # message after cron: damage, mana, dailies due
+│   │   ├── reminders.py         # 21:00 "you still have N dailies"; gear and the new-day message are in core/day_turn.py
 │   │   ├── weekly_targets.py    # count ups per week, complete the Sunday daily when met
 │   │   └── weekly_report.py     # Sunday evening coach report
 │   ├── calendar/

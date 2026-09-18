@@ -19,6 +19,7 @@ from app.collector.snapshots import collect, collect_if_stale
 from app.core import gear, glossary, sessions, voice
 from app.core.i18n import LANGUAGES, parse_clock, t
 from app.core.replies import Reply
+from app.core.skills import available_skills
 from app.core.turn import Turn, summarizer
 from app.db.models import LlmCall, UserSnapshot
 from app.habitica.client import HabiticaError
@@ -308,6 +309,39 @@ async def gear_now(turn: Turn, content: dict[str, Any], stat: str) -> str:
     return t("gear_equipped", turn.language, stat=stat.upper(), items=names)
 
 
+async def skills_(turn: Turn, args: str) -> Reply:
+    """What the user can cast now, with the mana already compared."""
+    snapshot = await collect_if_stale(
+        turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+    )
+    user = user_stats_from_json(snapshot.raw)
+    available = available_skills(user, await turn.habitica.get_content())
+    lines = [
+        t(
+            "skills_header",
+            turn.language,
+            class_name=class_label(user.class_name),
+            lvl=user.lvl,
+            mp=fmt(user.mp),
+            max_mp=user.max_mp,
+        )
+    ]
+    if not available:
+        lines.append(t("skills_none", turn.language))
+    for item in available:
+        lines.append(
+            t(
+                "skills_line",
+                turn.language,
+                mark="✅" if item.castable else "⏳",
+                text=item.skill.text,
+                mana=item.skill.mana,
+                where=t(f"skill_target_{item.skill.target}", turn.language),
+            )
+        )
+    return Reply("\n".join(lines))
+
+
 async def llm_usage(turn: Turn) -> dict[str, ModelUsage]:
     """Per model id, over every call this user ever made."""
     rows = await turn.session.execute(
@@ -378,6 +412,7 @@ COMMANDS: dict[str, Handler] = {
     "tts": tts,
     "remind": remind,
     "gear": gear_,
+    "skills": skills_,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -392,4 +427,5 @@ HELP: list[tuple[str, str]] = [
     ("/tts on|off", "help_tts"),
     ("/remind [HH:MM|off]", "help_remind"),
     ("/gear [<stat> auto | <stat> <slot> <key> | now <stat>]", "help_gear"),
+    ("/skills", "help_skills"),
 ]

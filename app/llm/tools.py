@@ -27,6 +27,7 @@ from app.collector.snapshots import collect_if_stale, remember_list_order
 from app.core import glossary
 from app.core.i18n import format_day, format_moment, parse_day, t
 from app.core.replies import Button
+from app.core.skills import available_skills, find_skill
 from app.core.state import get_state, set_state
 from app.core.tasks import (
     KnownTask,
@@ -265,6 +266,58 @@ async def delete_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
         )
     await turn.habitica.delete_task(known.row.habitica_id)
     return ToolResult({"deleted": known.task.text}, changed_tasks=True)
+
+
+async def cast_skill(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
+    """A class skill by name or key; task skills need `task_id`, the others refuse one.
+
+    Always confirmed first: mana is spent and the app shows it. The cast itself
+    is followed by a collection round — stats change, and a task skill changes
+    the task's value.
+    """
+    reference = required(args, "skill")
+    stats = user_stats_from_json(
+        (
+            await collect_if_stale(
+                turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+            )
+        ).raw
+    )
+    available = find_skill(available_skills(stats, await turn.habitica.get_content()), reference)
+    if available is None:
+        raise ToolArgumentError(
+            f"no skill {reference!r} for a level {stats.lvl} {class_label(stats.class_name)}; "
+            "the unlocked ones are listed in the system prompt"
+        )
+    skill = available.skill
+    task_reference = args.get("task_id")
+    if available.needs_task and not task_reference:
+        raise ToolArgumentError(f"{skill.text} acts on a task; pass task_id")
+    if not available.needs_task and task_reference:
+        raise ToolArgumentError(f"{skill.text} does not take a task; call it without task_id")
+    if not available.castable:
+        raise ToolArgumentError(f"{skill.text} costs {skill.mana} MP and the user has {stats.mp:g}")
+    known = (
+        None
+        if task_reference is None
+        else await resolve_task(turn.session, turn.user.id, task_reference)
+    )
+    target = "" if known is None else known.task.text
+    if not confirmed:
+        return await request_confirmation(
+            turn,
+            "cast_skill",
+            {"skill": skill.key, "task_id": None if known is None else known.row.habitica_id},
+            "action_cast_skill" if known is None else "action_cast_skill_on",
+            skill=skill.text,
+            mana=str(skill.mana),
+            text=target,
+        )
+    await turn.habitica.cast_skill(skill.key, None if known is None else known.row.habitica_id)
+    return ToolResult(
+        {"cast": skill.text, "mana_spent": skill.mana, "target": target or skill.target},
+        changed_tasks=True,
+    )
 
 
 async def move_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
@@ -556,6 +609,21 @@ TOOLS: dict[str, Tool] = {
             description="Delete a task. The user must confirm with a button first.",
             parameters={"properties": {"task_id": TASK_ID}, "required": ["task_id"]},
             run=delete_task,
+            destructive=True,
+        ),
+        Tool(
+            name="cast_skill",
+            description="Cast one of the user's class skills (listed in the system prompt with "
+            "their mana cost). Task skills — Burst of Flames, Brutal Smash, Pickpocket, Backstab "
+            "— need task_id; the others must not get one. The user confirms with a button first.",
+            parameters={
+                "properties": {
+                    "skill": {"type": "string", "description": "Skill name or key."},
+                    "task_id": TASK_ID,
+                },
+                "required": ["skill"],
+            },
+            run=cast_skill,
             destructive=True,
         ),
         Tool(

@@ -146,6 +146,11 @@ class HabiticaClient:
     async def run_cron(self) -> None:
         await self._request("POST", "/cron")
 
+    async def cast_skill(self, key: str, target_id: str | None = None) -> None:
+        """`POST /user/class/cast/{key}`; `targetId` only for the task-targeted skills."""
+        params = {"targetId": target_id} if target_id else None
+        await self._request("POST", f"/user/class/cast/{key}", params=params)
+
     async def get_content(self, *, force_refresh: bool = False) -> dict[str, Any]:
         """Game content (gear stats among a lot else), cached on disk for a week."""
         cached = None if force_refresh else self._read_content_cache()

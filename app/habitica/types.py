@@ -101,6 +101,40 @@ def user_stats_from_json(data: dict[str, Any]) -> UserStats:
 
 
 @dataclass(frozen=True)
+class Skill:
+    """One class skill from `/content` → `spells.{warrior,wizard,rogue,healer}`."""
+
+    key: str
+    text: str
+    class_name: str  # as the API names it: the mage is "wizard"
+    mana: int
+    level: int
+    target: str  # task | self | party | tasks
+    notes: str
+
+
+SKILL_CLASSES = ("warrior", "wizard", "rogue", "healer")
+
+
+def skills_from_content(content: dict[str, Any]) -> list[Skill]:
+    skills: list[Skill] = []
+    for class_name in SKILL_CLASSES:
+        for data in content.get("spells", {}).get(class_name, {}).values():
+            skills.append(
+                Skill(
+                    key=data["key"],
+                    text=data["text"],
+                    class_name=class_name,
+                    mana=int(data["mana"]),
+                    level=int(data["lvl"]),
+                    target=data["target"],
+                    notes=data.get("notes", ""),
+                )
+            )
+    return skills
+
+
+@dataclass(frozen=True)
 class HistoryEntry:
     at: datetime
     value: float

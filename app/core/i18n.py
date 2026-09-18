@@ -508,6 +508,44 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "удалить «{text}»",
         "fr": "supprimer « {text} »",
     },
+    "action_cast_skill": {
+        "en": "cast {skill} ({mana} MP)",
+        "ru": "применить {skill} ({mana} MP)",
+        "fr": "lancer {skill} ({mana} PM)",
+    },
+    "action_cast_skill_on": {
+        "en": "cast {skill} on “{text}” ({mana} MP)",
+        "ru": "применить {skill} на «{text}» ({mana} MP)",
+        "fr": "lancer {skill} sur « {text} » ({mana} PM)",
+    },
+    "help_skills": {
+        "en": "the class skills you can cast now, with their mana cost",
+        "ru": "умения класса, доступные сейчас, с ценой в мане",
+        "fr": "les compétences de classe disponibles, avec leur coût en mana",
+    },
+    "skills_header": {
+        "en": "{class_name}, level {lvl}, {mp}/{max_mp} MP:",
+        "ru": "{class_name}, уровень {lvl}, {mp}/{max_mp} MP:",
+        "fr": "{class_name}, niveau {lvl}, {mp}/{max_mp} PM :",
+    },
+    "skills_line": {
+        "en": "{mark} {text} — {mana} MP, {where}",
+        "ru": "{mark} {text} — {mana} MP, {where}",
+        "fr": "{mark} {text} — {mana} PM, {where}",
+    },
+    "skills_none": {
+        "en": "No skills yet — the first one unlocks at level 11.",
+        "ru": "Умений пока нет — первое открывается на 11-м уровне.",
+        "fr": "Pas encore de compétence — la première se débloque au niveau 11.",
+    },
+    "skill_target_task": {"en": "on a task", "ru": "на задачу", "fr": "sur une tâche"},
+    "skill_target_self": {"en": "on yourself", "ru": "на себя", "fr": "sur vous"},
+    "skill_target_party": {"en": "on the party", "ru": "на группу", "fr": "sur le groupe"},
+    "skill_target_tasks": {
+        "en": "on all tasks",
+        "ru": "на все задачи",
+        "fr": "sur toutes les tâches",
+    },
     "action_done": {
         "en": "Done: {action}.",
         "ru": "Готово: {action}.",

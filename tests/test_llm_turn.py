@@ -217,6 +217,7 @@ async def test_the_prompt_carries_the_language_stats_and_task_list(
         "create_task",
         "update_task",
         "delete_task",
+        "cast_skill",
         "move_task",
         "get_stats",
         "add_glossary_term",

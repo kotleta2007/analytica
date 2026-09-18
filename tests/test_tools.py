@@ -508,6 +508,7 @@ def test_every_tool_has_a_valid_function_schema() -> None:
         "create_task",
         "update_task",
         "delete_task",
+        "cast_skill",
         "move_task",
         "get_stats",
         "add_glossary_term",

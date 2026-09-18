@@ -21,6 +21,7 @@ from app.collector.snapshots import collect, collect_if_stale
 from app.core import sessions
 from app.core.i18n import t
 from app.core.replies import Button, Reply
+from app.core.skills import AvailableSkill, available_skills
 from app.core.state import clear_state
 from app.core.tasks import load_known_tasks, open_tasks
 from app.core.turn import Turn, summarizer
@@ -160,8 +161,19 @@ async def system_message(turn: Turn, chat_session: sessions.ChatSession) -> dict
         recent_summaries=await sessions.recent_summaries(turn.session, turn.user.id),
         session_topic=chat_session.topic,
         session_summary=chat_session.collapsed_summary,
+        skills=None if stats is None else await skills_now(turn, stats),
     )
     return {"role": "system", "content": prompt}
+
+
+async def skills_now(turn: Turn, stats: UserStats) -> list[AvailableSkill]:
+    """The cached game content is a file read; a missing one is not worth failing the turn."""
+    try:
+        content = await turn.habitica.get_content()
+    except (HabiticaError, httpx.HTTPError) as error:
+        logger.warning("could not load the game content for the skills: %s", error)
+        return []
+    return available_skills(stats, content)
 
 
 async def fresh_stats(turn: Turn) -> UserStats | None:

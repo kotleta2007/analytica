@@ -119,6 +119,9 @@ class FakeHabiticaClient:
         raw["items"]["gear"]["equipped"][slot] = key
         self.user = user_stats_from_json(raw)
 
+    async def cast_skill(self, key: str, target_id: str | None = None) -> None:
+        self.calls.append(("cast_skill", (key, target_id)))
+
     async def run_cron(self) -> None:
         self.calls.append(("run_cron", None))
         # The one thing cron always does to the user object; tests model damage themselves.

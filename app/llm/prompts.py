@@ -10,6 +10,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from app.core.i18n import format_day, format_moment
+from app.core.skills import AvailableSkill, skill_line
 from app.core.tasks import KnownTask, due_day
 from app.habitica.types import Task, UserStats, class_label
 
@@ -76,6 +77,10 @@ PRIMER_RULES = (
     "(gold, spent on rewards and gear). Classes are warrior, mage, rogue and healer; INT raises "
     "max mana and XP, PER raises gold and drops, CON reduces damage, STR raises rewards and "
     "critical hits.",
+    "Skills: each class unlocks four between levels 11 and 14. A cast costs mana; some act on "
+    "one task (Burst of Flames, Brutal Smash, Pickpocket, Backstab), the others on the user, "
+    "the party or all tasks. The skills the user can cast now are listed with their stats, with "
+    "the mana already compared; a cast always asks for a confirm button.",
     "Rewards are things the user buys with gold; they are not tasks and this bot does not "
     "manage them.",
     "Each list (habits, dailies, todos) keeps the order the user gave it, top to bottom; "
@@ -105,6 +110,7 @@ def build_system_prompt(
     recent_summaries: list[str],
     session_topic: str | None = None,
     session_summary: str | None = None,
+    skills: list[AvailableSkill] | None = None,
 ) -> str:
     parts = [
         ROLE,
@@ -116,6 +122,8 @@ def build_system_prompt(
     ]
     if stats is not None:
         parts.append("The user's stats now: " + stats_line(stats))
+    if skills:
+        parts.append(skills_block(skills))
     parts.append(task_list(tasks, tz))
     if recent_summaries:
         parts.append("Recent context, most recent first:\n" + bullets(recent_summaries))
@@ -124,6 +132,14 @@ def build_system_prompt(
     if session_summary:
         parts.append("Earlier in this conversation (summarised):\n" + session_summary.strip())
     return "\n\n".join(parts)
+
+
+def skills_block(skills: list[AvailableSkill]) -> str:
+    lines = []
+    for available in skills:
+        state = "castable now" if available.castable else "not enough mana"
+        lines.append(f"- {skill_line(available)} [{state}]")
+    return "Class skills unlocked (cast_skill):\n" + "\n".join(lines)
 
 
 def clock_line(now: datetime, tz: ZoneInfo, stats: UserStats | None) -> str:

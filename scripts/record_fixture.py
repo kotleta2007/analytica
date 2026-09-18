@@ -71,12 +71,19 @@ def scrub_task(data: dict[str, Any]) -> dict[str, Any]:
     return task
 
 
+SPELL_CLASSES = ("warrior", "wizard", "rogue", "healer")  # the API calls the mage "wizard"
+
+
 def trim_content(content: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
     gear = user["items"]["gear"]
     wanted = set(gear.get("equipped", {}).values()) | set(gear.get("costume", {}).values())
     wanted |= {key for key, owned in gear.get("owned", {}).items() if owned}
     flat = content["gear"]["flat"]
-    return {"gear": {"flat": {key: flat[key] for key in sorted(wanted) if key in flat}}}
+    return {
+        "gear": {"flat": {key: flat[key] for key in sorted(wanted) if key in flat}},
+        # The class skills; `special` holds seasonal items the bot does not cast.
+        "spells": {cls: content["spells"][cls] for cls in SPELL_CLASSES},
+    }
 
 
 def envelope(data: Any) -> dict[str, Any]:
