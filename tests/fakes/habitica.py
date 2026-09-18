@@ -60,7 +60,8 @@ class FakeHabiticaClient:
         self.calls.append(("score_task", (task_id, direction)))
         task = self.find(task_id)
         if task.type in ("daily", "todo"):
-            self.replace_task(replace(task, completed=direction == "up"))
+            # Re-parsed, so `raw` agrees with the field: the collector stores `raw`.
+            self.replace_task(task_from_json({**task.raw, "completed": direction == "up"}))
         return ScoreResult(
             delta=1.0,
             hp=self.user.hp,

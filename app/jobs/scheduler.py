@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.collector.backfill import backfill
-from app.collector.day_close import DayConfig, close_day, run_cron
+from app.collector.day_close import CLOSE_DAY_BEFORE, RUN_CRON_AFTER, DayConfig, close_day, run_cron
 from app.collector.snapshots import collect, latest_user_snapshot
 from app.db.engine import session_scope
 from app.habitica.client import HabiticaClient
@@ -26,8 +26,6 @@ from app.habitica.client import HabiticaClient
 logger = logging.getLogger(__name__)
 
 SNAPSHOT_EVERY = timedelta(minutes=30)
-CLOSE_DAY_BEFORE = timedelta(minutes=2)
-RUN_CRON_AFTER = timedelta(minutes=1)
 
 SNAPSHOT_JOB = "snapshot"
 CLOSE_DAY_JOB = "close_day"

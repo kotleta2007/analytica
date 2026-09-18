@@ -38,6 +38,11 @@ logger = logging.getLogger(__name__)
 
 CLOSE_DAY_SOURCE = "close_day"
 
+# The day schedule, relative to day start; the scheduler plans from these.
+ASK_BEFORE = timedelta(minutes=30)  # "still unticked: X, Y?"
+CLOSE_DAY_BEFORE = timedelta(minutes=2)
+RUN_CRON_AFTER = timedelta(minutes=1)
+
 
 @dataclass(frozen=True)
 class DayConfig:

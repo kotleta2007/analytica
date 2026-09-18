@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core import commands, conversation, voice
+from app.core import commands, conversation, day_turn, voice
 from app.core.i18n import t
 from app.core.replies import Reply, User
 from app.core.turn import Turn, load_settings
@@ -81,6 +81,10 @@ class Harness:
                 return await voice.amend(turn, payload)
             if action == voice.ADD_TERM_ACTION:
                 return await voice.add_term(turn, payload)
+            if action == day_turn.TICK_ACTION:
+                return await day_turn.tick(turn, payload)
+            if action == day_turn.DONE_ACTION:
+                return await day_turn.done(turn, payload)
             return Reply(t("unknown_button", turn.language))
 
         return await self._turn(user, "button", action, handle)
