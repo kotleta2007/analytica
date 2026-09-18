@@ -18,6 +18,7 @@ from typing import Any
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.dispatcher.event.bases import UNHANDLED
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import CallbackQuery, Message, TelegramObject, Update
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -156,6 +157,12 @@ class TelegramAdapter:
         await self.send(message.chat.id, reply)
 
     async def on_callback(self, callback: CallbackQuery) -> None:
+        # Acknowledge before the turn: Telegram forgets the query within seconds, and a
+        # tool loop takes longer. A refused ack must not cost the user their reply.
+        try:
+            await self.bot.answer_callback_query(callback.id)
+        except TelegramAPIError as error:
+            logger.warning("callback %s could not be acknowledged: %s", callback.id, error)
         button = await load_button(callback.data, self.user.id)
         if button is None:
             reply = await self.harness.button_pressed(
@@ -163,7 +170,6 @@ class TelegramAdapter:
             )
         else:
             reply = await self.harness.button_pressed(self.user, button.action, button.payload)
-        await self.bot.answer_callback_query(callback.id)
         await self.send(callback.from_user.id, reply)
 
     # ---- outbound ----

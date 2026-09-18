@@ -283,6 +283,41 @@ async def test_reply_buttons_are_stored_and_the_callback_carries_the_row_id(
     assert session_of(adapter).sent(SendMessage)[-1].text == "Done"
 
 
+async def test_the_callback_is_acknowledged_before_the_turn_and_a_refused_ack_still_sends(
+    adapter: TelegramAdapter, harness: FakeHarness, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Telegram forgets a callback query within seconds; the turn may take longer.
+
+    Seen on the VPS: the ack after a 16 s turn raised `query is too old`, the
+    handler aborted and the reply was never sent.
+    """
+    [(row_id, _)] = await store_buttons([Button("✅ Do it", "confirm")], HABITICA_USER)
+    session = session_of(adapter)
+    original = session.make_request
+    order: list[str] = []
+
+    async def refuse_ack(bot_: Any, method: Any, timeout: int | None = None) -> Any:
+        if isinstance(method, AnswerCallbackQuery):
+            order.append("ack")
+            session.requests.append(method)
+            raise TelegramBadRequest(
+                method=method, message="Bad Request: query is too old and response timeout expired"
+            )
+        return await original(bot_, method, timeout)
+
+    async def slow_button(user: User, action: str, payload: dict[str, Any]) -> Reply:
+        order.append("turn")
+        return Reply("Done")
+
+    session.make_request = refuse_ack  # type: ignore[method-assign]
+    harness.button_pressed = slow_button  # type: ignore[method-assign]
+    await adapter.feed(callback_update(str(row_id)))
+
+    assert order == ["ack", "turn"]
+    assert session.sent(SendMessage)[-1].text == "Done"
+    assert "could not be acknowledged" in caplog.text
+
+
 async def test_unknown_callback_data_is_reported_as_expired(
     adapter: TelegramAdapter, harness: FakeHarness
 ) -> None:

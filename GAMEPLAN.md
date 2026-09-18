@@ -347,6 +347,35 @@ And a backup exists the next morning
 
 ---
 
+## Phase 05a — Acknowledge the button before running the turn
+
+**Branch**: `feature/05a-callback-ack`
+**Goal**: a pressed button gets its reply. The one backlog item marked *fix immediately after Phase 05*. Size S.
+
+**Current Status:** `on_callback` in `app/adapters/telegram/bot.py` runs the whole harness turn (`button_pressed`, an LLM tool loop) before `bot.answer_callback_query(callback.id)`. Telegram invalidates the callback token within seconds, so after a 16 s turn the ack raises `query is too old`, the handler aborts, the computed reply never reaches `send()`, the route answers 500 and Telegram redelivers the update — which runs the button's action a second time. Seen live 2026-09-16 20:43 UTC (update `456004190` and its retry).
+
+**Action Required:**
+
+- [x] 1. Acknowledge first, then run the turn, then send. An ack Telegram refuses is logged at WARNING and does not stop the reply. — `fix(p05a): acknowledge the callback before running the turn`
+
+**Tests**
+
+- [x] The ack goes out before the harness is called, and a refused ack still results in the reply being sent. — in the same commit
+
+**Acceptance**
+
+```gherkin
+Given a confirm button whose tool loop takes longer than Telegram's callback lifetime
+When I press it
+Then I get exactly one reply and the action runs once
+```
+
+**Done when**: box ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**: _none yet_
+
+---
+
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
@@ -563,7 +592,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
 - Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
-- **Fix immediately after Phase 05 is merged.** `on_callback` in `app/adapters/telegram/bot.py` runs the full harness turn (`button_pressed`, an LLM tool loop) *before* `bot.answer_callback_query(callback.id)`. Telegram invalidates the callback query token well before a 16s harness turn finishes, so `answer_callback_query` raises `TelegramBadRequest: query is too old...`, the exception aborts the handler, and the already-computed `reply` never reaches `self.send(...)` — the user gets no response at all. Observed live 2026-09-16 20:43 UTC: update `456004190` (and Telegram's retry of it) both 500'd this way; nothing but health checks reached the bot afterward. Fix: call `answer_callback_query` first (cheap, immediate), then run `button_pressed` and `send`; add a regression test that a slow/raising `answer_callback_query` still results in `send` being called. Small (S) fix, own branch + PR, not folded into P05 or any other phase's scope.
 - Outbound Telegram delivery to an allowlisted id that never pressed Start raises from the scheduled job; catch and log per chat when reminders arrive (P06).
 - Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
