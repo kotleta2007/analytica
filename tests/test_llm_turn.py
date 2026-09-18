@@ -207,7 +207,7 @@ async def test_the_prompt_carries_the_language_stats_and_task_list(
     await harness.text_message_received(USER, "привет")
 
     system = llm.calls[0].system
-    assert "Reply in Russian." in system
+    assert "Reply in Russian (русский)" in system
     assert "- d1a2b3c4 daily · Vacuum the floors" in system
     assert "The user's stats now: HP" in system
     assert llm.calls[0].messages[-1] == {"role": "user", "content": "привет"}
@@ -474,7 +474,7 @@ async def test_acceptance_french_vacuum_scores_the_daily_and_is_billed(
 
     assert habitica.called("score_task") == [(DAILY.id, "up")]
     assert reply.text == "C'est noté : « Vacuum the floors » est fait."
-    assert "Reply in French." in llm.calls[0].system
+    assert "Reply in French (français)." in llm.calls[0].system
     async with session_scope() as db:
         from app.db.models import LlmCall
 

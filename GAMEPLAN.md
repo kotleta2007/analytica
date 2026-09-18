@@ -376,6 +376,35 @@ Then I get exactly one reply and the action runs once
 
 ---
 
+## Phase 05b — Name the reply language, give the model Habitica's words
+
+**Branch**: `feature/05b-reply-language`
+**Goal**: `/language ru` gets Russian, not a Russian/Ukrainian mix with transliterated English. Size S.
+
+**Current Status:** the prompt says only `Reply in Russian.`; on 2026-09-15 (`llm_calls` #44) `z-ai/glm-5.3` answered a Russian question with *стрік* (Ukrainian **і**), *виконано*, and *стрик* for streak.
+
+**Action Required:**
+
+- [x] 1. `app/llm/prompts.py`: one language block per language instead of `Reply in <name>.` — Russian is named as "Russian (русский), never Ukrainian, never a mix, no transliterated English", and RU and FR get the words the Habitica app itself shows (from `website/common/locales/{ru,fr}/{tasks,character,settings}.json`, 2026-09-18): habit / daily / todo / reward / streak / checklist / day start, and the stats and classes. English gets the plain line it had. — `fix(p05b): name the reply language unambiguously and give the model Habitica's RU/FR words`
+
+**Tests**
+
+- [x] The RU prompt carries the never-Ukrainian line and the vocabulary, FR its own, EN neither. — in the same commit
+
+**Acceptance**
+
+```gherkin
+Given /language ru
+When I ask "what dailies remain?" in English
+Then the reply is Russian throughout and calls a streak "серия"
+```
+
+**Done when**: box ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**: _none yet_
+
+---
+
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
@@ -599,7 +628,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - TTS latency, measured: 2.7 s for ~100 characters, 9.2 s for 313 (Fish S2.1 Pro via OpenRouter). The harness synthesises before returning the reply, so with `/tts on` the text waits that long too. **Decided 2026-09-14: keep it** — text and voice note go out together; the alternative (text first, voice note when ready, via a pending synthesis on `Reply`) is not wanted.
 - Qwen3-ASR-Flash accepts a language hint (`language: "ru"`), and `provider.options.alibaba.asr_options` is forwarded (a hint given that way changed the output). Neither is sent today: auto-detect worked on a natural 10-second clip. If short notes come back transliterated, pass the user's `/language` setting as `language` — one line in `AsrClient.transcribe`.
 - `rapidfuzz` fallback for matching RU/FR task references against English titles, if the model proves unreliable at it (CLAUDE.md F2 allows it; not needed on the two models tried).
-- Reply language drifts on `z-ai/glm-5.3` with `/language ru`: asked "what dailies remain?" in English it answered in a Russian/Ukrainian mix — *стрік* (Ukrainian **і**), *виконано* — and transliterated *streak* instead of translating it (2026-09-15, `llm_calls` #44; the prompt said only `Reply in Russian.`). Fix in its own small phase right after P05: name the language unambiguously ("Russian (русский), never Ukrainian or a mix") and give the prompt Habitica's own RU/FR vocabulary for daily / habit / todo / streak / cron so the model uses the words the app shows.
 - Selene (`TTS_VOICE`) has a noticeable English accent in Russian and French. Explore other Fish Audio voices — one per language if no single voice does all three — together with `/voices` above.
 - uvicorn logs every request as coming from nginx (`172.18.0.1`, the Docker bridge) instead of the caller: nginx sends `X-Forwarded-For`, uvicorn is not told to trust it. `--proxy-headers --forwarded-allow-ips=<bridge ip>` in `deploy/entrypoint.sh` once the access log is used for anything.
 - **The bot's explicit cron removes Habitica's *Record Yesterday's Dailies* window** (P05 acceptance, 2026-09-17: two streaks lost for dailies that were done but not ticked, restored by hand from `task_snapshots`). Own phase, right after the callback-ack fix: at `dayStart − 30` (with the gear job) send "still unticked for today: X, Y — did you do them?" with one button per daily and *none of them*; hold `close_day` + `POST /cron` **and every other Habitica request** (any authenticated call triggers cron) until the buttons are answered or a grace deadline (`CRON_GRACE_MIN`, say 90) passes; a pressed button scores the daily before the cron so the streak counts. Ticking after cron is useless, so the message must say when the window closes. Requires the callback-ack fix first (a button that gets no reply is exactly this flow).
