@@ -96,6 +96,26 @@ class TelegramAdapter:
             )
             logger.info("telegram polling started")
 
+    async def check_webhook(self) -> str | None:
+        """Webhook mode: is Telegram aimed at us, and is it getting through?
+
+        Returns one line describing what is wrong, or None. `set_webhook` at
+        start does not prove delivery works: Telegram accepts any https URL
+        and only reports a failing one here, in `last_error_message`.
+        """
+        if self.mode != "webhook":
+            return None
+        info = await self.bot.get_webhook_info()
+        if info.url != self.webhook_url:
+            return f"Telegram webhook is {info.url or 'unset'}, expected {self.webhook_url}"
+        if info.last_error_message:
+            when = info.last_error_date.isoformat(" ", "minutes") if info.last_error_date else "?"
+            return (
+                f"Telegram cannot deliver to {info.url}: {info.last_error_message!r} "
+                f"(last at {when}, {info.pending_update_count} updates pending)"
+            )
+        return None
+
     async def stop(self) -> None:
         outbound.unregister()
         if self.polling is not None:

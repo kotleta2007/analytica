@@ -1,4 +1,4 @@
-"""Receive Habitica's taskActivity webhooks.
+"""Habitica's taskActivity webhooks: register ours, receive them.
 
     POST /webhooks/habitica/{secret}
 
@@ -29,6 +29,7 @@ from app.config import get_settings
 from app.db.blobs import store_blob
 from app.db.engine import session_scope
 from app.db.models import TaskEvent, TaskRow, WebhookDelivery
+from app.habitica.client import HabiticaClient
 from app.habitica.types import Task, task_from_json
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,36 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 SOURCE = "webhook"
+# The path every Analytica receiver has, whatever base URL and secret were in
+# front of it when the webhook was last registered.
+RECEIVER_PATH = "/webhooks/habitica/"
+
+
+def receiver_url(public_base_url: str, secret: str) -> str:
+    return f"{public_base_url.rstrip('/')}{RECEIVER_PATH}{secret}"
+
+
+async def ensure_webhook(client: HabiticaClient, url: str) -> str:
+    """Make sure Habitica posts task activity to `url`; say what was done.
+
+    Ours is any registered webhook aimed at an Analytica receiver. The exact
+    URL, enabled: nothing to do. The exact URL but switched off (Habitica does
+    that after repeated failures), or an old base URL or secret: updated in
+    place. None at all: created. Returns one line for the log.
+    """
+    ours = [hook for hook in await client.list_webhooks() if RECEIVER_PATH in hook.url]
+    for hook in ours:
+        if hook.url == url and hook.enabled:
+            return f"Habitica webhook {hook.id} is registered"
+        if hook.url == url:
+            await client.update_webhook(hook.id, url)
+            return f"Habitica webhook {hook.id} was disabled; enabled it again"
+    if ours:
+        stale = ours[0]
+        await client.update_webhook(stale.id, url)
+        return f"Habitica webhook {stale.id} moved from {stale.url} to {url}"
+    hook = await client.create_webhook(url)
+    return f"Habitica webhook {hook.id} created for {url}"
 
 
 @router.post("/webhooks/habitica/{secret}")

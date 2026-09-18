@@ -168,6 +168,18 @@ class HabiticaClient:
         }
         return webhook_from_json(await self._request("POST", "/user/webhook", json=payload))
 
+    async def update_webhook(self, webhook_id: str, url: str) -> Webhook:
+        """Point an existing webhook at `url` and switch it back on.
+
+        Habitica disables a webhook after repeated delivery failures, so a
+        deployment that was down for a while comes back to a hook that is
+        aimed right but off; `enabled` goes along with every update.
+        """
+        payload = {"url": url, "enabled": True}
+        return webhook_from_json(
+            await self._request("PUT", f"/user/webhook/{webhook_id}", json=payload)
+        )
+
     # ---- plumbing ----
 
     async def _request(

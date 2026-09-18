@@ -2,18 +2,20 @@
 
 The lifespan configures logging, builds one Habitica client and the
 OpenRouter clients (chat, speech in, speech out), starts the collector
-schedule and the Telegram adapter when their credentials are present, and
-disposes the engine at the end.
+schedule and the Telegram adapter when their credentials are present, kicks
+off the deployment self-check, and disposes the engine at the end.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app import selfcheck
 from app.adapters.telegram import bot as telegram
 from app.collector import webhooks
 from app.config import get_settings
@@ -22,6 +24,7 @@ from app.db.engine import dispose_engine, session_scope
 from app.habitica.client import HabiticaClient
 from app.jobs.scheduler import build_collector
 from app.llm.client import client_from_settings as llm_client_from_settings
+from app.logs import configure_logging
 from app.speech.asr import client_from_settings as asr_client_from_settings
 from app.speech.tts import client_from_settings as tts_client_from_settings
 
@@ -31,10 +34,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level.upper(),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    configure_logging(settings)
     logger.info("analytica starting up")
     client = habitica_client_if_configured()
     llm = llm_client_from_settings()
@@ -48,9 +48,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await collector.start()
     if adapter is not None:
         await adapter.start()
+    checker = asyncio.create_task(selfcheck.run_after_startup(settings, client, adapter))
     try:
         yield
     finally:
+        checker.cancel()
+        with suppress(asyncio.CancelledError):
+            await checker  # before the clients it may be using are closed
         if adapter is not None:
             await adapter.stop()
         if collector is not None:
