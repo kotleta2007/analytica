@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.collector.snapshots import collect_if_stale
 from app.core.i18n import parse_clock, t
 from app.core.replies import Reply
-from app.core.tasks import KnownTask, bullet_list, load_known_tasks
+from app.core.tasks import bullet_list, load_known_tasks, unfinished_dailies
 from app.core.turn import load_settings
 from app.db.models import UserSettings
 from app.habitica.client import HabiticaClient
@@ -32,12 +32,6 @@ def reminder_due(settings: UserSettings, now: datetime, tz: ZoneInfo) -> bool:
     return local.time() >= parse_clock(settings.reminder_time)
 
 
-def due_and_incomplete(known: list[KnownTask]) -> list[KnownTask]:
-    return [
-        k for k in known if k.task.type == "daily" and bool(k.task.is_due) and not k.task.completed
-    ]
-
-
 async def reminder_reply(
     client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime, tz: ZoneInfo
 ) -> Reply | None:
@@ -48,7 +42,7 @@ async def reminder_reply(
     settings.last_reminder_day = now.astimezone(tz).date()
     await session.flush()
     await collect_if_stale(client, session, user_id, now, SNAPSHOT_MAX_AGE)
-    dailies = due_and_incomplete(await load_known_tasks(session, user_id))
+    dailies = unfinished_dailies(await load_known_tasks(session, user_id))
     if not dailies:
         return None
     return Reply(t("reminder_dailies", settings.language, dailies=bullet_list(dailies)))

@@ -4,7 +4,8 @@
     every minute        reminder_job:       the daily reminder, once it is the user's time
     dayStart − 30 min   ask_unticked_job:   "still unticked: X, Y?" with buttons; holds our cron
     dayStart − 2 min    close_day_job:      close_day()
-    dayStart + 1 min    run_cron_job:       turn_day() — or wait, while the question is open
+    dayStart + 1 min    run_cron_job:       gear, cron, gear, the new-day message — or wait,
+                                            while the question is open
 
 The day jobs are one-shot `date` triggers, re-planned after every collection
 round from the `dayStart` and `timezoneOffset` in the freshest `/user`
@@ -38,7 +39,6 @@ from app.collector.day_close import (
     close_day,
     cron_hold,
     set_cron_hold,
-    turn_day,
 )
 from app.collector.snapshots import CollectOutcome, collect, latest_user_snapshot
 from app.config import get_settings
@@ -164,7 +164,10 @@ class CollectorJobs:
             self.arm(RUN_CRON_JOB, self.run_cron_job, hold)
             return
         async with session_scope() as session:
-            await turn_day(self.client, session, self.user_id, at)
+            settings = await load_settings(session, self.user_id)
+            turned = await day_turn.turn_day(self.client, session, self.user_id, at, settings)
+            message = day_turn.new_day_message(turned, settings.language)
+        await outbound.send_to_user(User(self.user_id), Reply(message))
         await self.replan_from_latest_snapshot()
 
     async def question(

@@ -376,6 +376,84 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Ещё не выполнено сегодня:\n{dailies}",
         "fr": "Encore à faire aujourd'hui :\n{dailies}",
     },
+    # ---- gear (P06) ----
+    "help_gear": {
+        "en": "the INT / PER / CON gear sets worn around day start",
+        "ru": "наборы снаряжения INT / PER / CON на начало дня",
+        "fr": "les tenues INT / PER / CON portées autour du début de journée",
+    },
+    "gear_header": {
+        "en": "Gear sets — CON or INT for the cron, PER for the day:",
+        "ru": "Наборы снаряжения — CON или INT на начало дня, PER на день:",
+        "fr": "Tenues — CON ou INT pour le début de journée, PER pour la journée :",
+    },
+    "gear_line": {
+        "en": "{stat} (+{value}){on}: {items}",
+        "ru": "{stat} (+{value}){on}: {items}",
+        "fr": "{stat} (+{value}){on} : {items}",
+    },
+    "gear_on_now": {
+        "en": " — on now",
+        "ru": " — надето",
+        "fr": " — portée",
+    },
+    "gear_unset": {
+        "en": "{stat}: not set — /gear {stat} auto picks the best owned item per slot",
+        "ru": "{stat}: не задан — /gear {stat} auto выберет лучший предмет на каждый слот",
+        "fr": "{stat} : non définie — /gear {stat} auto choisit le meilleur objet par emplacement",
+    },
+    "gear_equipped": {
+        "en": "{stat} set on: {items}",
+        "ru": "Надет набор {stat}: {items}",
+        "fr": "Tenue {stat} portée : {items}",
+    },
+    "gear_already_on": {
+        "en": "The {stat} set is already on.",
+        "ru": "Набор {stat} уже надет.",
+        "fr": "La tenue {stat} est déjà portée.",
+    },
+    "gear_bad_slot": {
+        "en": "Unknown slot {slot}. Slots: {slots}",
+        "ru": "Неизвестный слот {slot}. Слоты: {slots}",
+        "fr": "Emplacement inconnu {slot}. Emplacements : {slots}",
+    },
+    "gear_unknown_item": {
+        "en": "No item with key {item_key} in the game content.",
+        "ru": "В игре нет предмета с ключом {item_key}.",
+        "fr": "Aucun objet avec la clé {item_key} dans le jeu.",
+    },
+    "gear_not_owned": {
+        "en": "You don't own {item}.",
+        "ru": "У вас нет предмета {item}.",
+        "fr": "Vous ne possédez pas {item}.",
+    },
+    "gear_usage": {
+        "en": "Usage: /gear · /gear int|per|con auto · /gear int|per|con <slot> <key> · "
+        "/gear now int|per|con",
+        "ru": "Использование: /gear · /gear int|per|con auto · /gear int|per|con <слот> <ключ> · "
+        "/gear now int|per|con",
+        "fr": "Utilisation : /gear · /gear int|per|con auto · /gear int|per|con <slot> <clé> · "
+        "/gear now int|per|con",
+    },
+    # ---- the new day (P06) ----
+    "new_day": {
+        "en": "New day. HP lost overnight: {hp_lost} (now {hp}/{max_hp}); mana {mp}/{max_mp}.\n"
+        "Due today:\n{dailies}",
+        "ru": "Новый день. Потеряно здоровья за ночь: {hp_lost} (сейчас {hp}/{max_hp}); мана "
+        "{mp}/{max_mp}.\nНа сегодня:\n{dailies}",
+        "fr": "Nouvelle journée. Santé perdue cette nuit : {hp_lost} (maintenant {hp}/{max_hp}) ; "
+        "mana {mp}/{max_mp}.\nÀ faire aujourd'hui :\n{dailies}",
+    },
+    "new_day_nothing_due": {
+        "en": "• nothing — no daily is due today",
+        "ru": "• ничего — сегодня нет ежедневных дел",
+        "fr": "• rien — aucune quotidienne aujourd'hui",
+    },
+    "new_day_gear": {
+        "en": "Gear: {for_cron} for the cron, {now} on now.",
+        "ru": "Снаряжение: {for_cron} на начало дня, сейчас {now}.",
+        "fr": "Équipement : {for_cron} pour le début de journée, {now} maintenant.",
+    },
     # ---- the day-turn window (P05c) ----
     "day_turn_ask": {
         "en": "Before the day turns at {cron_time} — still unticked:\n{dailies}\n"
@@ -407,11 +485,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "OK — the day turns at {cron_time}.",
         "ru": "Хорошо — новый день начнётся в {cron_time}.",
         "fr": "D'accord — la nouvelle journée commence à {cron_time}.",
-    },
-    "day_turn_turned": {
-        "en": "The day has turned. HP lost: {hp_lost}, mana now {mp}.",
-        "ru": "Новый день начался. Потеряно здоровья: {hp_lost}, маны сейчас {mp}.",
-        "fr": "Nouvelle journée. Santé perdue : {hp_lost}, mana : {mp}.",
     },
     "day_turn_too_late": {
         "en": "Too late — the day already turned at {time}. Anything ticked now counts for today.",

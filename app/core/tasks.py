@@ -96,6 +96,15 @@ def open_tasks(known: list[KnownTask]) -> list[KnownTask]:
     ]
 
 
+def due_dailies(known: list[KnownTask]) -> list[KnownTask]:
+    return [k for k in known if k.task.type == "daily" and bool(k.task.is_due)]
+
+
+def unfinished_dailies(known: list[KnownTask]) -> list[KnownTask]:
+    """Due today and not ticked: what the reminder lists and what cron will punish."""
+    return [k for k in due_dailies(known) if not k.task.completed]
+
+
 def bullet_list(known: list[KnownTask]) -> str:
     """`• Glass of milk` per line, for the bot's own messages."""
     return "\n".join(f"• {k.task.text}" for k in known)

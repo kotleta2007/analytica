@@ -110,7 +110,14 @@ class FakeHabiticaClient:
         return [t.id for t in same_type]
 
     async def equip(self, key: str) -> None:
+        """Puts the item in its slot on the user, as Habitica does (no toggle modelled)."""
         self.calls.append(("equip", key))
+        slot = self.content["gear"]["flat"].get(key, {}).get("type")
+        if slot is None:
+            return
+        raw = copy.deepcopy(self.user.raw)
+        raw["items"]["gear"]["equipped"][slot] = key
+        self.user = user_stats_from_json(raw)
 
     async def run_cron(self) -> None:
         self.calls.append(("run_cron", None))

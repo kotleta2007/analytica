@@ -461,15 +461,15 @@ Then the day turns at 12:30, not before, and snapshots kept arriving every 30 mi
 **Action Required:**
 
 - [x] 1. `app/jobs/reminders.py`: daily at `reminder_time` (default 21:00): list due-and-incomplete dailies from the latest snapshot (refresh if older than 10 min); skip if none; `last_reminder_day` guard. `/remind HH:MM`, `/remind off`. (The Saturday target line and the Started buttons are added in P07.) — `feat(p06): daily reminder`
-- [ ] 2. `app/jobs/gear.py`: three sets `gear_int/per/con` in `user_settings`; `dayStart − 30 min` job picks CON if any due daily is incomplete else INT; `run_cron` (P01) followed by PER. `/gear` shows sets; `/gear <stat> auto` picks best owned item per slot from content; `/gear <stat> <slot> <key>`; `/gear now <stat>`. — `feat(p06): int/per/con gear sets around day start`
-- [ ] 3. `app/jobs/new_day.py`: after `run_cron`, one message: HP lost (snapshot before vs after), mana, dailies due today. — `feat(p06): new-day message`
+- [x] 2. `app/jobs/gear.py`: three sets `gear_int/per/con` in `user_settings`; `dayStart − 30 min` job picks CON if any due daily is incomplete else INT; `run_cron` (P01) followed by PER. `/gear` shows sets; `/gear <stat> auto` picks best owned item per slot from content; `/gear <stat> <slot> <key>`; `/gear now <stat>`. — `feat(p06): int/per/con gear sets around day start`
+- [x] 3. `app/jobs/new_day.py`: after `run_cron`, one message: HP lost (snapshot before vs after), mana, dailies due today. — `feat(p06): new-day message`
 - [ ] 4. Class skills (F12). `habitica/types.py`: `Skill(key, text, class_name, mana, level, target, notes)` + `skills_from_content()` reading `content.spells.{warrior,wizard,rogue,healer}` (the mage is `wizard` in the API; `class_label()` already maps it). `habitica/client.py`: `cast_skill(key, target_id=None)` → `POST /user/class/cast/{key}?targetId=`. `core/skills.py`: `available_skills(stats, content)` — the user's class, `lvl ≥ skill.level`, with `castable = mp ≥ mana` computed here, not by the model. The system prompt gets one line per available skill ("Burst of Flames — fireball, 10 MP, on a task"), and the primer gets a sentence on what skills are. Tool `cast_skill(skill, task_id?)`: resolves the key by name or key, requires `task_id` for `target ∈ {task}` and refuses it otherwise, needs a confirm button (spends mana, visible in the app), then `collect(source=bot)` — a cast changes stats and, for task skills, the task's value. `/skills` lists what can be cast now with mana costs. `scripts/record_fixture.py`: keep `spells` in `trim_content`; re-record the content fixture. — `feat(p06): class skills, listed in the prompt and cast on confirm`
 
 **Tests**
 
 - [x] Reminder: fires once, lists only due+incomplete, skips when none, respects off. — `test(p06): reminder rules`
-- [ ] Gear: CON chosen when a due daily is incomplete, INT otherwise; PER after cron; auto-pick chooses the highest-stat owned item per slot from the content fixture. — `test(p06): gear selection`
-- [ ] New-day message computes HP lost from two snapshots and lists due dailies. — `test(p06): new day message`
+- [x] Gear: CON chosen when a due daily is incomplete, INT otherwise; PER after cron; auto-pick chooses the highest-stat owned item per slot from the content fixture. — `test(p06): gear selection`
+- [x] New-day message computes HP lost from two snapshots and lists due dailies. — `test(p06): new day message`
 - [ ] Skills: a level-12 mage sees Burst of Flames and Ethereal Surge only, with `castable` following current MP; `cast_skill("fireball")` without a task → error result; with a task → confirm buttons; **Do it** calls `POST /user/class/cast/fireball?targetId=<id>` and collects; a skill of another class → error. — `test(p06): class skills`
 
 **Acceptance**
@@ -494,6 +494,9 @@ And after ✅ Do it the cast is sent to Habitica with the task's id
 
 - The reminder is a once-a-minute check (`reminder_due`: past the time, not yet sent today) rather than a job armed at the time: `/remind HH:MM` then needs no scheduler hook, and a restart after the time sends it late once instead of never. `/remind HH:MM` clears `last_reminder_day`, so a time set for later today fires today.
 - The backlog line about an allowlisted chat that never pressed Start is done here: `deliver` logs the failed chat and carries on.
+- Gear and the new-day message live in `core/gear.py` and `core/day_turn.py`, not `jobs/gear.py` / `jobs/new_day.py`: since P05c the day also turns from a button (core), so the sequence — CON or INT on, records, `POST /cron`, PER on, the message — is one function, `core.day_turn.turn_day()`, that the scheduler and the buttons both call. `jobs/` only schedules it.
+- The gear for the cron goes on *inside* the turn, right before `POST /cron`, not at `dayStart − 30` as the spec said: the choice (CON if anything is still unticked, else INT) is best made after the ask window, and since P05c nothing but our own cron turns the day, there is no reason to dress earlier.
+- A two-handed weapon (every wizard staff) drops the shield in Habitica, so `/gear <stat> auto` takes one only when it beats the best one-hander plus the best shield together. `/gear now` reads a fresh snapshot and takes another after equipping: the equip endpoint toggles, and a stale view of what is on would have taken items off.
 
 ---
 
