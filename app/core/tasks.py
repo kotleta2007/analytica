@@ -96,6 +96,11 @@ def open_tasks(known: list[KnownTask]) -> list[KnownTask]:
     ]
 
 
+def bullet_list(known: list[KnownTask]) -> str:
+    """`• Glass of milk` per line, for the bot's own messages."""
+    return "\n".join(f"• {k.task.text}" for k in known)
+
+
 async def resolve_task(session: AsyncSession, user_id: str, reference: str) -> KnownTask:
     """A full or shortened id → the task; raises `TaskNotFound` with a reason."""
     reference = reference.strip().lower()

@@ -33,7 +33,13 @@ from app.core import conversation
 from app.core.commands import fmt
 from app.core.i18n import format_clock, t
 from app.core.replies import Button, Reply
-from app.core.tasks import KnownTask, TaskNotFound, load_known_tasks, resolve_task
+from app.core.tasks import (
+    KnownTask,
+    TaskNotFound,
+    bullet_list,
+    load_known_tasks,
+    resolve_task,
+)
 from app.core.turn import Turn
 from app.habitica.client import HabiticaError
 from app.habitica.types import parse_iso
@@ -88,7 +94,7 @@ def ask(dailies: list[KnownTask], window_: Window, language: str, tz: ZoneInfo) 
     text = t(
         "day_turn_ask",
         language,
-        dailies=bullets(dailies),
+        dailies=bullet_list(dailies),
         cron_time=format_clock(window_.cron_at.astimezone(tz)),
         deadline=format_clock(window_.hold_until.astimezone(tz)),
     )
@@ -101,10 +107,6 @@ def buttons_for(dailies: list[KnownTask], day: date, language: str) -> list[Butt
         Button(f"✅ {k.task.text}", TICK_ACTION, {**payload, "task_id": k.row.habitica_id})
         for k in dailies
     ] + [Button(t("day_turn_nothing_else", language), DONE_ACTION, payload)]
-
-
-def bullets(dailies: list[KnownTask]) -> str:
-    return "\n".join(f"• {k.task.text}" for k in dailies)
 
 
 # ---- the buttons ----
@@ -132,7 +134,8 @@ async def tick(turn: Turn, payload: dict[str, Any]) -> Reply:
     )
     remaining = unticked_dailies(await load_known_tasks(turn.session, turn.user.id))
     if remaining:
-        text = ticked + "\n" + t("day_turn_remaining", turn.language, dailies=bullets(remaining))
+        rest = t("day_turn_remaining", turn.language, dailies=bullet_list(remaining))
+        text = ticked + "\n" + rest
         return Reply(text, buttons=buttons_for(remaining, day, turn.language))
     return Reply(ticked + "\n" + await settle(turn, after))
 

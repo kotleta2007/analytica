@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, collect_if_stale
 from app.core import glossary, sessions, voice
-from app.core.i18n import LANGUAGES, t
+from app.core.i18n import LANGUAGES, parse_clock, t
 from app.core.replies import Reply
 from app.core.turn import Turn, summarizer
 from app.db.models import LlmCall, UserSnapshot
@@ -202,6 +202,27 @@ class ModelUsage:
     avg_latency_ms: float
 
 
+async def remind(turn: Turn, args: str) -> Reply:
+    """`/remind` shows the time; `/remind HH:MM` sets it; `/remind off` stops it."""
+    settings = turn.settings
+    if not args:
+        if settings.reminder_time is None:
+            return Reply(t("remind_none", turn.language))
+        return Reply(t("remind_current", turn.language, time=settings.reminder_time))
+    if args.strip().lower() == "off":
+        settings.reminder_time = None
+        await turn.session.flush()
+        return Reply(t("remind_off", turn.language))
+    try:
+        wanted = parse_clock(args)
+    except ValueError:
+        return Reply(t("remind_usage", turn.language))
+    settings.reminder_time = wanted.strftime("%H:%M")
+    settings.last_reminder_day = None  # a time set for later today should fire today
+    await turn.session.flush()
+    return Reply(t("remind_set", turn.language, time=settings.reminder_time))
+
+
 async def llm_usage(turn: Turn) -> dict[str, ModelUsage]:
     """Per model id, over every call this user ever made."""
     rows = await turn.session.execute(
@@ -270,6 +291,7 @@ COMMANDS: dict[str, Handler] = {
     "model": model,
     "glossary": glossary_,
     "tts": tts,
+    "remind": remind,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -282,4 +304,5 @@ HELP: list[tuple[str, str]] = [
     ("/model [strong|cheap]", "help_model"),
     ("/glossary [add|remove <term>]", "help_glossary"),
     ("/tts on|off", "help_tts"),
+    ("/remind [HH:MM|off]", "help_remind"),
 ]

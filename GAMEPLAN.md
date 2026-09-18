@@ -460,14 +460,14 @@ Then the day turns at 12:30, not before, and snapshots kept arriving every 30 mi
 
 **Action Required:**
 
-- [ ] 1. `app/jobs/reminders.py`: daily at `reminder_time` (default 21:00): list due-and-incomplete dailies from the latest snapshot (refresh if older than 10 min); skip if none; `last_reminder_day` guard. `/remind HH:MM`, `/remind off`. (The Saturday target line and the Started buttons are added in P07.) — `feat(p06): daily reminder`
+- [x] 1. `app/jobs/reminders.py`: daily at `reminder_time` (default 21:00): list due-and-incomplete dailies from the latest snapshot (refresh if older than 10 min); skip if none; `last_reminder_day` guard. `/remind HH:MM`, `/remind off`. (The Saturday target line and the Started buttons are added in P07.) — `feat(p06): daily reminder`
 - [ ] 2. `app/jobs/gear.py`: three sets `gear_int/per/con` in `user_settings`; `dayStart − 30 min` job picks CON if any due daily is incomplete else INT; `run_cron` (P01) followed by PER. `/gear` shows sets; `/gear <stat> auto` picks best owned item per slot from content; `/gear <stat> <slot> <key>`; `/gear now <stat>`. — `feat(p06): int/per/con gear sets around day start`
 - [ ] 3. `app/jobs/new_day.py`: after `run_cron`, one message: HP lost (snapshot before vs after), mana, dailies due today. — `feat(p06): new-day message`
 - [ ] 4. Class skills (F12). `habitica/types.py`: `Skill(key, text, class_name, mana, level, target, notes)` + `skills_from_content()` reading `content.spells.{warrior,wizard,rogue,healer}` (the mage is `wizard` in the API; `class_label()` already maps it). `habitica/client.py`: `cast_skill(key, target_id=None)` → `POST /user/class/cast/{key}?targetId=`. `core/skills.py`: `available_skills(stats, content)` — the user's class, `lvl ≥ skill.level`, with `castable = mp ≥ mana` computed here, not by the model. The system prompt gets one line per available skill ("Burst of Flames — fireball, 10 MP, on a task"), and the primer gets a sentence on what skills are. Tool `cast_skill(skill, task_id?)`: resolves the key by name or key, requires `task_id` for `target ∈ {task}` and refuses it otherwise, needs a confirm button (spends mana, visible in the app), then `collect(source=bot)` — a cast changes stats and, for task skills, the task's value. `/skills` lists what can be cast now with mana costs. `scripts/record_fixture.py`: keep `spells` in `trim_content`; re-record the content fixture. — `feat(p06): class skills, listed in the prompt and cast on confirm`
 
 **Tests**
 
-- [ ] Reminder: fires once, lists only due+incomplete, skips when none, respects off. — `test(p06): reminder rules`
+- [x] Reminder: fires once, lists only due+incomplete, skips when none, respects off. — `test(p06): reminder rules`
 - [ ] Gear: CON chosen when a due daily is incomplete, INT otherwise; PER after cron; auto-pick chooses the highest-stat owned item per slot from the content fixture. — `test(p06): gear selection`
 - [ ] New-day message computes HP lost from two snapshots and lists due dailies. — `test(p06): new day message`
 - [ ] Skills: a level-12 mage sees Burst of Flames and Ethereal Surge only, with `castable` following current MP; `cast_skill("fireball")` without a task → error result; with a task → confirm buttons; **Do it** calls `POST /user/class/cast/fireball?targetId=<id>` and collects; a skill of another class → error. — `test(p06): class skills`
@@ -490,7 +490,10 @@ And after ✅ Do it the cast is sent to Habitica with the task's id
 
 **Done when**: all boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- The reminder is a once-a-minute check (`reminder_due`: past the time, not yet sent today) rather than a job armed at the time: `/remind HH:MM` then needs no scheduler hook, and a restart after the time sends it late once instead of never. `/remind HH:MM` clears `last_reminder_day`, so a time set for later today fires today.
+- The backlog line about an allowlisted chat that never pressed Start is done here: `deliver` logs the failed chat and carries on.
 
 ---
 
@@ -667,7 +670,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
 - Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
-- Outbound Telegram delivery to an allowlisted id that never pressed Start raises from the scheduled job; catch and log per chat when reminders arrive (P06).
 - Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
 - Model cost, measured after a day of use: ~$0.008 per text turn on `z-ai/glm-5.3` (~3k prompt tokens, ~490 completion tokens — it is a reasoning model and the thinking is billed as output). Not a problem at this volume; two levers for later, in order: `reasoning={"effort": "low"}` on the chat request (one field; measure whether GLM honours graded effort or only on/off), and `z-ai/glm-5.3-flash` as strong at a tenth of the price. The prompt is not to be shrunk.

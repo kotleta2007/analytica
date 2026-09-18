@@ -6,7 +6,7 @@ active language. Keys are plain text; adapters send them without markup, so a
 task name with `*` or `_` in it never breaks a message.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 LANGUAGES = ("en", "ru", "fr")
 DEFAULT_LANGUAGE = "en"
@@ -27,6 +27,11 @@ def format_moment(moment: datetime) -> str:
 def format_clock(moment: datetime) -> str:
     """`14:05`; the caller converts to the user's timezone first."""
     return moment.strftime("%H:%M")
+
+
+def parse_clock(value: str) -> time:
+    """`21:00` → time; raises ValueError for anything else."""
+    return datetime.strptime(value.strip(), "%H:%M").time()
 
 
 def parse_day(value: str) -> date:
@@ -332,6 +337,44 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Habitica didn't answer properly: {error}",
         "ru": "Habitica не ответила как следует: {error}",
         "fr": "Habitica n'a pas répondu correctement : {error}",
+    },
+    # ---- reminders (P06) ----
+    "help_remind": {
+        "en": "daily reminder of what is still due (default 21:00), or off",
+        "ru": "ежедневное напоминание о невыполненном (по умолчанию 21:00) или выключить",
+        "fr": "rappel quotidien de ce qui reste à faire (21:00 par défaut), ou off",
+    },
+    "remind_current": {
+        "en": "The daily reminder is at {time}. /remind HH:MM to change it, /remind off to stop "
+        "it.",
+        "ru": "Ежедневное напоминание в {time}. /remind ЧЧ:ММ — изменить, /remind off — выключить.",
+        "fr": "Le rappel quotidien est à {time}. /remind HH:MM pour le changer, /remind off pour "
+        "l'arrêter.",
+    },
+    "remind_none": {
+        "en": "The daily reminder is off. /remind HH:MM to set one.",
+        "ru": "Ежедневное напоминание выключено. /remind ЧЧ:ММ — включить.",
+        "fr": "Le rappel quotidien est désactivé. /remind HH:MM pour en définir un.",
+    },
+    "remind_set": {
+        "en": "Daily reminder set to {time}.",
+        "ru": "Ежедневное напоминание установлено на {time}.",
+        "fr": "Rappel quotidien réglé à {time}.",
+    },
+    "remind_off": {
+        "en": "Daily reminder off.",
+        "ru": "Ежедневное напоминание выключено.",
+        "fr": "Rappel quotidien désactivé.",
+    },
+    "remind_usage": {
+        "en": "Usage: /remind HH:MM, or /remind off.",
+        "ru": "Использование: /remind ЧЧ:ММ или /remind off.",
+        "fr": "Utilisation : /remind HH:MM, ou /remind off.",
+    },
+    "reminder_dailies": {
+        "en": "Still due today:\n{dailies}",
+        "ru": "Ещё не выполнено сегодня:\n{dailies}",
+        "fr": "Encore à faire aujourd'hui :\n{dailies}",
     },
     # ---- the day-turn window (P05c) ----
     "day_turn_ask": {
