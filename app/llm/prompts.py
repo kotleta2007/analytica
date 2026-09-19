@@ -13,7 +13,27 @@ from app.core.i18n import format_day, format_moment
 from app.core.tasks import KnownTask, due_day
 from app.habitica.types import Task, UserStats, class_label
 
-LANGUAGE_NAMES = {"en": "English", "ru": "Russian", "fr": "French"}
+# Named unambiguously, with the words the Habitica app itself shows in that language
+# (from its locale files): the model otherwise drifts into a Russian/Ukrainian mix and
+# transliterates the English terms it sees in the task list.
+LANGUAGE_LINES = {
+    "en": "Reply in English.",
+    "ru": (
+        "Reply in Russian (русский) — never Ukrainian, never a mix of languages, no "
+        "transliterated English. Use the words the Habitica app shows in Russian: привычка "
+        "(habit), ежедневное дело (daily), задача (todo), награда (reward), серия (streak), "
+        "список (checklist), начало суток (day start, when cron runs); здоровье (HP), мана "
+        "(MP), опыт (XP), золото (gold), уровень (level); воин, маг, разбойник, целитель "
+        "(the classes)."
+    ),
+    "fr": (
+        "Reply in French (français). Use the words the Habitica app shows in French: habitude "
+        "(habit), quotidienne (daily), à faire (todo), récompense (reward), combo (streak), "
+        "liste de vérification (checklist), début de journée (day start, when cron runs); "
+        "santé (HP), mana (MP), expérience (XP), or (gold), niveau (level); guerrier, mage, "
+        "voleur, guérisseur (the classes)."
+    ),
+}
 
 ROLE = (
     "You are Habitica Analytica, the user's personal coach and assistant for their Habitica "
@@ -87,7 +107,7 @@ def build_system_prompt(
 ) -> str:
     parts = [
         ROLE,
-        f"Reply in {LANGUAGE_NAMES.get(language, 'English')}. {OVERRIDE_RULE} {DATE_RULE}",
+        f"{LANGUAGE_LINES.get(language, LANGUAGE_LINES['en'])} {OVERRIDE_RULE} {DATE_RULE}",
         CONTENT_RULE,
         PRIMER,
         TOOL_RULE,

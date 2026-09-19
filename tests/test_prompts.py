@@ -44,9 +44,32 @@ def build(**overrides: object) -> str:
 def test_language_and_override_rule() -> None:
     prompt = build()
 
-    assert "Reply in French." in prompt
+    assert "Reply in French (français)." in prompt
     assert OVERRIDE_RULE in prompt
-    assert "Reply in Russian." in build(language="ru")
+    assert "Reply in English." in build(language="en")
+    assert "Reply in English." in build(language="xx")
+
+
+def test_russian_is_named_unambiguously_with_habiticas_own_words() -> None:
+    """llm_calls #44, 2026-09-15: 'Reply in Russian.' alone got a Russian/Ukrainian mix
+    (стрік, виконано) and a transliterated 'streak'."""
+    prompt = build(language="ru")
+
+    assert "Reply in Russian (русский)" in prompt
+    assert "never Ukrainian" in prompt
+    assert "no transliterated English" in prompt
+    for word in ("привычка", "ежедневное дело", "задача", "серия (streak)", "начало суток"):
+        assert word in prompt
+
+
+def test_french_gets_habiticas_own_words_and_english_gets_none() -> None:
+    french = build(language="fr")
+    english = build(language="en")
+
+    for word in ("habitude", "quotidienne", "à faire", "combo (streak)", "début de journée"):
+        assert word in french
+    assert "never Ukrainian" not in french
+    assert "привычка" not in english and "habitude" not in english
 
 
 def test_dates_are_european_and_the_model_is_told_so() -> None:
