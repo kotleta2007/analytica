@@ -44,7 +44,7 @@ These are the operating rules. They come from Gourze, the Alpi standard for buil
 
 ### Workflow per phase
 
-1. **Pre-flight.** `git checkout main && git pull`. Confirm the phase's *Open questions* in `GAMEPLAN.md` are all answered. If any is unanswered, **STOP and ask** — do not guess and do not start.
+1. **Pre-flight.** `git checkout main && git pull && git fetch --prune`, then delete every local branch already merged into `main` (`git branch -d`, never `-D`; the operator deletes the GitHub copy from the PR page). Confirm the phase's *Open questions* in `GAMEPLAN.md` are all answered. If any is unanswered, **STOP and ask** — do not guess and do not start.
 2. **Branch.** `git checkout -b feature/<NN>-<slug>`.
 3. **Read before writing.** Read every file you are about to touch and its neighbours. Match existing style. Never write against an imagined codebase.
 4. **Work step by step.** Each task in the phase is one commit. After each task: run the tests, tick the box in `GAMEPLAN.md`, commit both the code and `GAMEPLAN.md` **in the same commit**. A commit that completes a task without ticking its box is wrong. A tick without the work is worse.
