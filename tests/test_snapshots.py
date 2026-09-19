@@ -114,16 +114,37 @@ async def test_diff_produces_the_expected_events(db_path: Path) -> None:
     assert [round(event.delta or 0, 2) for event in scored] == [0.95, 0.95]
 
 
-async def test_habit_score_falls_back_to_value_when_counters_reset(db_path: Path) -> None:
+async def test_clicks_after_a_counter_reset_are_counted_from_zero(db_path: Path) -> None:
+    """Counters reset daily/weekly/monthly; a counter that went 5 → 2 saw two clicks."""
     run = make_task("habit", "Run", counterUp=5, value=4.0)
     client = FakeHabiticaClient(tasks=[run])
     await run_snapshot(client, T0)
 
-    client.tasks = [with_fields(run, counterUp=0, value=4.8)]
+    client.tasks = [with_fields(run, counterUp=2, value=4.8)]
     await run_snapshot(client, T1)
 
     events = await events_by_kind()
-    assert events[-1] == ("scored", "up", "Run")
+    assert events[-2:] == [("scored", "up", "Run"), ("scored", "up", "Run")]
+
+
+async def test_a_value_change_without_a_click_is_not_a_score(db_path: Path) -> None:
+    """Seen on the VPS 17–19.09.: cron halves a one-way habit's value every day, and the
+    diff wrote a 'scored down' for a habit nobody touched. A skill cast moves the value too."""
+    tomato = make_task("habit", "Complete a :tomato:!", counterUp=7, counterDown=0, value=6.17)
+    fireballed = make_task("habit", "Run", counterUp=1, value=1.0)
+    client = FakeHabiticaClient(tasks=[tomato, fireballed])
+    await run_snapshot(client, T0)
+
+    client.tasks = [
+        with_fields(tomato, value=3.085),  # halved at cron, counters unchanged
+        with_fields(fireballed, value=2.4),  # Burst of Flames raised it, no click
+    ]
+    await run_snapshot(client, T1, reset_by_cron=True)
+    client.tasks = [with_fields(tomato, counterUp=0, value=1.542)]  # Monday: counter reset
+    await run_snapshot(client, T1 + timedelta(days=1), reset_by_cron=True)
+
+    events = await events_by_kind()
+    assert [e for e in events if e[0] == "scored"] == []
 
 
 async def test_unchanged_tasks_get_a_snapshot_row_sharing_one_blob(db_path: Path) -> None:
