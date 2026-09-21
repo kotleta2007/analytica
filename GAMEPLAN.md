@@ -672,6 +672,7 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 
 - Growth suggestions ("you're solid on X, try Y") — AI-side extension of the coach, after real data exists.
 - `/voices` — browse the Fish Audio voice library and pick one from the bot.
+- `remove_glossary_term` tool: the model can add a glossary word (F1's amend flow proposes them) but not remove one, so "take Vergil out of the glossary" said in free text has no tool and may be claimed done anyway; `/glossary remove <term>` works. Ten lines next to `add_glossary_term`, using `glossary.remove_term`; goes with the next phase that touches voice or the glossary.
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
 - Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
