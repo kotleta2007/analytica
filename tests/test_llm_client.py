@@ -24,14 +24,16 @@ NOW = datetime(2026, 9, 13, 10, 0, tzinfo=UTC)
 MODEL = "z-ai/glm-5.3"
 
 
-def completion(message: dict[str, Any], cost: float = 0.00123) -> dict[str, Any]:
+def completion(
+    message: dict[str, Any], cost: float = 0.00123, finish_reason: str = "stop"
+) -> dict[str, Any]:
     return {
         "id": "gen-1",
         "object": "chat.completion",
         "created": 1,
         "model": MODEL,
         "system_fingerprint": None,
-        "choices": [{"index": 0, "finish_reason": "stop", "message": message}],
+        "choices": [{"index": 0, "finish_reason": finish_reason, "message": message}],
         "usage": {"prompt_tokens": 210, "completion_tokens": 17, "total_tokens": 227, "cost": cost},
     }
 
@@ -68,6 +70,26 @@ async def test_chat_sends_tools_and_parses_text() -> None:
     assert sent["messages"] == [{"role": "user", "content": "hello"}]
     assert sent["tools"] == tools
     assert "tool_choice" not in sent
+    assert "max_tokens" not in sent and "reasoning" not in sent
+    assert result.truncated is False
+
+
+async def test_chat_can_turn_reasoning_off_and_cap_the_answer() -> None:
+    body = completion({"role": "assistant", "content": "I did"}, finish_reason="length")
+    server = Server(httpx.Response(200, json=body))
+
+    result = await server.client().chat(
+        [{"role": "user", "content": "i did it"}],
+        None,
+        MODEL,
+        max_tokens=12,
+        reasoning_effort="none",
+    )
+
+    sent = server.requests[0]
+    assert sent["max_tokens"] == 12
+    assert sent["reasoning"] == {"effort": "none"}
+    assert result.truncated is True
 
 
 async def test_chat_parses_tool_calls_and_forces_text_when_asked() -> None:

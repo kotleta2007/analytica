@@ -405,6 +405,40 @@ Then the reply is Russian throughout and calls a streak "серия"
 
 ---
 
+## Phase 05d — Answer Telegram at once, one turn at a time, a cleanup without reasoning
+
+**Branch**: `feature/05d-webhook-latency`
+**Goal**: a voice note gets one reply within seconds, never a duplicate, and a second message sent meanwhile is not lost. Size S.
+
+**Current Status:** seen live 2026-10-09 10:46–10:49 UTC. A 2-second voice note (update `456004265`) took 127 s: the transcript cleanup on `deepseek/deepseek-v4-flash` returned 20,430 completion tokens (it reasons, and nothing turns that off or caps it) for a 30-character text; two minutes earlier the same pass took 79 tokens and 2 s. The webhook route runs the whole turn before answering, so Telegram re-sent the update five times; each retry hit `database is locked` (the first turn held SQLite's write lock from its first flush, across the model call) and got a 500, and the retry that came after the first turn finished was handled again — a duplicate reply. The user's second voice note arrived behind it. Three replies for two messages.
+
+**Action Required:**
+
+- [x] 1. `app/llm/client.py`: `chat` takes `max_tokens` and `reasoning_effort`, sent as `max_tokens` and `reasoning={"effort": …}`; `LlmResult.truncated` when the finish reason is `length`. `app/core/voice.py`: the cleanup pass asks for `reasoning_effort="none"` and at most as many tokens as the accepted output has characters (`len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS`); a truncated answer keeps the raw text. — `fix(p05d): clean up transcripts without reasoning and with a token cap`
+- [ ] 2. `app/adapters/telegram/bot.py`: the webhook route answers 200 as soon as the update is queued; one worker feeds queued updates to the dispatcher in arrival order; an `update_id` already seen (the last 1,000) is skipped; `stop()` lets the worker finish what is queued. Polling mode handles updates one at a time too (`handle_as_tasks=False`). Removes the backlog line about the inline webhook. — `fix(p05d): answer the Telegram webhook at once and run updates one at a time`
+- [ ] 3. `app/llm/client.py`: the recording `chat()` commits the session before the model call, so a turn does not hold SQLite's write lock while it waits on the network, and a scheduled snapshot or a Habitica webhook can write meanwhile. — `fix(p05d): release the database before every model call`
+
+**Tests**
+
+- [x] The cleanup request carries `reasoning: {effort: none}` and the cap; a `length` finish keeps the raw transcript; the main chat sends neither. — in commit 1
+- [ ] The route answers before a slow turn finishes; the same update posted twice reaches the harness once; two updates are handled in order, the second starting after the first ends. — in commit 2
+- [ ] While the model call is in flight, a second connection can write to the database. — in commit 3
+
+**Acceptance**
+
+```gherkin
+Given a voice note whose turn takes longer than Telegram's webhook timeout
+When I send it and then a second one
+Then each gets exactly one reply, in order
+And no update is answered with a 500
+```
+
+**Done when**: boxes ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**: _none yet_
+
+---
+
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`

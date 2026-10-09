@@ -59,6 +59,8 @@ class LlmResult:
     latency_ms: int
     # The assistant message exactly as the API wants it back on the next call.
     message: dict[str, Any] = field(default_factory=dict)
+    # The answer stopped at `max_tokens`: what came back is only its beginning.
+    truncated: bool = False
 
     @property
     def wants_tools(self) -> bool:
@@ -93,8 +95,11 @@ class LlmClient:
         model: str,
         *,
         tool_choice: str | None = None,
+        max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
     ) -> LlmResult:
-        """One completion. `tool_choice="none"` forces a text answer."""
+        """One completion. `tool_choice="none"` forces a text answer; `reasoning_effort="none"`
+        stops a reasoning model from thinking, and `max_tokens` counts its thinking too."""
         started = time.monotonic()
         logger.debug("llm %s: %d messages, %d tools", model, len(messages), len(tools or []))
         kwargs: dict[str, Any] = {}
@@ -102,6 +107,10 @@ class LlmClient:
             kwargs["tools"] = tools
             if tool_choice is not None:
                 kwargs["tool_choice"] = tool_choice
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+        if reasoning_effort is not None:
+            kwargs["reasoning"] = {"effort": reasoning_effort}
         try:
             response = await self._openrouter.chat.send_async(
                 model=model, messages=messages, **kwargs
@@ -117,7 +126,8 @@ class LlmClient:
 def result_from_response(response: Any, model: str, latency_ms: int) -> LlmResult:
     if not response.choices:
         raise LlmError(f"{model}: response without choices")
-    message = response.choices[0].message
+    choice = response.choices[0]
+    message = choice.message
     usage = response.usage
     cost = usage.cost if usage is not None and isinstance(usage.cost, int | float) else None
     return LlmResult(
@@ -132,6 +142,7 @@ def result_from_response(response: Any, model: str, latency_ms: int) -> LlmResul
         cost_usd=float(cost) if cost is not None else None,
         latency_ms=latency_ms,
         message=replay_message(message),
+        truncated=choice.finish_reason == "length",
     )
 
 
@@ -174,11 +185,20 @@ async def chat(
     model: str,
     *,
     tool_choice: str | None = None,
+    max_tokens: int | None = None,
+    reasoning_effort: str | None = None,
 ) -> LlmResult:
     """`client.chat` plus one `llm_calls` row, written whether the call worked or not."""
     started = time.monotonic()
     try:
-        result = await client.chat(messages, tools, model, tool_choice=tool_choice)
+        result = await client.chat(
+            messages,
+            tools,
+            model,
+            tool_choice=tool_choice,
+            max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
+        )
     except LlmError as error:
         logger.warning("llm call failed: %s", error)
         session.add(

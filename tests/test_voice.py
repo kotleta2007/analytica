@@ -1,5 +1,6 @@
 """Voice notes through the core: two-pass transcription, confirm, amend, cancel."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -129,6 +130,29 @@ async def test_cleanup_uses_the_cheap_model_with_glossary_and_task_names(
     assert "User's glossary (these spellings are right): Vergil" in call.system
     assert "Task names: Morning stretch" in call.system
     assert call.messages[1] == {"role": "user", "content": "read virgil after the morning sketch"}
+
+
+async def test_cleanup_asks_for_no_reasoning_and_caps_the_answer(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    asr.queue(hears("x" * 20))  # longest accepted answer: 20 * 1.5 + 40 = 70 characters
+
+    await harness.voice_message_received(USER, AUDIO, "audio/ogg")
+
+    (call,) = llm.calls
+    assert call.reasoning_effort == "none"
+    assert call.max_tokens == 140
+
+
+async def test_a_cleanup_cut_off_at_the_cap_keeps_the_raw_transcript(
+    harness: Harness, asr: FakeAsr, llm: FakeLlm
+) -> None:
+    asr.queue(hears("i did my morning sketch"))
+    llm.queue(replace(says("I did my"), truncated=True))
+
+    reply = await harness.voice_message_received(USER, AUDIO, "audio/ogg")
+
+    assert reply.text == "I heard:\ni did my morning sketch"
 
 
 @pytest.mark.parametrize(
