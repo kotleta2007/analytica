@@ -416,13 +416,13 @@ Then the reply is Russian throughout and calls a streak "серия"
 
 - [x] 1. `app/llm/client.py`: `chat` takes `max_tokens` and `reasoning_effort`, sent as `max_tokens` and `reasoning={"effort": …}`; `LlmResult.truncated` when the finish reason is `length`. `app/core/voice.py`: the cleanup pass asks for `reasoning_effort="none"` and at most as many tokens as the accepted output has characters (`len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS`); a truncated answer keeps the raw text. — `fix(p05d): clean up transcripts without reasoning and with a token cap`
 - [x] 2. `app/adapters/telegram/bot.py`: the webhook route answers 200 as soon as the update is queued; one worker feeds queued updates to the dispatcher in arrival order; an `update_id` already seen (the last 1,000) is skipped; `stop()` lets the worker finish what is queued. Polling mode handles updates one at a time too (`handle_as_tasks=False`). Removes the backlog line about the inline webhook. — `fix(p05d): answer the Telegram webhook at once and run updates one at a time`
-- [ ] 3. `app/llm/client.py`: the recording `chat()` commits the session before the model call, so a turn does not hold SQLite's write lock while it waits on the network, and a scheduled snapshot or a Habitica webhook can write meanwhile. — `fix(p05d): release the database before every model call`
+- [x] 3. `app/llm/client.py`, `app/speech/asr.py`, `app/speech/tts.py`: the recording wrappers (`chat`, `transcribe`, `speak`) commit the session before the call, so a turn does not hold SQLite's write lock while it waits on the network, and a scheduled snapshot or a Habitica webhook can write meanwhile. — `fix(p05d): release the database before every model call`
 
 **Tests**
 
 - [x] The cleanup request carries `reasoning: {effort: none}` and the cap; a `length` finish keeps the raw transcript; the main chat sends neither. — in commit 1
 - [x] The route answers before a slow turn finishes; the same update posted twice reaches the harness once; two updates are handled in order, the second starting after the first ends. — in commit 2
-- [ ] While the model call is in flight, a second connection can write to the database. — in commit 3
+- [x] While the model call is in flight, a second connection can write to the database. — in commit 3
 
 **Acceptance**
 
@@ -435,7 +435,12 @@ And no update is answered with a 500
 
 **Done when**: boxes ticked · lint + tests green · PR open · STOP.
 
-**Notes & deviations**: _none yet_
+**Notes & deviations**:
+
+- Task 3 covers the speech wrappers too, not only `chat`: TTS takes up to 9 s (backlog, measured), longer than SQLite's 5 s lock wait, so a turn speaking a reply would lock out a writer just the same. ASR follows for symmetry.
+- The SDK's reasoning field has `effort` only (no `enabled`); `effort: "none"` was checked live on `deepseek/deepseek-v4-flash` with a made-up sentence: 13 completion tokens and 1.2–1.7 s, against 125 tokens with reasoning on.
+- The cap is `2 ×` the longest acceptable answer in characters, not `1 ×`: a byte-level tokenizer can spend two tokens on one Cyrillic letter or emoji, and a cut-off Russian note would fall back to the raw text for no reason.
+- The update-id memory is in process (the last 1,000), not in the DB: with the route answering at once, Telegram has no reason to re-send, and the memory only has to outlive a re-delivery that is already in flight. A restart forgets it, which is harmless for the same reason.
 
 ---
 

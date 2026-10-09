@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.db.engine import session_scope
 from app.db.models import TtsCall
 from app.speech.tts import TtsClient, TtsError, speak
+from tests.locking import logged_texts, write_in_turn, writing_elsewhere_first
 
 NOW = datetime(2026, 9, 14, 18, 0, tzinfo=UTC)
 USER_ID = "00000000-0000-4000-8000-000000000001"
@@ -98,6 +99,19 @@ async def test_successful_call_is_recorded(db_path: Path) -> None:
     (row,) = await rows()
     assert (row.provider, row.model, row.chars, row.ok) == ("openrouter", MODEL, 12, True)
     assert row.at == NOW
+
+
+async def test_the_database_is_free_for_other_writers_while_speech_is_made(
+    db_path: Path,
+) -> None:
+    server = Server(audio())
+    server.handler = writing_elsewhere_first(server.handler)  # type: ignore[method-assign]
+
+    async with session_scope() as session:
+        await write_in_turn(session)
+        await speak(server.client(), session, USER_ID, NOW, "hi")
+
+    assert await logged_texts() == ["turn", "other"]
 
 
 async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:

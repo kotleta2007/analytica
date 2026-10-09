@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.db.engine import session_scope
 from app.db.models import Transcription as TranscriptionRow
 from app.speech.asr import AsrClient, AsrError, audio_format, transcribe
+from tests.locking import logged_texts, write_in_turn, writing_elsewhere_first
 
 NOW = datetime(2026, 9, 14, 18, 0, tzinfo=UTC)
 USER_ID = "00000000-0000-4000-8000-000000000001"
@@ -127,6 +128,19 @@ async def test_successful_call_is_recorded(db_path: Path) -> None:
     assert (stored.audio_seconds, stored.cost_usd, stored.ok) == (3.0, 0.000105, True)
     assert stored.cleaned_text is None and stored.accepted_text is None
     assert stored.at == NOW
+
+
+async def test_the_database_is_free_for_other_writers_while_audio_is_transcribed(
+    db_path: Path,
+) -> None:
+    server = Server(ok("Morning stretch done"))
+    server.handler = writing_elsewhere_first(server.handler)  # type: ignore[method-assign]
+
+    async with session_scope() as session:
+        await write_in_turn(session)
+        await transcribe(server.client(), session, USER_ID, NOW, AUDIO, "audio/ogg")
+
+    assert await logged_texts() == ["turn", "other"]
 
 
 async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:

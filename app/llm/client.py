@@ -188,7 +188,14 @@ async def chat(
     max_tokens: int | None = None,
     reasoning_effort: str | None = None,
 ) -> LlmResult:
-    """`client.chat` plus one `llm_calls` row, written whether the call worked or not."""
+    """`client.chat` plus one `llm_calls` row, written whether the call worked or not.
+
+    Commits the caller's session first. SQLite has one writer at a time, and a turn
+    holds the lock from its first write until it commits; a model call can take
+    minutes, and a snapshot, a Habitica webhook or the next message would wait
+    for it and fail with `database is locked` (seen 2026-10-09).
+    """
+    await session.commit()
     started = time.monotonic()
     try:
         result = await client.chat(

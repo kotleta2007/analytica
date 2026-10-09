@@ -18,6 +18,7 @@ from app.db.models import LlmCall
 from app.llm import client as llm_module
 from app.llm.client import LlmClient, LlmError, chat
 from app.llm.models import CHEAP, STRONG, model_id, registry
+from tests.locking import logged_texts, write_in_turn, writing_elsewhere_first
 
 USER_ID = "00000000-0000-4000-8000-000000000001"
 NOW = datetime(2026, 9, 13, 10, 0, tzinfo=UTC)
@@ -202,6 +203,20 @@ async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:
     assert row.ok is False
     assert row.error is not None and "402" in row.error
     assert (row.prompt_tokens, row.completion_tokens, row.cost_usd) == (0, 0, None)
+
+
+async def test_the_database_is_free_for_other_writers_while_the_model_thinks(
+    db_path: Path,
+) -> None:
+    server = Server(httpx.Response(200, json=completion({"role": "assistant", "content": "Hi"})))
+    server.handler = writing_elsewhere_first(server.handler)  # type: ignore[method-assign]
+
+    async with session_scope() as session:
+        await write_in_turn(session)
+        await chat(server.client(), session, USER_ID, NOW, [], None, MODEL)
+
+    assert await logged_texts() == ["turn", "other"]
+    assert [row.ok for row in await rows()] == [True]
 
 
 # ---- registry ----
