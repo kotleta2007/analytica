@@ -415,13 +415,13 @@ Then the reply is Russian throughout and calls a streak "серия"
 **Action Required:**
 
 - [x] 1. `app/llm/client.py`: `chat` takes `max_tokens` and `reasoning_effort`, sent as `max_tokens` and `reasoning={"effort": …}`; `LlmResult.truncated` when the finish reason is `length`. `app/core/voice.py`: the cleanup pass asks for `reasoning_effort="none"` and at most as many tokens as the accepted output has characters (`len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS`); a truncated answer keeps the raw text. — `fix(p05d): clean up transcripts without reasoning and with a token cap`
-- [ ] 2. `app/adapters/telegram/bot.py`: the webhook route answers 200 as soon as the update is queued; one worker feeds queued updates to the dispatcher in arrival order; an `update_id` already seen (the last 1,000) is skipped; `stop()` lets the worker finish what is queued. Polling mode handles updates one at a time too (`handle_as_tasks=False`). Removes the backlog line about the inline webhook. — `fix(p05d): answer the Telegram webhook at once and run updates one at a time`
+- [x] 2. `app/adapters/telegram/bot.py`: the webhook route answers 200 as soon as the update is queued; one worker feeds queued updates to the dispatcher in arrival order; an `update_id` already seen (the last 1,000) is skipped; `stop()` lets the worker finish what is queued. Polling mode handles updates one at a time too (`handle_as_tasks=False`). Removes the backlog line about the inline webhook. — `fix(p05d): answer the Telegram webhook at once and run updates one at a time`
 - [ ] 3. `app/llm/client.py`: the recording `chat()` commits the session before the model call, so a turn does not hold SQLite's write lock while it waits on the network, and a scheduled snapshot or a Habitica webhook can write meanwhile. — `fix(p05d): release the database before every model call`
 
 **Tests**
 
 - [x] The cleanup request carries `reasoning: {effort: none}` and the cap; a `length` finish keeps the raw transcript; the main chat sends neither. — in commit 1
-- [ ] The route answers before a slow turn finishes; the same update posted twice reaches the harness once; two updates are handled in order, the second starting after the first ends. — in commit 2
+- [x] The route answers before a slow turn finishes; the same update posted twice reaches the harness once; two updates are handled in order, the second starting after the first ends. — in commit 2
 - [ ] While the model call is in flight, a second connection can write to the database. — in commit 3
 
 **Acceptance**
@@ -654,7 +654,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - `/voices` — browse the Fish Audio voice library and pick one from the bot.
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
-- Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
 - Outbound Telegram delivery to an allowlisted id that never pressed Start raises from the scheduled job; catch and log per chat when reminders arrive (P06).
 - Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.

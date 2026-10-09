@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -81,8 +81,16 @@ async def adapter(
 ) -> AsyncIterator[TelegramAdapter]:
     configure(monkeypatch)
     bot, _session = recording_bot()
-    yield TelegramAdapter(harness, get_settings(), bot=bot)
+    adapter = TelegramAdapter(harness, get_settings(), bot=bot)
+    yield adapter
+    await adapter.drain(1)
     get_settings.cache_clear()
+
+
+async def feed(adapter: TelegramAdapter, payload: dict[str, Any]) -> None:
+    """What the webhook route does, then wait until the worker has handled it."""
+    adapter.enqueue(payload)
+    await adapter.queue.join()
 
 
 def session_of(adapter: TelegramAdapter) -> RecordingSession:
@@ -248,7 +256,7 @@ def test_split_text_prefers_a_newline_and_never_returns_empty() -> None:
 async def test_stranger_is_ignored_without_a_reply(
     adapter: TelegramAdapter, harness: FakeHarness
 ) -> None:
-    await adapter.feed(message_update("/stats", sender=STRANGER))
+    await feed(adapter, message_update("/stats", sender=STRANGER))
 
     assert harness.calls == []
     assert session_of(adapter).requests == []
@@ -257,8 +265,8 @@ async def test_stranger_is_ignored_without_a_reply(
 async def test_command_and_text_are_routed_to_the_right_entry_points(
     adapter: TelegramAdapter, harness: FakeHarness
 ) -> None:
-    await adapter.feed(message_update("/language fr", update_id=1))
-    await adapter.feed(message_update("done with workout", update_id=2))
+    await feed(adapter, message_update("/language fr", update_id=1))
+    await feed(adapter, message_update("done with workout", update_id=2))
 
     assert harness.calls == [("command", ("language", "fr")), ("text", "done with workout")]
     sent = session_of(adapter).sent(SendMessage)
@@ -269,14 +277,14 @@ async def test_reply_buttons_are_stored_and_the_callback_carries_the_row_id(
     adapter: TelegramAdapter, harness: FakeHarness
 ) -> None:
     harness.reply = Reply("Sure?", buttons=[Button("✅ Do it", "confirm", {"task": "x" * 60})])
-    await adapter.feed(message_update("/x"))
+    await feed(adapter, message_update("/x"))
     (sent,) = session_of(adapter).sent(SendMessage)
     assert sent.reply_markup is not None
     row_id = sent.reply_markup.inline_keyboard[0][0].callback_data
     assert row_id is not None and row_id.isdigit()
 
     harness.reply = Reply("Done")
-    await adapter.feed(callback_update(row_id))
+    await feed(adapter, callback_update(row_id))
 
     assert harness.calls[-1] == ("button", ("confirm", {"task": "x" * 60}))
     assert session_of(adapter).sent(AnswerCallbackQuery)[0].callback_query_id == "cb-1"
@@ -311,7 +319,7 @@ async def test_the_callback_is_acknowledged_before_the_turn_and_a_refused_ack_st
 
     session.make_request = refuse_ack  # type: ignore[method-assign]
     harness.button_pressed = slow_button  # type: ignore[method-assign]
-    await adapter.feed(callback_update(str(row_id)))
+    await feed(adapter, callback_update(str(row_id)))
 
     assert order == ["ack", "turn"]
     assert session.sent(SendMessage)[-1].text == "Done"
@@ -321,7 +329,7 @@ async def test_the_callback_is_acknowledged_before_the_turn_and_a_refused_ack_st
 async def test_unknown_callback_data_is_reported_as_expired(
     adapter: TelegramAdapter, harness: FakeHarness
 ) -> None:
-    await adapter.feed(callback_update("123456"))
+    await feed(adapter, callback_update("123456"))
 
     assert harness.calls == [("button", (EXPIRED_BUTTON, {"data": "123456"}))]
 
@@ -331,7 +339,7 @@ async def test_a_button_stored_for_another_user_is_expired_too(
 ) -> None:
     [(row_id, _)] = await store_buttons([Button("x", "confirm")], "someone-else")
 
-    await adapter.feed(callback_update(str(row_id)))
+    await feed(adapter, callback_update(str(row_id)))
 
     assert harness.calls[0][1][0] == EXPIRED_BUTTON
 
@@ -349,7 +357,7 @@ async def test_a_voice_note_is_downloaded_and_handed_to_the_voice_entry_point(
         "mime_type": "audio/ogg",
     }
 
-    await adapter.feed(update)
+    await feed(adapter, update)
 
     assert harness.calls == [("voice", (b"OggS\x00\x02opus", "audio/ogg"))]
     (get_file,) = session_of(adapter).sent(GetFile)
@@ -364,7 +372,7 @@ async def test_a_voice_note_without_a_mime_type_is_taken_as_ogg(
     del update["message"]["text"]
     update["message"]["voice"] = {"file_id": "voice-2", "file_unique_id": "u", "duration": 1}
 
-    await adapter.feed(update)
+    await feed(adapter, update)
 
     assert harness.calls == [("voice", (b"OggS", "audio/ogg"))]
 
@@ -384,7 +392,7 @@ async def test_non_text_messages_get_the_text_entry_point_with_nothing_to_say(
         "is_video": False,
     }
 
-    await adapter.feed(update)
+    await feed(adapter, update)
 
     assert harness.calls == [("text", "")]
 
@@ -483,7 +491,105 @@ async def test_a_good_update_reaches_the_harness(web: httpx.AsyncClient) -> None
     app.state.telegram = TelegramAdapter(harness, get_settings(), bot=bot)
 
     response = await web.post(f"/webhooks/telegram/{SECRET}", json=message_update("/stats"))
+    await app.state.telegram.queue.join()
 
     assert response.status_code == 200
     assert harness.calls == [("command", ("stats", ""))]
     assert session.sent(SendMessage)[0].text == "ok"
+
+
+class SlowHarness(FakeHarness):
+    """Each text turn waits for the test to let it finish, and logs when it starts and ends."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.events: list[str] = []
+        self.release = asyncio.Event()
+
+    async def text_message_received(self, user: User, text: str) -> Reply:
+        self.events.append(f"start {text}")
+        await self.release.wait()
+        self.events.append(f"end {text}")
+        return await super().text_message_received(user, text)
+
+
+async def settle(condition: Callable[[], bool]) -> None:
+    """Let the worker run until `condition` holds; it gets a second at most."""
+    async with asyncio.timeout(1):
+        while not condition():
+            await asyncio.sleep(0.001)
+
+
+@pytest.fixture
+async def slow(web: httpx.AsyncClient) -> AsyncIterator[SlowHarness]:
+    from app.main import app
+
+    harness = SlowHarness()
+    bot, _session = recording_bot()
+    app.state.telegram = TelegramAdapter(harness, get_settings(), bot=bot)
+    yield harness
+    harness.release.set()
+    await app.state.telegram.drain(1)
+
+
+async def test_the_route_answers_before_a_slow_turn_finishes(
+    web: httpx.AsyncClient, slow: SlowHarness
+) -> None:
+    """Seen on the VPS (2026-10-09): a 127 s voice turn made Telegram re-send the update."""
+    from app.main import app
+
+    response = await web.post(f"/webhooks/telegram/{SECRET}", json=message_update("hello"))
+
+    assert response.status_code == 200
+    await settle(lambda: slow.events == ["start hello"])
+
+    slow.release.set()
+    await app.state.telegram.queue.join()
+    assert slow.events == ["start hello", "end hello"]
+
+
+async def test_a_redelivered_update_reaches_the_harness_once(
+    web: httpx.AsyncClient, slow: SlowHarness
+) -> None:
+    from app.main import app
+
+    slow.release.set()
+    for _ in range(3):
+        response = await web.post(
+            f"/webhooks/telegram/{SECRET}", json=message_update("hello", update_id=41)
+        )
+        assert response.status_code == 200
+    await app.state.telegram.queue.join()
+
+    assert slow.calls == [("text", "hello")]
+
+
+async def test_updates_are_handled_one_at_a_time_in_arrival_order(
+    web: httpx.AsyncClient, slow: SlowHarness
+) -> None:
+    from app.main import app
+
+    await web.post(f"/webhooks/telegram/{SECRET}", json=message_update("first", update_id=1))
+    await web.post(f"/webhooks/telegram/{SECRET}", json=message_update("second", update_id=2))
+    await settle(lambda: slow.events == ["start first"])
+    await asyncio.sleep(0.01)
+    assert slow.events == ["start first"]  # the second waits for the first
+
+    slow.release.set()
+    await app.state.telegram.queue.join()
+
+    assert slow.events == ["start first", "end first", "start second", "end second"]
+
+
+async def test_stop_waits_for_the_queued_updates(adapter: TelegramAdapter) -> None:
+    harness = SlowHarness()
+    adapter.harness = harness  # type: ignore[assignment]
+    adapter.enqueue(message_update("one", update_id=1))
+    adapter.enqueue(message_update("two", update_id=2))
+    await settle(lambda: harness.events == ["start one"])
+
+    asyncio.get_running_loop().call_later(0.01, harness.release.set)
+    await adapter.stop()
+
+    assert harness.events == ["start one", "end one", "start two", "end two"]
+    assert adapter.worker is None
