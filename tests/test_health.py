@@ -19,7 +19,7 @@ async def test_migrations_created_the_database(db_path: Path) -> None:
     finally:
         connection.close()
 
-    assert stamped == [("0010_tts",)]
+    assert stamped == [("0011_cron_hold",)]
 
 
 async def test_engine_puts_the_database_in_wal_mode(db_path: Path) -> None:

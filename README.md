@@ -51,9 +51,12 @@ With `HABITICA_USER_ID` and `HABITICA_API_TOKEN` in `.env`, the app collects on
 its own: a snapshot of the account and every task every 30 minutes, plus a
 `close_day` two minutes before your Habitica day start and an explicit cron one
 minute after it, so the daily reset happens at a known time with a snapshot on
-each side. `dayStart` and `timezoneOffset` are read from the API, never
-configured. On startup the task history Habitica still has is imported once
-(`backfill`, idempotent).
+each side. Half an hour before day start the bot asks about the dailies you have
+not ticked — the same *Record Yesterday's Dailies* question the app would ask —
+and its cron waits for your answer, up to `CRON_GRACE_MIN` minutes after day
+start. `dayStart` and `timezoneOffset` are read from the API, never configured.
+On startup the task history Habitica still has is imported once (`backfill`,
+idempotent).
 
 ```sh
 uv run python scripts/snapshot_now.py --backfill   # one round by hand
@@ -61,8 +64,9 @@ uv run python scripts/register_webhook.py          # once PUBLIC_BASE_URL exists
 uv run python scripts/record_fixture.py            # refresh the scrubbed test fixtures
 ```
 
-Any authenticated call after your day start triggers Habitica's cron, exactly
-like opening the app would; the schedule makes that deterministic.
+Nothing but `POST /cron` turns your Habitica day — reads and scores never do —
+so collecting is harmless at any hour; the schedule only decides when the bot
+runs the cron itself.
 
 ## Talking to it
 
