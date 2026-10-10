@@ -3,14 +3,21 @@
     TELEGRAM_MODE=polling   long polling in a background task (local dev)
     TELEGRAM_MODE=webhook   Telegram posts to /webhooks/telegram/{secret} (VPS)
 
+Either way, updates are handled one at a time, in the order they came. In
+webhook mode the route only queues the update and answers 200: Telegram
+re-sends an update it gets no answer for within its timeout, and a voice
+turn can take longer than that.
+
 Only Telegram ids on `TELEGRAM_ALLOWED_USER_IDS` get through; every one of
 them talks as the deployment's single Habitica user. Everyone else is ignored
 without a reply.
 """
 
 import asyncio
+import contextlib
 import io
 import logging
+from collections import deque
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
@@ -37,6 +44,10 @@ logger = logging.getLogger(__name__)
 EXPIRED_BUTTON = "expired"
 # Telegram voice notes are Ogg/Opus; the field is optional in the API, so this is the fallback.
 DEFAULT_VOICE_MIME = "audio/ogg"
+# Update ids remembered to skip a re-delivery; Telegram re-sends within minutes, not thousands.
+SEEN_UPDATES = 1000
+# How long shutdown waits for queued updates before dropping them.
+DRAIN_TIMEOUT_S = 60
 
 
 class Allowlist(BaseMiddleware):
@@ -72,6 +83,9 @@ class TelegramAdapter:
         self.dispatcher.update.outer_middleware(Allowlist(self.allowed))
         self.dispatcher.include_router(self.router())
         self.polling: asyncio.Task[None] | None = None
+        self.queue: asyncio.Queue[Update] = asyncio.Queue()
+        self.worker: asyncio.Task[None] | None = None
+        self.seen: deque[int] = deque(maxlen=SEEN_UPDATES)
 
     def router(self) -> Router:
         router = Router()
@@ -92,7 +106,7 @@ class TelegramAdapter:
             await self.bot.delete_webhook()
             self.polling = asyncio.create_task(
                 self.dispatcher.start_polling(
-                    self.bot, handle_signals=False, close_bot_session=False
+                    self.bot, handle_signals=False, close_bot_session=False, handle_as_tasks=False
                 )
             )
             logger.info("telegram polling started")
@@ -123,12 +137,43 @@ class TelegramAdapter:
             await self.dispatcher.stop_polling()
             await self.polling
             self.polling = None
+        await self.drain(DRAIN_TIMEOUT_S)
         await self.bot.session.close()
 
-    async def feed(self, payload: dict[str, Any]) -> None:
-        """One update from the webhook route."""
+    def enqueue(self, payload: dict[str, Any]) -> None:
+        """One update from the webhook route: queued, or skipped if it is a re-delivery."""
         update = Update.model_validate(payload, context={"bot": self.bot})
-        await self.dispatcher.feed_update(self.bot, update)
+        if update.update_id in self.seen:
+            logger.info("skipping telegram update %s: already received", update.update_id)
+            return
+        self.seen.append(update.update_id)
+        self.queue.put_nowait(update)
+        if self.worker is None:
+            self.worker = asyncio.create_task(self.work())
+
+    async def work(self) -> None:
+        while True:
+            update = await self.queue.get()
+            try:
+                await self.dispatcher.feed_update(self.bot, update)
+            except Exception:
+                # Nobody is waiting on the route any more; the log is the only place this shows.
+                logger.exception("telegram update %s failed", update.update_id)
+            finally:
+                self.queue.task_done()
+
+    async def drain(self, timeout_s: float) -> None:
+        """Wait for the queued updates to be handled, then stop the worker."""
+        if self.worker is None:
+            return
+        try:
+            await asyncio.wait_for(self.queue.join(), timeout_s)
+        except TimeoutError:
+            logger.warning("dropping %d telegram updates at shutdown", self.queue.qsize())
+        self.worker.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.worker
+        self.worker = None
 
     # ---- inbound ----
 
@@ -233,7 +278,7 @@ async def receive_telegram_webhook(secret: str, request: Request) -> JSONRespons
         payload = await request.json()
     except ValueError as error:
         raise HTTPException(status_code=400, detail="body is not JSON") from error
-    await adapter.feed(payload)
+    adapter.enqueue(payload)
     return JSONResponse({"ok": True})
 
 

@@ -154,8 +154,15 @@ class CollectorJobs:
         async with session_scope() as session:
             hold = await cron_hold(session, self.user_id)
             if hold is None:
-                # Nobody asked (the process was down at dayStart − 30): ask now, then wait.
                 outcome = await collect(self.client, session, self.user_id, at)
+                if not outcome.user.raw.get("needsCron"):
+                    # Already turned — by a button after day start (`settle` clears the hold) or
+                    # in the app — and this is the job armed for that day's hold. Asking now
+                    # would put the new day's dailies up as "still unticked".
+                    logger.info("the day already turned; cron not needed until the next one")
+                    self.plan_day_jobs(outcome.user.raw, None, at)
+                    return
+                # Nobody asked (the process was down at dayStart − 30): ask now, then wait.
                 question = await self.question(session, outcome, at)
         if hold is None:
             hold = await self.put(question, at)

@@ -80,7 +80,11 @@ class TtsClient:
 async def speak(
     client: TtsClient, session: AsyncSession, user_id: str, now: datetime, text: str
 ) -> bytes:
-    """`client.speak` plus one `tts_calls` row, written whether the call worked or not."""
+    """`client.speak` plus one `tts_calls` row, written whether the call worked or not.
+
+    Commits the caller's session first, as `llm.client.chat` does: no write lock across the call.
+    """
+    await session.commit()
     started = time.monotonic()
     try:
         result = await client.speak(text)

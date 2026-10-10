@@ -447,7 +447,47 @@ Then the day turns at 12:30, not before, and snapshots kept arriving every 30 mi
 - The backlog entry asked to hold *every* Habitica request. Not needed: the collector keeps its schedule through the window, because no read runs cron. The rest of the sketch (ask at `dayStart − 30`, buttons, `CRON_GRACE_MIN`) stands.
 - `cron_hold_until` carries three states, not two: `None` = not asked for this day turn, a future instant = asked and waiting, a past instant = answered (also: nothing to ask, or no adapter to deliver to). `turn_day` resets it to `None` after every cron. Without the third state `run_cron_job` could not tell "Nothing else, at 10:40" from "the process was down at 10:30 and nobody asked" — and in the latter case it now asks first, with the full grace from the late question, instead of firing cron blind.
 - The scheduler's date jobs get `misfire_grace_time` = 10 min (APScheduler's default is 1 s: a busy loop at 11:01:00 would have dropped the day turn). A restart after day start plans the cron job at once instead of tomorrow.
+- Found in review: *Nothing else* (or the last tick) after day start turns the day from the button and clears the hold, but the cron job armed for the hold stays queued — the core cannot touch the scheduler — unless a half-hourly snapshot replans it first. At the hold it saw `None`, took it for "nobody asked", and put the *new* day's dailies up as "still unticked" with another 90-min hold. `run_cron_job` now reads `needsCron` before asking: already turned → replan for tomorrow, ask nothing. The 11:01 test in `test_scheduler.py` now gives its user `needsCron: true`, as Habitica does after day start.
 - `FakeHabiticaClient.score_task` now re-parses the task so `raw` agrees with `completed` (the collector stores `raw`; the old `dataclasses.replace` left it stale), and `run_cron` clears `needsCron` on its user, the one thing cron always does.
+
+---
+
+## Phase 05d — Answer Telegram at once, one turn at a time, a cleanup without reasoning
+
+**Branch**: `feature/05d-webhook-latency`
+**Goal**: a voice note gets one reply within seconds, never a duplicate, and a second message sent meanwhile is not lost. Size S.
+
+**Current Status:** seen live 2026-10-09 10:46–10:49 UTC. A 2-second voice note (update `456004265`) took 127 s: the transcript cleanup on `deepseek/deepseek-v4-flash` returned 20,430 completion tokens (it reasons, and nothing turns that off or caps it) for a 30-character text; two minutes earlier the same pass took 79 tokens and 2 s. The webhook route runs the whole turn before answering, so Telegram re-sent the update five times; each retry hit `database is locked` (the first turn held SQLite's write lock from its first flush, across the model call) and got a 500, and the retry that came after the first turn finished was handled again — a duplicate reply. The user's second voice note arrived behind it. Three replies for two messages.
+
+**Action Required:**
+
+- [x] 1. `app/llm/client.py`: `chat` takes `max_tokens` and `reasoning_effort`, sent as `max_tokens` and `reasoning={"effort": …}`; `LlmResult.truncated` when the finish reason is `length`. `app/core/voice.py`: the cleanup pass asks for `reasoning_effort="none"` and at most as many tokens as the accepted output has characters (`len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS`); a truncated answer keeps the raw text. — `fix(p05d): clean up transcripts without reasoning and with a token cap`
+- [x] 2. `app/adapters/telegram/bot.py`: the webhook route answers 200 as soon as the update is queued; one worker feeds queued updates to the dispatcher in arrival order; an `update_id` already seen (the last 1,000) is skipped; `stop()` lets the worker finish what is queued. Polling mode handles updates one at a time too (`handle_as_tasks=False`). Removes the backlog line about the inline webhook. — `fix(p05d): answer the Telegram webhook at once and run updates one at a time`
+- [x] 3. `app/llm/client.py`, `app/speech/asr.py`, `app/speech/tts.py`: the recording wrappers (`chat`, `transcribe`, `speak`) commit the session before the call, so a turn does not hold SQLite's write lock while it waits on the network, and a scheduled snapshot or a Habitica webhook can write meanwhile. — `fix(p05d): release the database before every model call`
+
+**Tests**
+
+- [x] The cleanup request carries `reasoning: {effort: none}` and the cap; a `length` finish keeps the raw transcript; the main chat sends neither. — in commit 1
+- [x] The route answers before a slow turn finishes; the same update posted twice reaches the harness once; two updates are handled in order, the second starting after the first ends. — in commit 2
+- [x] While the model call is in flight, a second connection can write to the database. — in commit 3
+
+**Acceptance**
+
+```gherkin
+Given a voice note whose turn takes longer than Telegram's webhook timeout
+When I send it and then a second one
+Then each gets exactly one reply, in order
+And no update is answered with a 500
+```
+
+**Done when**: boxes ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**:
+
+- Task 3 covers the speech wrappers too, not only `chat`: TTS takes up to 9 s (backlog, measured), longer than SQLite's 5 s lock wait, so a turn speaking a reply would lock out a writer just the same. ASR follows for symmetry.
+- The SDK's reasoning field has `effort` only (no `enabled`); `effort: "none"` was checked live on `deepseek/deepseek-v4-flash` with a made-up sentence: 13 completion tokens and 1.2–1.7 s, against 125 tokens with reasoning on.
+- The cap is `2 ×` the longest acceptable answer in characters, not `1 ×`: a byte-level tokenizer can spend two tokens on one Cyrillic letter or emoji, and a cut-off Russian note would fall back to the raw text for no reason.
+- The update-id memory is in process (the last 1,000), not in the DB: with the route answering at once, Telegram has no reason to re-send, and the memory only has to outlive a re-delivery that is already in flight. A restart forgets it, which is harmless for the same reason.
 
 ---
 
@@ -675,7 +715,6 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - `remove_glossary_term` tool: the model can add a glossary word (F1's amend flow proposes them) but not remove one, so "take Vergil out of the glossary" said in free text has no tool and may be claimed done anyway; `/glossary remove <term>` works. Ten lines next to `add_glossary_term`, using `glossary.remove_term`; goes with the next phase that touches voice or the glossary.
 - Qwen3-TTS as a second `speak()` backend, to compare with Fish Audio.
 - Multi-user — not planned; schema already carries `user_id`.
-- Telegram webhook route handles the update inline before answering 200; once LLM turns take seconds (P03), answer immediately and process in a background task so Telegram does not redeliver.
 - Once webhooks are live (P05), a task the bot scores produces a `source=bot` event from its own collection round and, seconds later, a `source=webhook` one from Habitica. The receiver should skip the event when the latest `task_snapshots` row already reflects the payload's state (same `completed` / counters / value), the way it already skips the scheduled round's duplicate.
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
 - Model cost, measured after a day of use: ~$0.008 per text turn on `z-ai/glm-5.3` (~3k prompt tokens, ~490 completion tokens — it is a reasoning model and the thinking is billed as output). Not a problem at this volume; two levers for later, in order: `reasoning={"effort": "low"}` on the chat request (one field; measure whether GLM honours graded effort or only on/off), and `z-ai/glm-5.3-flash` as strong at a tenth of the price. The prompt is not to be shrunk.

@@ -144,7 +144,9 @@ async def transcribe(
     """`client.transcribe` plus one `transcriptions` row, written whether the call worked or not.
 
     The row comes back too: the voice flow adds the cleaned and accepted texts to it later.
+    Commits the caller's session first, as `llm.client.chat` does: no write lock across the call.
     """
+    await session.commit()
     started = time.monotonic()
     try:
         result = await client.transcribe(audio, mime_type)

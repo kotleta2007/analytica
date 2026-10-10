@@ -17,6 +17,8 @@ class FakeCall:
     tools: list[dict[str, Any]] | None
     model: str
     tool_choice: str | None
+    max_tokens: int | None = None
+    reasoning_effort: str | None = None
 
     @property
     def system(self) -> str:
@@ -92,8 +94,12 @@ class FakeLlm:
         model: str,
         *,
         tool_choice: str | None = None,
+        max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
     ) -> LlmResult:
-        self.calls.append(FakeCall(list(messages), tools, model, tool_choice))
+        self.calls.append(
+            FakeCall(list(messages), tools, model, tool_choice, max_tokens, reasoning_effort)
+        )
         if not self.script:
             return says("OK")
         step = self.script.popleft()
