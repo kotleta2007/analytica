@@ -20,7 +20,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 - LLM: `z-ai/glm-5.3` (strong, default), `deepseek/deepseek-v4-flash` (cheap). Verify ids on OpenRouter at build time.
 - Everything model-related goes through OpenRouter with one key: LLM, ASR (Qwen3-ASR-Flash), TTS (Fish Audio S2.1 Pro, voice Selene `b347db033a6549378b48d00acb0d06cd` for all languages). Verify ids and the TTS voice parameter at build time; STOP and ask if OpenRouter can't do TTS with that voice.
 - Voice replies: `/tts on|off`, default off. Speaking to the bot does not make it speak.
-- Gear: INT before day start (max mana at cron), CON instead if dailies are incomplete, PER during the day. Because any API read after `dayStart` triggers the reset, the bot triggers it itself at `dayStart + 1` with the right gear on, then sends a "new day" message (damage, mana, dailies due). No manual mode; the operator never has to open the app for the reset.
+- Gear: INT before day start (max mana at cron), CON instead if dailies are incomplete, PER during the day. Only `POST /cron` turns the day (no read does — verified in Habitica's source, P05c), so the bot runs it itself at `dayStart + 1` with the right gear on — after asking about unticked dailies at `dayStart − 30` and waiting for the answer up to `CRON_GRACE_MIN` — then sends a "new day" message (damage, mana, dailies due). No manual mode; the operator never has to open the app for the reset.
 - Timezone `Europe/Zurich`; Habitica `dayStart` = 11 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
 - Calendar: Habitica → Calendar for tasks/events; `(done)` is isomorphic with completion in both directions, but only undone → done. Nothing is ever un-done by the bot. Main calendar. Free/busy drives scheduling of todos.
 - KanbanFlow: dropped (API needs a paid board).
@@ -405,6 +405,53 @@ Then the reply is Russian throughout and calls a streak "серия"
 
 ---
 
+## Phase 05c — Record yesterday's dailies before the bot runs cron
+
+**Branch**: `feature/05c-day-turn-window`
+**Goal**: the bot's own cron never costs a streak for a daily that was done and not ticked. Size M.
+
+**Current Status:** the bot posts `/cron` at `dayStart + 1` blindly. On 2026-09-17 that zeroed two streaks the operator had earned (P05 notes). The backlog sketch assumed every Habitica request triggers cron and asked to hold *all* of them; that premise is wrong — see the first note below — so the design is the one Habitica's own client uses.
+
+**What is true** (Habitica server source, `website/server/libs/cron.js` and `routes.js`, read 2026-09-18; the same before their April 2025 refactor): cron runs only on `POST /cron`. `GET /user` after day start reports `needsCron: true` and changes nothing. Scoring a daily while `needsCron` is true counts for the day that is ending — that is exactly how the web client's *Record Yesterday's Dailies* works: it lists yesterday's due, unticked dailies (skipping those with `yesterDaily: false`), scores the ticked ones with the ordinary score endpoint, then posts `/cron`.
+
+**Action Required:**
+
+- [x] 1. Telemetry keeps running; only our `POST /cron` waits. `app/collector/day_close.py`: `close_day` writes the records for the day that is ending — the previous Habitica day when `needsCron` is set — so a close after day start is right; `turn_day()` = records for the ending day, `POST /cron`, snapshot, and it clears the hold. `app/db/models.py` + migration `0011`: `user_settings.cron_hold_until`. `CRON_GRACE_MIN=90` in config, `.env.example`, CLAUDE.md. — `feat(p05c): day-aware close and a cron hold`
+- [x] 2. `app/core/day_turn.py`: `unticked_dailies()` (due, not completed, `yesterDaily` not off); the ask (one button per daily + *Nothing else*, the text says when cron runs and until when the bot waits); the `tick_daily` and `day_turn_done` buttons: refuse when the day already turned (`lastCron` past the asked day's end), score up, re-ask with what is left, and once nothing is left after day start turn the day at once. i18n strings in en/ru/fr; `harness.button_pressed` routes the two actions. — `feat(p05c): ask about unticked dailies, tick them from the buttons`
+- [x] 3. `app/jobs/scheduler.py`: `ask_unticked_job` at `dayStart − 30` (collect, ask through `outbound`, set the hold to `dayStart + CRON_GRACE_MIN`; nothing unticked or no adapter → no hold); `run_cron_job` re-arms itself at the hold instead of running while the question is open; `plan_day_jobs` keeps the cron job at the hold, not tomorrow, while it is active. — `feat(p05c): hold our cron until the answer or the grace deadline`
+- [x] 4. Correct the premise everywhere it was written: CLAUDE.md (*read this twice* section, schedule, F4, config block, `user_settings`, tree), README (*Collecting*), the primer line in `app/llm/prompts.py`, the gear line under *Decisions already made*. — `docs(p05c): cron runs only on POST /cron; the day-turn window`
+
+**Tests**
+
+- [x] `unticked_dailies` picks due + incomplete and skips `yesterDaily: false`, not-due and completed ones. — with task 2
+- [x] The ask job sends one button per daily plus *Nothing else* and sets the hold; sends nothing and holds nothing when all are ticked or no adapter is registered. — with task 3
+- [x] While the hold is open `run_cron_job` re-arms at the hold and the half-hourly replan keeps it there; at the deadline it closes the ending day and posts cron. — with task 3
+- [x] A tick before day start scores and re-asks with the rest; the last tick after day start scores, then turns the day, and the record for the ending day says completed; *Nothing else* after day start turns the day at once; a tick after the day turned is refused and scores nothing. — with task 2
+- [x] `close_day` with `needsCron` writes records for the previous Habitica day. — with task 1
+
+**Acceptance**
+
+```gherkin
+Given a due daily I did but did not tick, at 10:30 Zurich
+Then I get "still unticked: X" with a button for X and "Nothing else"
+When I press X at 11:20
+Then X is scored, the day turns at once, and X's streak is one higher than yesterday
+Given I answer nothing
+Then the day turns at 12:30, not before, and snapshots kept arriving every 30 min meanwhile
+```
+
+**Done when**: all boxes ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**:
+
+- The backlog entry asked to hold *every* Habitica request. Not needed: the collector keeps its schedule through the window, because no read runs cron. The rest of the sketch (ask at `dayStart − 30`, buttons, `CRON_GRACE_MIN`) stands.
+- `cron_hold_until` carries three states, not two: `None` = not asked for this day turn, a future instant = asked and waiting, a past instant = answered (also: nothing to ask, or no adapter to deliver to). `turn_day` resets it to `None` after every cron. Without the third state `run_cron_job` could not tell "Nothing else, at 10:40" from "the process was down at 10:30 and nobody asked" — and in the latter case it now asks first, with the full grace from the late question, instead of firing cron blind.
+- The scheduler's date jobs get `misfire_grace_time` = 10 min (APScheduler's default is 1 s: a busy loop at 11:01:00 would have dropped the day turn). A restart after day start plans the cron job at once instead of tomorrow.
+- Found in review: *Nothing else* (or the last tick) after day start turns the day from the button and clears the hold, but the cron job armed for the hold stays queued — the core cannot touch the scheduler — unless a half-hourly snapshot replans it first. At the hold it saw `None`, took it for "nobody asked", and put the *new* day's dailies up as "still unticked" with another 90-min hold. `run_cron_job` now reads `needsCron` before asking: already turned → replan for tomorrow, ask nothing. The 11:01 test in `test_scheduler.py` now gives its user `needsCron: true`, as Habitica does after day start.
+- `FakeHabiticaClient.score_task` now re-parses the task so `raw` agrees with `completed` (the collector stores `raw`; the old `dataclasses.replace` left it stale), and `run_cron` clears `needsCron` on its user, the one thing cron always does.
+
+---
+
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
@@ -630,4 +677,3 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - `rapidfuzz` fallback for matching RU/FR task references against English titles, if the model proves unreliable at it (CLAUDE.md F2 allows it; not needed on the two models tried).
 - Selene (`TTS_VOICE`) has a noticeable English accent in Russian and French. Explore other Fish Audio voices — one per language if no single voice does all three — together with `/voices` above.
 - uvicorn logs every request as coming from nginx (`172.18.0.1`, the Docker bridge) instead of the caller: nginx sends `X-Forwarded-For`, uvicorn is not told to trust it. `--proxy-headers --forwarded-allow-ips=<bridge ip>` in `deploy/entrypoint.sh` once the access log is used for anything.
-- **The bot's explicit cron removes Habitica's *Record Yesterday's Dailies* window** (P05 acceptance, 2026-09-17: two streaks lost for dailies that were done but not ticked, restored by hand from `task_snapshots`). Own phase, right after the callback-ack fix: at `dayStart − 30` (with the gear job) send "still unticked for today: X, Y — did you do them?" with one button per daily and *none of them*; hold `close_day` + `POST /cron` **and every other Habitica request** (any authenticated call triggers cron) until the buttons are answered or a grace deadline (`CRON_GRACE_MIN`, say 90) passes; a pressed button scores the daily before the cron so the streak counts. Ticking after cron is useless, so the message must say when the window closes. Requires the callback-ack fix first (a button that gets no reply is exactly this flow).

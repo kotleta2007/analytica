@@ -24,6 +24,11 @@ def format_moment(moment: datetime) -> str:
     return moment.strftime(f"{DATE_FORMAT} %H:%M")
 
 
+def format_clock(moment: datetime) -> str:
+    """`14:05`; the caller converts to the user's timezone first."""
+    return moment.strftime("%H:%M")
+
+
 def parse_day(value: str) -> date:
     """Accepts `31.12.2026` and `2026-12-31`; raises ValueError otherwise."""
     text = value.strip()
@@ -327,6 +332,50 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Habitica didn't answer properly: {error}",
         "ru": "Habitica не ответила как следует: {error}",
         "fr": "Habitica n'a pas répondu correctement : {error}",
+    },
+    # ---- the day-turn window (P05c) ----
+    "day_turn_ask": {
+        "en": "Before the day turns at {cron_time} — still unticked:\n{dailies}\n"
+        "Did you do any of them? Tick what you did. If you don't answer, I wait until "
+        "{deadline} and then turn the day.",
+        "ru": "До начала нового дня в {cron_time} — ещё не отмечены:\n{dailies}\n"
+        "Что-то из этого сделано? Отметьте, что выполнили. Без ответа я подожду до "
+        "{deadline} и затем начну новый день.",
+        "fr": "Avant le début de journée à {cron_time} — pas encore cochées :\n{dailies}\n"
+        "En avez-vous fait ? Cochez ce que vous avez fait. Sans réponse, j'attends jusqu'à "
+        "{deadline} puis je lance la nouvelle journée.",
+    },
+    "day_turn_nothing_else": {
+        "en": "Nothing else",
+        "ru": "Больше ничего",
+        "fr": "Rien d'autre",
+    },
+    "day_turn_ticked": {
+        "en": "✅ {task} — ticked.",
+        "ru": "✅ {task} — отмечено.",
+        "fr": "✅ {task} — coché.",
+    },
+    "day_turn_remaining": {
+        "en": "Still unticked:\n{dailies}",
+        "ru": "Ещё не отмечены:\n{dailies}",
+        "fr": "Pas encore cochées :\n{dailies}",
+    },
+    "day_turn_ok": {
+        "en": "OK — the day turns at {cron_time}.",
+        "ru": "Хорошо — новый день начнётся в {cron_time}.",
+        "fr": "D'accord — la nouvelle journée commence à {cron_time}.",
+    },
+    "day_turn_turned": {
+        "en": "The day has turned. HP lost: {hp_lost}, mana now {mp}.",
+        "ru": "Новый день начался. Потеряно здоровья: {hp_lost}, маны сейчас {mp}.",
+        "fr": "Nouvelle journée. Santé perdue : {hp_lost}, mana : {mp}.",
+    },
+    "day_turn_too_late": {
+        "en": "Too late — the day already turned at {time}. Anything ticked now counts for today.",
+        "ru": "Поздно — новый день уже начался в {time}. Всё, что отметить сейчас, зачтётся "
+        "за сегодня.",
+        "fr": "Trop tard — la journée a déjà tourné à {time}. Ce que vous cochez maintenant "
+        "compte pour aujourd'hui.",
     },
     "confirm_do_it": {
         "en": "✅ Do it",

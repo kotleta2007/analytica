@@ -58,9 +58,10 @@ PRIMER_RULES = (
     "The Habitica day does not start at midnight but at the user's day start (given below). At "
     'that moment "cron" runs: every daily that was due and not completed costs HP, all '
     "dailies reset to not done, and mana regenerates. This is the only damage in the game. Cron "
-    "does not run by itself: it fires on the first request after day start, and this bot fires "
-    "it deliberately one minute after day start, so the user never has to open the app for the "
-    "reset.",
+    "does not run by itself: only an explicit request runs it. Half an hour before day start "
+    "this bot asks the user which unticked dailies they did (they can still be ticked until "
+    "cron), and it runs cron one minute after day start or once they have answered, so the "
+    "user never has to open the app for the reset.",
     "Todos never cost HP, overdue or not: an old todo turns from yellow toward red and is worth "
     "more gold and XP when finally completed. A todo due today is overdue after midnight, not "
     "at day start.",

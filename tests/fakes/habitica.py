@@ -60,7 +60,8 @@ class FakeHabiticaClient:
         self.calls.append(("score_task", (task_id, direction)))
         task = self.find(task_id)
         if task.type in ("daily", "todo"):
-            self.replace_task(replace(task, completed=direction == "up"))
+            # Re-parsed, so `raw` agrees with the field: the collector stores `raw`.
+            self.replace_task(task_from_json({**task.raw, "completed": direction == "up"}))
         return ScoreResult(
             delta=1.0,
             hp=self.user.hp,
@@ -113,6 +114,8 @@ class FakeHabiticaClient:
 
     async def run_cron(self) -> None:
         self.calls.append(("run_cron", None))
+        # The one thing cron always does to the user object; tests model damage themselves.
+        self.user = user_stats_from_json({**self.user.raw, "needsCron": False})
 
     async def get_content(self, *, force_refresh: bool = False) -> dict[str, Any]:
         self.calls.append(("get_content", force_refresh))
