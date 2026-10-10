@@ -47,6 +47,9 @@ CLEANUP_INSTRUCTION = (
 # A cleanup that comes back much longer than the transcript is commentary, not a correction.
 CLEANUP_MAX_GROWTH = 1.5
 CLEANUP_MAX_EXTRA_CHARS = 40
+# Fixing punctuation needs no thinking: with reasoning on, the cheap model once spent 20k
+# tokens and 126 s on a 30-character note (2026-10-09).
+CLEANUP_REASONING = "none"
 # Words offered for the glossary after an amendment: long enough to be a term, at most this many.
 MIN_TERM_LENGTH = 4
 MAX_TERM_OFFERS = 3
@@ -95,18 +98,37 @@ async def cleanup(turn: Turn, raw: str) -> str:
         {"role": "system", "content": f"{CLEANUP_INSTRUCTION}\n\n{context}"},
         {"role": "user", "content": raw},
     ]
+    longest = cleanup_limit(raw)
     try:
         result = await chat(
-            turn.llm, turn.session, turn.user.id, turn.now, messages, None, model_id(CHEAP)
+            turn.llm,
+            turn.session,
+            turn.user.id,
+            turn.now,
+            messages,
+            None,
+            model_id(CHEAP),
+            # Room for the longest acceptable answer even where a byte-level tokenizer splits
+            # a Cyrillic letter or an emoji into two tokens; anything longer is refused anyway.
+            max_tokens=2 * longest,
+            reasoning_effort=CLEANUP_REASONING,
         )
     except LlmError as error:
         logger.warning("transcript cleanup failed, keeping the raw text: %s", error)
         return raw
+    if result.truncated:
+        logger.warning("transcript cleanup hit its token cap, keeping the raw text")
+        return raw
     cleaned = unquote(result.text.strip())
-    if not cleaned or len(cleaned) > len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS:
+    if not cleaned or len(cleaned) > longest:
         logger.warning("transcript cleanup returned something else, keeping the raw text")
         return raw
     return cleaned
+
+
+def cleanup_limit(raw: str) -> int:
+    """The longest cleanup we accept, in characters."""
+    return int(len(raw) * CLEANUP_MAX_GROWTH + CLEANUP_MAX_EXTRA_CHARS)
 
 
 def unquote(text: str) -> str:
