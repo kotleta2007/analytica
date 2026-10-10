@@ -157,6 +157,7 @@ async def test_close_day_and_cron_jobs_run_and_replan(
     monkeypatch.setattr(scheduler_module, "now", lambda: utc(2026, 9, 12, 8, 58))
     await jobs.close_day_job()
     monkeypatch.setattr(scheduler_module, "now", lambda: utc(2026, 9, 12, 9, 1))
+    client.user = user_stats_from_json({**load_data("user"), "needsCron": True})
     await jobs.run_cron_job()
 
     assert client.called("run_cron") == [None]
@@ -308,3 +309,21 @@ async def test_run_cron_job_asks_first_when_nobody_did(
     assert client.called("run_cron") == []
     assert await hold() == at(2026, 9, 12, 11, 10)  # 90 min from the late question
     assert run_date(jobs, RUN_CRON_JOB) == at(2026, 9, 12, 11, 10)
+
+
+async def test_the_job_left_at_the_hold_after_the_buttons_turned_the_day_asks_nothing(
+    jobs: CollectorJobs, delivered: list[Reply], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """*Nothing else* at 12:20 turned the day and cleared the hold; no snapshot replanned
+    before 12:30, so the job armed for the hold still fires — into the new day."""
+    client = jobs.client
+    assert isinstance(client, FakeHabiticaClient)
+    unticked_milk(client)  # the new day's dailies, reset by the cron that just ran
+    monkeypatch.setattr(scheduler_module, "now", lambda: at(2026, 9, 12, 10, 30))
+
+    await jobs.run_cron_job()
+
+    assert delivered == []
+    assert client.called("run_cron") == []
+    assert await hold() is None
+    assert run_date(jobs, RUN_CRON_JOB) == at(2026, 9, 13, 9, 1)
