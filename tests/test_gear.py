@@ -16,6 +16,7 @@ from app.core.harness import Harness
 from app.core.replies import User
 from app.core.turn import load_settings
 from app.db.engine import session_scope
+from app.habitica.client import HabiticaError
 from app.habitica.types import user_stats_from_json
 from tests.fakes.habitica import FakeHabiticaClient
 from tests.habitica_fixtures import load_data
@@ -167,6 +168,24 @@ async def test_without_sets_nothing_is_equipped(db_path: Path) -> None:
     assert client.called("equip") == []
     assert client.called("run_cron") == [None]
     assert (turned.worn_for_cron, turned.worn_now) == (None, None)
+
+
+class RefusingEquips(FakeHabiticaClient):
+    async def equip(self, key: str) -> None:
+        self.calls.append(("equip", key))
+        raise HabiticaError(404, "NotFound", "Item not found.")
+
+
+async def test_a_refused_equip_does_not_keep_the_day_from_turning(db_path: Path) -> None:
+    client = RefusingEquips(tasks=[make_task("daily", "Gym", completed=False, isDue=True)])
+
+    turned = await turned_with(db_path, client, {"con": CON_SET, "int": INT_SET, "per": PER_SET})
+
+    before, after = equips_around_cron(client)
+    assert before and after  # both sets were tried
+    assert client.called("run_cron") == [None]
+    assert (turned.worn_for_cron, turned.worn_now) == (None, None)
+    assert [k.task.text for k in turned.due_today] == ["Gym"]
 
 
 # ---- /gear ----

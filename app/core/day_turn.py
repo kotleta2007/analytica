@@ -197,16 +197,28 @@ async def turn_day(
     async def dress_for_cron(outcome: CollectOutcome) -> None:
         stats = user_stats_from_json(outcome.user.raw)
         unfinished = unfinished_dailies(await load_known_tasks(session, user_id))
-        worn["cron"] = await gear.wear(
+        worn["cron"] = await wear_or_skip(
             client, stats.equipped, settings, gear.before_cron(bool(unfinished))
         )
 
     cron = await day_close.turn_day(client, session, user_id, now, dress_for_cron)
     after = user_stats_from_json(cron.after.user.raw)
-    worn_now = await gear.wear(client, after.equipped, settings, "per")
+    worn_now = await wear_or_skip(client, after.equipped, settings, "per")
     due_today = due_dailies(await load_known_tasks(session, user_id))
     logger.info("day turned: wore %s for cron, %s now", worn.get("cron"), worn_now)
     return DayTurned(cron, worn.get("cron"), worn_now, due_today)
+
+
+async def wear_or_skip(
+    client: HabiticaClient, equipped: dict[str, str], settings: UserSettings, stat: str
+) -> str | None:
+    """The gear is a bonus; the cron is the point. A refused equip must not keep the day
+    from turning (or the new-day message from going out), so it is logged and skipped."""
+    try:
+        return await gear.wear(client, equipped, settings, stat)
+    except (HabiticaError, httpx.HTTPError) as error:
+        logger.warning("could not wear the %s set for the day turn: %s", stat, error)
+        return None
 
 
 def new_day_message(turned: DayTurned, language: str) -> str:
