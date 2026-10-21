@@ -18,7 +18,7 @@ Recorded so nobody re-asks them. Details in `CLAUDE.md`.
 - SQLite, one file, WAL. No Postgres, no Docker for the DB.
 - Runs on a VPS behind the operator's existing nginx + certbot (no Caddy, no second web server). Habitica webhooks on. Telegram webhook mode on the VPS, polling for local dev.
 - LLM: `z-ai/glm-5.3` (strong, default), `deepseek/deepseek-v4-flash` (cheap). Verify ids on OpenRouter at build time.
-- Everything model-related goes through OpenRouter with one key: LLM, ASR (Qwen3-ASR-Flash), TTS (Fish Audio S2.1 Pro, voice Selene `b347db033a6549378b48d00acb0d06cd` for all languages). Verify ids and the TTS voice parameter at build time; STOP and ask if OpenRouter can't do TTS with that voice.
+- Everything model-related goes through OpenRouter with one key: LLM, ASR (Qwen3-ASR; Flash until it was withdrawn on 2026-10-21, 1.7B since, with fallbacks — P05e), TTS (Fish Audio S2.1 Pro, voice Selene `b347db033a6549378b48d00acb0d06cd` for all languages). Verify ids and the TTS voice parameter at build time; STOP and ask if OpenRouter can't do TTS with that voice.
 - Voice replies: `/tts on|off`, default off. Speaking to the bot does not make it speak.
 - Gear: INT before day start (max mana at cron), CON instead if dailies are incomplete, PER during the day. Only `POST /cron` turns the day (no read does — verified in Habitica's source, P05c), so the bot runs it itself at `dayStart + 1` with the right gear on — after asking about unticked dailies at `dayStart − 30` and waiting for the answer up to `CRON_GRACE_MIN` — then sends a "new day" message (damage, mana, dailies due). No manual mode; the operator never has to open the app for the reset.
 - Timezone `Europe/Zurich`; Habitica `dayStart` = 11 and `timezoneOffset` are read from the API, not configured. Reminder 21:00. Weekly report Sunday 19:00.
@@ -491,6 +491,42 @@ And no update is answered with a 500
 
 ---
 
+## Phase 05e — Fall back to another model when OpenRouter drops one
+
+**Branch**: `feature/05e-model-fallbacks`
+**Goal**: a model that disappears from OpenRouter costs one failed attempt, not a feature. Size S.
+
+**Current Status:** seen live 2026-10-21 19:11 Zurich. A voice note got "I couldn't transcribe that (qwen/qwen3-asr-flash-2026-02-10: HTTP 404: No endpoints found …)". OpenRouter no longer lists the model (its transcription list has 28 others, `qwen/qwen3-asr-1.7b` among them); the undated `qwen/qwen3-asr-flash` answers `400 does not exist`. Every voice note fails until someone edits `.env`, and the same would happen to free text the day either chat model goes.
+
+**Action Required:**
+
+- [x] 1. `app/speech/asr.py`, `app/llm/client.py`, `app/config.py`: each client holds a chain of models, and the recording wrappers (`transcribe`, `chat`) try them in order, one telemetry row per attempt; the first answer wins, the last failure is raised. A 401 or 402 (key, credit) and audio no model takes end the chain at once: no other model would do better. ASR: `ASR_MODEL` (now `qwen/qwen3-asr-1.7b`), then `ASR_FALLBACK_MODELS` (`openai/gpt-4o-mini-transcribe`, `mistralai/voxtral-mini-transcribe-3-0`). LLM: the chosen model, the other of strong/cheap, then `LLM_FALLBACK_MODELS` (`google/gemini-3.5-flash`). Both lists comma-separated; empty turns the fallback off. — `fix(p05e): fall back to the next model when OpenRouter drops one`
+
+**Tests**
+
+- [x] A 404 (and a 400 for an unknown model) moves to the next model and the answer comes from it; the failed attempt is a row with `ok=False`; the chosen model is not asked twice; 401/402 and unsupported audio try nothing else; all failing raises the last error; the chains come from the settings, an empty list turns the fallback off. — in commit 1
+
+**Acceptance**
+
+```gherkin
+Given ASR_MODEL names a model OpenRouter no longer serves
+When I send a voice note
+Then I get the transcript from the first fallback model
+And the transcriptions table shows the failed attempt and the one that worked
+```
+
+**Done when**: boxes ticked · lint + tests green · PR open · STOP.
+
+**Notes & deviations**:
+
+- Not a phase from the original plan: a production break (above). Branched from `main` while P06 (#11) is in review, since it touches none of P06's files but `GAMEPLAN.md`.
+- The replacements were chosen with one live, read-only call each on a 12-second Ogg/Opus clip mixing Russian and English (the bot's own TTS output, so no operator speech left the machine), 2026-10-21: `qwen/qwen3-asr-1.7b` 0.8 s, $0.00009; `openai/whisper-large-v3-turbo` 0.4 s, $0.00013; `openai/gpt-4o-mini-transcribe` 0.9 s, $0.00032; `mistralai/voxtral-mini-transcribe-3-0` 0.5 s, $0.0007; `elevenlabs/scribe-v2` 2.1 s, $0.0007; `google/gemini-3.5-transcribe` 2.8 s, $0.001. All six gave the same transcript up to spelling. Primary is the cheapest of the Qwen family that was already in use; the two fallbacks are other vendors, so one provider's outage does not take all three.
+- `google/gemini-3.5-flash` as the last chat fallback: another vendor than both configured models, and OpenRouter lists `tools`, `reasoning` and `max_tokens` for it (the tool loop, the cleanup pass and the cap need all three). Not called live: it only runs when both configured models fail.
+- The operator's `.env` on the VPS may still name the old ASR id; the fallback covers that (the first attempt fails, the second answers), but `ASR_MODEL` there should be updated to save the extra request.
+- TTS gets no fallback: the voice id (`TTS_VOICE`) is a Fish Audio reference and means nothing to another vendor. `fish-audio/s2.1-pro` is still listed.
+
+---
+
 ## Phase 06 — Reminders and gear
 
 **Branch**: `feature/06-reminders-gear`
@@ -711,7 +747,7 @@ _Things noticed during a phase that are out of its scope. Add a line, don't fix 
 - The FastAPI app does not migrate on boot; `scripts/dev.sh` migrates once at start and uvicorn's `--reload` then picks up new models without their migrations (seen: `no such column: tasks.position` after pulling 0007 into a running dev server). The CLI already runs `alembic upgrade head` on every start; the app's lifespan should too, before the collector's first round — the VPS deploy (P05) needs it anyway.
 - Model cost, measured after a day of use: ~$0.008 per text turn on `z-ai/glm-5.3` (~3k prompt tokens, ~490 completion tokens — it is a reasoning model and the thinking is billed as output). Not a problem at this volume; two levers for later, in order: `reasoning={"effort": "low"}` on the chat request (one field; measure whether GLM honours graded effort or only on/off), and `z-ai/glm-5.3-flash` as strong at a tenth of the price. The prompt is not to be shrunk.
 - TTS latency, measured: 2.7 s for ~100 characters, 9.2 s for 313 (Fish S2.1 Pro via OpenRouter). The harness synthesises before returning the reply, so with `/tts on` the text waits that long too. **Decided 2026-09-14: keep it** — text and voice note go out together; the alternative (text first, voice note when ready, via a pending synthesis on `Reply`) is not wanted.
-- Qwen3-ASR-Flash accepts a language hint (`language: "ru"`), and `provider.options.alibaba.asr_options` is forwarded (a hint given that way changed the output). Neither is sent today: auto-detect worked on a natural 10-second clip. If short notes come back transliterated, pass the user's `/language` setting as `language` — one line in `AsrClient.transcribe`.
+- Qwen3-ASR-Flash (withdrawn from OpenRouter 2026-10-21; P05e moved to `qwen/qwen3-asr-1.7b`) accepted a language hint (`language: "ru"`), and `provider.options.alibaba.asr_options` is forwarded (a hint given that way changed the output). Neither is sent today: auto-detect worked on a natural 10-second clip. If short notes come back transliterated, pass the user's `/language` setting as `language` — one line in `AsrClient.transcribe` — check first that the 1.7B endpoint takes the same field.
 - `rapidfuzz` fallback for matching RU/FR task references against English titles, if the model proves unreliable at it (CLAUDE.md F2 allows it; not needed on the two models tried).
 - Selene (`TTS_VOICE`) has a noticeable English accent in Russian and French. Explore other Fish Audio voices — one per language if no single voice does all three — together with `/voices` above.
 - uvicorn logs every request as coming from nginx (`172.18.0.1`, the Docker bridge) instead of the caller: nginx sends `X-Forwarded-For`, uvicorn is not told to trust it. `--proxy-headers --forwarded-allow-ips=<bridge ip>` in `deploy/entrypoint.sh` once the access log is used for anything.

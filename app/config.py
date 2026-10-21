@@ -53,7 +53,13 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     llm_strong_model: str = "z-ai/glm-5.3"
     llm_cheap_model: str = "deepseek/deepseek-v4-flash"
-    asr_model: str = "qwen/qwen3-asr-flash-2026-02-10"
+    # Tried in order when the chosen model fails: OpenRouter drops models without notice.
+    llm_fallback_models: Annotated[list[str], NoDecode] = ["google/gemini-3.5-flash"]
+    asr_model: str = "qwen/qwen3-asr-1.7b"
+    asr_fallback_models: Annotated[list[str], NoDecode] = [
+        "openai/gpt-4o-mini-transcribe",
+        "mistralai/voxtral-mini-transcribe-3-0",
+    ]
     tts_model: str = "fish-audio/s2.1-pro"
     tts_voice: str = "b347db033a6549378b48d00acb0d06cd"
 
@@ -82,6 +88,14 @@ class Settings(BaseSettings):
         if not isinstance(value, str):
             return value
         return [int(part) for part in value.split(",") if part.strip()]
+
+    @field_validator("llm_fallback_models", "asr_fallback_models", mode="before")
+    @classmethod
+    def _split_model_ids(cls, value: object) -> object:
+        """Comma-separated in .env; empty turns the fallback off."""
+        if not isinstance(value, str):
+            return value
+        return [part.strip() for part in value.split(",") if part.strip()]
 
     @field_validator("webhook_secret")
     @classmethod

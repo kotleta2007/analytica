@@ -110,7 +110,7 @@ done on the model's say-so: it asks, you press **✅ Do it** or **❌ Cancel**, 
 any other message drops the offer.
 
 **Voice** works in both directions, through the same OpenRouter key. A voice
-note is transcribed (Qwen3-ASR-Flash, any of the three languages), then the
+note is transcribed (Qwen3-ASR, any of the three languages), then the
 cheap model fixes punctuation and misheard words against your task names and
 your **glossary**, and the bot shows what it heard with **✅ Correct** and
 **✏️ Amend**. Correct runs it as if you had typed it; Amend asks for the

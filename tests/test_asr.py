@@ -17,7 +17,7 @@ from tests.locking import logged_texts, write_in_turn, writing_elsewhere_first
 
 NOW = datetime(2026, 9, 14, 18, 0, tzinfo=UTC)
 USER_ID = "00000000-0000-4000-8000-000000000001"
-MODEL = "qwen/qwen3-asr-flash-2026-02-10"
+MODEL = "qwen/qwen3-asr-1.7b"
 AUDIO = b"OggS\x00\x02fake-opus-bytes"
 
 
@@ -154,3 +154,113 @@ async def test_failed_call_is_recorded_and_raised(db_path: Path) -> None:
     assert stored.ok is False
     assert stored.raw_text == ""
     assert "HTTP 500" in (stored.error or "")
+
+
+# ---- fallback down the model chain ----
+
+FALLBACK = "vendor/spare-asr"
+
+
+class ModelServer:
+    """Answers per requested model: a status code, or a transcript naming the model."""
+
+    def __init__(self, statuses: dict[str, int]) -> None:
+        self.statuses = statuses
+        self.models: list[str] = []
+
+    def client(self, *fallbacks: str) -> AsrClient:
+        transport = httpx.MockTransport(self.handler)
+        return AsrClient(
+            "test-key",
+            MODEL,
+            fallback_models=fallbacks,
+            http_client=httpx.AsyncClient(transport=transport),
+        )
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        model = json.loads(request.content)["model"]
+        self.models.append(model)
+        status = self.statuses.get(model, 200)
+        if status != 200:
+            return httpx.Response(
+                status,
+                json={"error": {"code": status, "message": f"No endpoints for {model}"}},
+            )
+        return ok(f"heard by {model}")
+
+
+async def hear(client: AsrClient) -> tuple[str, int | None]:
+    async with session_scope() as session:
+        result, row = await transcribe(client, session, USER_ID, NOW, AUDIO, "audio/ogg")
+    return result.text, row.id
+
+
+async def test_a_model_that_is_gone_falls_back_to_the_next_one(db_path: Path) -> None:
+    server = ModelServer({MODEL: 404})
+
+    text, row_id = await hear(server.client(FALLBACK))
+
+    assert text == f"heard by {FALLBACK}"
+    assert server.models == [MODEL, FALLBACK]
+    failed, worked = await rows()
+    assert (failed.model, failed.ok, worked.model, worked.ok) == (MODEL, False, FALLBACK, True)
+    assert "No endpoints" in (failed.error or "")
+    assert worked.id == row_id  # the row the voice flow fills in later is the one that worked
+
+
+async def test_a_bad_key_or_no_credit_does_not_try_other_models(db_path: Path) -> None:
+    for status in (401, 402):
+        server = ModelServer({MODEL: status})
+
+        with pytest.raises(AsrError, match=f"HTTP {status}"):
+            await hear(server.client(FALLBACK))
+
+        assert server.models == [MODEL]
+
+
+async def test_audio_no_model_takes_is_not_tried_on_the_others(db_path: Path) -> None:
+    server = ModelServer({})
+
+    async with session_scope() as session:
+        with pytest.raises(AsrError, match="unsupported audio type"):
+            await transcribe(server.client(FALLBACK), session, USER_ID, NOW, AUDIO, "image/png")
+
+    assert server.models == []
+    assert [row.ok for row in await rows()] == [False]
+
+
+async def test_when_every_model_fails_the_last_error_is_raised(db_path: Path) -> None:
+    server = ModelServer({MODEL: 404, FALLBACK: 503})
+
+    async with session_scope() as session:
+        with pytest.raises(AsrError, match=f"{FALLBACK}: HTTP 503"):
+            await transcribe(server.client(FALLBACK), session, USER_ID, NOW, AUDIO, "audio/ogg")
+
+    assert [(row.model, row.ok) for row in await rows()] == [(MODEL, False), (FALLBACK, False)]
+
+
+def test_the_chain_comes_from_the_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("ASR_MODEL", "vendor/first")
+    monkeypatch.setenv("ASR_FALLBACK_MODELS", "vendor/second,vendor/first")
+    from app.config import get_settings
+    from app.speech.asr import client_from_settings
+
+    get_settings.cache_clear()
+    client = client_from_settings()
+
+    assert client is not None
+    assert client.models == ("vendor/first", "vendor/second")
+
+
+def test_an_empty_fallback_list_turns_the_fallback_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("ASR_FALLBACK_MODELS", "")
+    from app.config import get_settings
+    from app.speech.asr import client_from_settings
+
+    get_settings.cache_clear()
+    client = client_from_settings()
+
+    assert client is not None
+    assert client.models == ("qwen/qwen3-asr-1.7b",)

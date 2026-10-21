@@ -219,6 +219,100 @@ async def test_the_database_is_free_for_other_writers_while_the_model_thinks(
     assert [row.ok for row in await rows()] == [True]
 
 
+# ---- fallback down the model chain ----
+
+FALLBACK = "vendor/spare"
+
+
+class ModelServer:
+    """Answers per requested model: a status code, or a completion naming the model."""
+
+    def __init__(self, statuses: dict[str, int]) -> None:
+        self.statuses = statuses
+        self.models: list[str] = []
+
+    def client(self, *fallbacks: str) -> LlmClient:
+        transport = httpx.MockTransport(self.handler)
+        return LlmClient(
+            "test-key",
+            fallback_models=fallbacks,
+            http_client=httpx.AsyncClient(transport=transport),
+        )
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        model = json.loads(request.content)["model"]
+        self.models.append(model)
+        status = self.statuses.get(model, 200)
+        if status != 200:
+            return httpx.Response(
+                status,
+                json={"error": {"code": status, "message": f"No endpoints for {model}"}},
+            )
+        return httpx.Response(200, json=completion({"role": "assistant", "content": model}))
+
+
+async def ask(client: LlmClient, model: str = MODEL) -> str:
+    async with session_scope() as session:
+        result = await chat(client, session, USER_ID, NOW, [], None, model)
+    return result.text
+
+
+async def test_a_model_that_is_gone_falls_back_to_the_next_one(db_path: Path) -> None:
+    server = ModelServer({MODEL: 404})
+
+    answer = await ask(server.client(MODEL, FALLBACK))
+
+    assert answer == FALLBACK
+    assert server.models == [MODEL, FALLBACK]  # the chosen model is not asked twice
+    assert [(row.model, row.ok) for row in await rows()] == [(MODEL, False), (FALLBACK, True)]
+    assert "404" in ((await rows())[0].error or "")
+
+
+async def test_a_400_for_an_unknown_model_falls_back_too(db_path: Path) -> None:
+    server = ModelServer({MODEL: 400})
+
+    assert await ask(server.client(FALLBACK)) == FALLBACK
+
+
+async def test_a_bad_key_or_no_credit_does_not_try_other_models(db_path: Path) -> None:
+    for status in (401, 402):
+        server = ModelServer({MODEL: status})
+
+        with pytest.raises(LlmError, match=f"HTTP {status}"):
+            await ask(server.client(FALLBACK))
+
+        assert server.models == [MODEL]
+
+
+async def test_when_every_model_fails_the_last_error_is_raised(db_path: Path) -> None:
+    server = ModelServer({MODEL: 404, FALLBACK: 404})
+
+    async with session_scope() as session:
+        with pytest.raises(LlmError, match=FALLBACK):
+            await chat(server.client(FALLBACK), session, USER_ID, NOW, [], None, MODEL)
+
+    assert [row.ok for row in await rows()] == [False, False]
+
+
+def test_the_chain_is_the_other_role_then_the_configured_fallbacks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("LLM_FALLBACK_MODELS", "vendor/spare, vendor/other")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    client = llm_module.client_from_settings()
+
+    assert client is not None
+    assert client.fallback_models == (
+        "z-ai/glm-5.3",
+        "deepseek/deepseek-v4-flash",
+        "vendor/spare",
+        "vendor/other",
+    )
+
+
 # ---- registry ----
 
 
