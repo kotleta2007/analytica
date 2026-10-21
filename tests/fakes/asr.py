@@ -15,6 +15,7 @@ def hears(text: str) -> Transcription:
 
 class FakeAsr:
     model = "fake-asr"
+    models = ("fake-asr",)
 
     def __init__(self, *script: Transcription | AsrError) -> None:
         self.script: deque[Transcription | AsrError] = deque(script)
@@ -23,7 +24,9 @@ class FakeAsr:
     def queue(self, *script: Transcription | AsrError) -> None:
         self.script.extend(script)
 
-    async def transcribe(self, audio: bytes, mime_type: str) -> Transcription:
+    async def transcribe(
+        self, audio: bytes, mime_type: str, model: str | None = None
+    ) -> Transcription:
         self.calls.append((audio, mime_type))
         if not self.script:
             return hears("hello")

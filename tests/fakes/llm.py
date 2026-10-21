@@ -80,7 +80,10 @@ def _json(value: dict[str, Any]) -> str:
 
 
 class FakeLlm:
-    def __init__(self, *script: LlmResult | LlmError) -> None:
+    def __init__(
+        self, *script: LlmResult | LlmError, fallback_models: tuple[str, ...] = ()
+    ) -> None:
+        self.fallback_models = fallback_models
         self.script: deque[LlmResult | LlmError] = deque(script)
         self.calls: list[FakeCall] = []
 

@@ -144,8 +144,8 @@ Write Python that a human wrote and another human can review in ten minutes.
 | Analytics | polars | all stats. Load rows via SQLAlchemy, build `pl.DataFrame` from them — no extra connector. |
 | Charts | seaborn/matplotlib → PNG for Telegram; `plotext` 5.x for the terminal | one `ChartData` object, two renderers in `analytics/charts.py`. plotext is pinned `<6`: 6 is a rewrite with a different API |
 | Chat adapter | aiogram 3 | webhook mode on the VPS, polling mode for local dev; isolated in `adapters/telegram/` |
-| LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. Verify both ids on openrouter.ai/models at build time. |
-| ASR (speech → text) | Qwen3-ASR-Flash via OpenRouter | `POST /audio/transcriptions` with base64 `input_audio` (Ogg/Opus straight from Telegram); auto language detection; the endpoint has no vocabulary field, so task names and the glossary bias the cleanup pass instead (verified 2026-09-14). One key for everything. |
+| LLM | OpenRouter | the official `openrouter` Python SDK (`OpenRouter(...).chat.send_async`), with a bounded retry policy — its default retries for up to an hour. Two models: `LLM_STRONG_MODEL=z-ai/glm-5.3` (default) and `LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash`; `/model` switches. A failed call falls back to the other one, then `LLM_FALLBACK_MODELS`. Verify both ids on openrouter.ai/models at build time. |
+| ASR (speech → text) | Qwen3-ASR 1.7B via OpenRouter, then `ASR_FALLBACK_MODELS` | `POST /audio/transcriptions` with base64 `input_audio` (Ogg/Opus straight from Telegram); auto language detection; the endpoint has no vocabulary field, so task names and the glossary bias the cleanup pass instead (verified 2026-09-14). One key for everything. |
 | TTS (text → speech) | Fish Audio S2.1 Pro via OpenRouter | `POST /audio/speech`, single voice for all languages: Selene, Fish reference id `b347db033a6549378b48d00acb0d06cd` passed as `voice` (verified 2026-09-14). Output is mp3 (`mp3` or `pcm` only); Telegram sends mp3 as a voice note, so nothing is transcoded. |
 | Scheduler | APScheduler (AsyncIOScheduler) | in-process; jobs: snapshots, day-close + cron, reminders, gear, calendar sync, weekly report |
 | HTTP | httpx | everywhere |
@@ -612,8 +612,12 @@ WEBHOOK_SECRET=
 OPENROUTER_API_KEY=
 LLM_STRONG_MODEL=z-ai/glm-5.3
 LLM_CHEAP_MODEL=deepseek/deepseek-v4-flash
-# speech -> text, POST /audio/transcriptions; the dated id is the one OpenRouter serves
-ASR_MODEL=qwen/qwen3-asr-flash-2026-02-10
+# tried in order when a call fails, after the other of the two models above; comma-separated, empty = none
+LLM_FALLBACK_MODELS=google/gemini-3.5-flash
+# speech -> text, POST /audio/transcriptions
+ASR_MODEL=qwen/qwen3-asr-1.7b
+# tried in order when ASR_MODEL fails (OpenRouter drops models without notice); empty = none
+ASR_FALLBACK_MODELS=openai/gpt-4o-mini-transcribe,mistralai/voxtral-mini-transcribe-3-0
 # text -> speech, POST /audio/speech; returns mp3
 TTS_MODEL=fish-audio/s2.1-pro
 # Fish Audio reference id passed as `voice`: Selene, used for all languages

@@ -7,6 +7,10 @@ numbers and a broken key shows up as a row with `ok=False`.
 
 Messages use the OpenAI wire format (`{"role": ..., "content": ...}` dicts):
 that is what the API takes and what the `messages` table stores for replay.
+
+OpenRouter drops models without notice, so a failed call is tried again on the
+client's fallback models (the other role's model, then `LLM_FALLBACK_MODELS`)
+before the turn gives up; each attempt is its own `llm_calls` row.
 """
 
 import json
@@ -37,8 +41,20 @@ RETRIES = RetryConfig(
 APP_TITLE = "Habitica Analytica"
 
 
+# The key or the credit, not the model: every other model would answer the same.
+NO_FALLBACK_STATUSES = frozenset({401, 402})
+
+
 class LlmError(RuntimeError):
     """The model call failed: network, HTTP status, or an unusable response."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
+    @property
+    def another_model_may_work(self) -> bool:
+        return self.status not in NO_FALLBACK_STATUSES
 
 
 @dataclass(frozen=True)
@@ -72,9 +88,11 @@ class LlmClient:
         self,
         api_key: str,
         *,
+        fallback_models: tuple[str, ...] = (),
         server_url: str | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
+        self.fallback_models = fallback_models
         self._http = http_client or httpx.AsyncClient()
         self._openrouter = OpenRouter(
             api_key=api_key,
@@ -116,7 +134,9 @@ class LlmClient:
                 model=model, messages=messages, **kwargs
             )
         except errors.OpenRouterError as error:
-            raise LlmError(f"{model}: HTTP {error.status_code}: {error.message}") from error
+            raise LlmError(
+                f"{model}: HTTP {error.status_code}: {error.message}", status=error.status_code
+            ) from error
         except (errors.ResponseValidationError, errors.NoResponseError, httpx.HTTPError) as error:
             raise LlmError(f"{model}: {error}") from error
         latency_ms = int((time.monotonic() - started) * 1000)
@@ -188,7 +208,9 @@ async def chat(
     max_tokens: int | None = None,
     reasoning_effort: str | None = None,
 ) -> LlmResult:
-    """`client.chat` plus one `llm_calls` row, written whether the call worked or not.
+    """`client.chat` down the chain `model`, then `client.fallback_models`, one `llm_calls`
+    row per attempt, whether it worked or not. The first answer wins; the last failure
+    is raised, or the first one no other model could do better on (bad key, no credit).
 
     Commits the caller's session first. SQLite has one writer at a time, and a turn
     holds the lock from its first write until it commits; a model call can take
@@ -196,30 +218,54 @@ async def chat(
     for it and fail with `database is locked` (seen 2026-10-09).
     """
     await session.commit()
-    started = time.monotonic()
-    try:
-        result = await client.chat(
-            messages,
-            tools,
-            model,
-            tool_choice=tool_choice,
-            max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
-        )
-    except LlmError as error:
-        logger.warning("llm call failed: %s", error)
-        session.add(
-            LlmCall(
-                user_id=user_id,
-                at=now,
-                model=model,
-                latency_ms=int((time.monotonic() - started) * 1000),
-                ok=False,
-                error=str(error)[:500],
+    chain = list(dict.fromkeys((model, *client.fallback_models)))
+    for index, attempt in enumerate(chain):
+        started = time.monotonic()
+        try:
+            result = await client.chat(
+                messages,
+                tools,
+                attempt,
+                tool_choice=tool_choice,
+                max_tokens=max_tokens,
+                reasoning_effort=reasoning_effort,
             )
+        except LlmError as error:
+            await record_failure(session, user_id, now, attempt, started, error)
+            if index + 1 == len(chain) or not error.another_model_may_work:
+                raise
+            logger.warning("llm: trying %s instead", chain[index + 1])
+            continue
+        await record_success(session, user_id, now, attempt, result)
+        return result
+    raise AssertionError("the model chain is never empty")
+
+
+async def record_failure(
+    session: AsyncSession,
+    user_id: str,
+    now: datetime,
+    model: str,
+    started: float,
+    error: LlmError,
+) -> None:
+    logger.warning("llm call failed: %s", error)
+    session.add(
+        LlmCall(
+            user_id=user_id,
+            at=now,
+            model=model,
+            latency_ms=int((time.monotonic() - started) * 1000),
+            ok=False,
+            error=str(error)[:500],
         )
-        await session.flush()
-        raise
+    )
+    await session.flush()
+
+
+async def record_success(
+    session: AsyncSession, user_id: str, now: datetime, model: str, result: LlmResult
+) -> None:
     session.add(
         LlmCall(
             user_id=user_id,
@@ -243,7 +289,6 @@ async def chat(
         result.latency_ms,
         len(result.tool_calls),
     )
-    return result
 
 
 def client_from_settings() -> LlmClient | None:
@@ -254,4 +299,5 @@ def client_from_settings() -> LlmClient | None:
     if not settings.openrouter_api_key:
         logger.warning("OpenRouter is not configured; free text will be refused")
         return None
-    return LlmClient(settings.openrouter_api_key)
+    fallbacks = (settings.llm_strong_model, settings.llm_cheap_model, *settings.llm_fallback_models)
+    return LlmClient(settings.openrouter_api_key, fallback_models=fallbacks)
