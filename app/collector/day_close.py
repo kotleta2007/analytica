@@ -18,6 +18,7 @@ window in which the app shows "Record Yesterday's Dailies". So:
 """
 
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -168,18 +169,29 @@ async def run_cron(
     return CronOutcome(before=before, after=after)
 
 
+BeforeCron = Callable[[CollectOutcome], Awaitable[None]]
+
+
 async def turn_day(
-    client: HabiticaClient, session: AsyncSession, user_id: str, now: datetime
+    client: HabiticaClient,
+    session: AsyncSession,
+    user_id: str,
+    now: datetime,
+    before_cron: BeforeCron | None = None,
 ) -> CronOutcome:
     """Close the ending day as it stands now, run cron, and release the hold.
 
     The records written at `dayStart - 2` may be stale by now: the user can
     tick dailies until cron, from the bot's buttons or the app. Harmless when
     the app already turned the day — Habitica's cron is a no-op then.
+    `before_cron` runs between the records and `POST /cron`, with the fresh
+    snapshot: that is where the gear for the cron goes on.
     """
     outcome = await collect(client, session, user_id, now)
     if outcome.user.raw.get("needsCron"):
         await close_from(session, user_id, outcome, now)
+    if before_cron is not None:
+        await before_cron(outcome)
     result = await run_cron(client, session, user_id, now)
     await set_cron_hold(session, user_id, None)
     return result

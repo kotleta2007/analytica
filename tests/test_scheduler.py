@@ -289,7 +289,9 @@ async def test_cron_waits_at_the_hold_through_the_replans_then_turns_the_day(
     }
     assert await hold() is None
     assert run_date(jobs, RUN_CRON_JOB) == at(2026, 9, 13, 9, 1)
-    assert delivered == []
+    (message,) = delivered  # the new-day message, sent once the day has turned
+    assert message.text.startswith("New day. HP lost overnight: 0")
+    assert "Due today:\n• Glass of milk\n• Floss" in message.text
 
 
 async def test_run_cron_job_asks_first_when_nobody_did(

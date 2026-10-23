@@ -44,7 +44,7 @@ These are the operating rules. They come from Gourze, the Alpi standard for buil
 
 ### Workflow per phase
 
-1. **Pre-flight.** `git checkout main && git pull`. Confirm the phase's *Open questions* in `GAMEPLAN.md` are all answered. If any is unanswered, **STOP and ask** — do not guess and do not start.
+1. **Pre-flight.** `git checkout main && git pull && git fetch --prune`, then delete every local branch already merged into `main` (`git branch -d`, never `-D`; the operator deletes the GitHub copy from the PR page). Confirm the phase's *Open questions* in `GAMEPLAN.md` are all answered. If any is unanswered, **STOP and ask** — do not guess and do not start.
 2. **Branch.** `git checkout -b feature/<NN>-<slug>`.
 3. **Read before writing.** Read every file you are about to touch and its neighbours. Match existing style. Never write against an imagined codebase.
 4. **Work step by step.** Each task in the phase is one commit. After each task: run the tests, tick the box in `GAMEPLAN.md`, commit both the code and `GAMEPLAN.md` **in the same commit**. A commit that completes a task without ticking its box is wrong. A tick without the work is worse.
@@ -189,7 +189,8 @@ analytica/
 │   │   ├── state.py             # per-user conversation state (pending transcription, pending confirm)
 │   │   ├── turn.py              # Turn: session, user settings, clients — what a handler receives
 │   │   ├── commands.py          # /language /model /tts /glossary /new /session /aspirations /stats /graph /report /remind /gear /skills /target /challenges /plan /sync
-│   │   ├── day_turn.py          # "still unticked: X, Y?" before our cron; the tick / nothing-else buttons
+│   │   ├── day_turn.py          # "still unticked: X, Y?" before our cron; the buttons; the turn itself: gear, cron, gear, new-day message
+│   │   ├── gear.py              # INT / PER / CON sets: auto-pick from owned gear, wear one (F9)
 │   │   ├── sessions.py          # open/close/replay sessions, summaries, token budget
 │   │   ├── conversation.py      # a free-text turn: session → prompt → tool loop → Reply; confirm/cancel buttons
 │   │   ├── tasks.py             # tasks as our DB knows them; short ids for the model, resolved by prefix
@@ -219,9 +220,7 @@ analytica/
 │   │   └── aspirations.py       # planning-session prompt, create_plan
 │   ├── jobs/
 │   │   ├── scheduler.py
-│   │   ├── reminders.py         # 21:00 "you still have N dailies"
-│   │   ├── gear.py              # INT / PER / CON switching around day start
-│   │   ├── new_day.py           # message after cron: damage, mana, dailies due
+│   │   ├── reminders.py         # 21:00 "you still have N dailies"; gear and the new-day message are in core/day_turn.py
 │   │   ├── weekly_targets.py    # count ups per week, complete the Sunday daily when met
 │   │   └── weekly_report.py     # Sunday evening coach report
 │   ├── calendar/
@@ -448,7 +447,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 | `set_task_duration(task_id, minutes)` | "this takes 10 minutes" — used by the calendar planner | |
 | `list_calendar_events(days)`, `propose_schedule(days)`, `create_calendar_events(proposal_id)` | | create: **yes** |
 
-**Destructive or externally visible actions always require a confirm button**, even when the user's message was explicit. The tool returns `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. The prompt is never trusted to enforce this.
+**Destructive or externally visible actions always require a confirm button**, even when the user's message was explicit. The tool returns `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. Every action parked in one turn waits in the same list behind one pair (**✅ Do all N**) and runs in order on the press, a collection round after each; the first failure stops the rest. The prompt is never trusted to enforce this.
 
 ### F6 — Analytics (statistics, not AI)
 

@@ -10,14 +10,16 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 
 import httpx
 from sqlalchemy import func, select
 
 from app.collector.snapshots import collect, collect_if_stale
-from app.core import glossary, sessions, voice
-from app.core.i18n import LANGUAGES, t
+from app.core import gear, glossary, sessions, voice
+from app.core.i18n import LANGUAGES, parse_clock, t
 from app.core.replies import Reply
+from app.core.skills import available_skills
 from app.core.turn import Turn, summarizer
 from app.db.models import LlmCall, UserSnapshot
 from app.habitica.client import HabiticaError
@@ -202,6 +204,144 @@ class ModelUsage:
     avg_latency_ms: float
 
 
+async def remind(turn: Turn, args: str) -> Reply:
+    """`/remind` shows the time; `/remind HH:MM` sets it; `/remind off` stops it."""
+    settings = turn.settings
+    if not args:
+        if settings.reminder_time is None:
+            return Reply(t("remind_none", turn.language))
+        return Reply(t("remind_current", turn.language, time=settings.reminder_time))
+    if args.strip().lower() == "off":
+        settings.reminder_time = None
+        await turn.session.flush()
+        return Reply(t("remind_off", turn.language))
+    try:
+        wanted = parse_clock(args)
+    except ValueError:
+        return Reply(t("remind_usage", turn.language))
+    settings.reminder_time = wanted.strftime("%H:%M")
+    settings.last_reminder_day = None  # a time set for later today should fire today
+    await turn.session.flush()
+    return Reply(t("remind_set", turn.language, time=settings.reminder_time))
+
+
+async def gear_(turn: Turn, args: str) -> Reply:
+    """`/gear` shows the sets; `/gear <stat> auto` builds one from owned gear;
+    `/gear <stat> <slot> <key>` sets a slot; `/gear now <stat>` puts a set on."""
+    words = args.split()
+    content = await turn.habitica.get_content()
+    if words[:1] == ["now"] and len(words) == 2 and words[1] in gear.STATS:
+        return Reply(await gear_now(turn, content, words[1]))
+    snapshot = await collect_if_stale(
+        turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+    )
+    user = user_stats_from_json(snapshot.raw)
+    if not words:
+        return Reply(gear_overview(turn, content, user.equipped))
+    stat = words[0]
+    if stat not in gear.STATS or len(words) not in (2, 3):
+        return Reply(t("gear_usage", turn.language))
+    if len(words) == 2:
+        if words[1] != "auto":
+            return Reply(t("gear_usage", turn.language))
+        chosen = gear.best_set(stat, user.owned_gear, content)
+        setattr(turn.settings, f"gear_{stat}", chosen)
+        await turn.session.flush()
+        return Reply(gear_line(turn, content, stat, chosen, user.equipped))
+    slot, key = words[1], words[2]
+    if slot not in gear.SLOTS:
+        return Reply(t("gear_bad_slot", turn.language, slot=slot, slots=", ".join(gear.SLOTS)))
+    if key not in gear.gear_table(content):
+        return Reply(t("gear_unknown_item", turn.language, item_key=key))
+    if key not in user.owned_gear:
+        return Reply(t("gear_not_owned", turn.language, item=gear.item_name(key, content)))
+    chosen = {**gear.set_for(turn.settings, stat), slot: key}
+    setattr(turn.settings, f"gear_{stat}", chosen)
+    await turn.session.flush()
+    return Reply(gear_line(turn, content, stat, chosen, user.equipped))
+
+
+def gear_overview(turn: Turn, content: dict[str, Any], equipped: dict[str, str]) -> str:
+    lines = [t("gear_header", turn.language)]
+    for stat in gear.STATS:
+        lines.append(gear_line(turn, content, stat, gear.set_for(turn.settings, stat), equipped))
+    return "\n".join(lines)
+
+
+def gear_line(
+    turn: Turn,
+    content: dict[str, Any],
+    stat: str,
+    gear_set: dict[str, str],
+    equipped: dict[str, str],
+) -> str:
+    if not gear_set:
+        return t("gear_unset", turn.language, stat=stat.upper(), cmd=stat)
+    items = " · ".join(
+        f"{slot}: {gear.item_name(gear_set[slot], content)}"
+        for slot in gear.SLOTS
+        if slot in gear_set
+    )
+    on = t("gear_on_now", turn.language) if gear.is_on(gear_set, equipped) else ""
+    return t(
+        "gear_line",
+        turn.language,
+        stat=stat.upper(),
+        value=gear.set_value(stat, gear_set, content),
+        on=on,
+        items=items,
+    )
+
+
+async def gear_now(turn: Turn, content: dict[str, Any], stat: str) -> str:
+    """Equip from a fresh snapshot, and snapshot again after: the endpoint toggles,
+    so a stale view of what is on would take items off."""
+    gear_set = gear.set_for(turn.settings, stat)
+    if not gear_set:
+        return t("gear_unset", turn.language, stat=stat.upper(), cmd=stat)
+    outcome = await collect(turn.habitica, turn.session, turn.user.id, turn.now)
+    equipped = user_stats_from_json(outcome.user.raw).equipped
+    keys = await gear.equip_set(turn.habitica, equipped, gear_set)
+    if not keys:
+        return t("gear_already_on", turn.language, stat=stat.upper())
+    await collect(turn.habitica, turn.session, turn.user.id, turn.now)
+    names = ", ".join(gear.item_name(key, content) for key in keys)
+    return t("gear_equipped", turn.language, stat=stat.upper(), items=names)
+
+
+async def skills_(turn: Turn, args: str) -> Reply:
+    """What the user can cast now, with the mana already compared."""
+    snapshot = await collect_if_stale(
+        turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+    )
+    user = user_stats_from_json(snapshot.raw)
+    available = available_skills(user, await turn.habitica.get_content())
+    lines = [
+        t(
+            "skills_header",
+            turn.language,
+            class_name=class_label(user.class_name),
+            lvl=user.lvl,
+            mp=fmt(user.mp),
+            max_mp=user.max_mp,
+        )
+    ]
+    if not available:
+        lines.append(t("skills_none", turn.language))
+    for item in available:
+        lines.append(
+            t(
+                "skills_line",
+                turn.language,
+                mark="✅" if item.castable else "⏳",
+                text=item.skill.text,
+                mana=item.skill.mana,
+                where=t(f"skill_target_{item.skill.target}", turn.language),
+            )
+        )
+    return Reply("\n".join(lines))
+
+
 async def llm_usage(turn: Turn) -> dict[str, ModelUsage]:
     """Per model id, over every call this user ever made."""
     rows = await turn.session.execute(
@@ -270,6 +410,9 @@ COMMANDS: dict[str, Handler] = {
     "model": model,
     "glossary": glossary_,
     "tts": tts,
+    "remind": remind,
+    "gear": gear_,
+    "skills": skills_,
 }
 
 HELP: list[tuple[str, str]] = [
@@ -282,4 +425,7 @@ HELP: list[tuple[str, str]] = [
     ("/model [strong|cheap]", "help_model"),
     ("/glossary [add|remove <term>]", "help_glossary"),
     ("/tts on|off", "help_tts"),
+    ("/remind [HH:MM|off]", "help_remind"),
+    ("/gear [<stat> auto | <stat> <slot> <key> | now <stat>]", "help_gear"),
+    ("/skills", "help_skills"),
 ]

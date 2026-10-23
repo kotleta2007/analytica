@@ -6,7 +6,7 @@ active language. Keys are plain text; adapters send them without markup, so a
 task name with `*` or `_` in it never breaks a message.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 LANGUAGES = ("en", "ru", "fr")
 DEFAULT_LANGUAGE = "en"
@@ -27,6 +27,11 @@ def format_moment(moment: datetime) -> str:
 def format_clock(moment: datetime) -> str:
     """`14:05`; the caller converts to the user's timezone first."""
     return moment.strftime("%H:%M")
+
+
+def parse_clock(value: str) -> time:
+    """`21:00` → time; raises ValueError for anything else."""
+    return datetime.strptime(value.strip(), "%H:%M").time()
 
 
 def parse_day(value: str) -> date:
@@ -333,6 +338,122 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Habitica не ответила как следует: {error}",
         "fr": "Habitica n'a pas répondu correctement : {error}",
     },
+    # ---- reminders (P06) ----
+    "help_remind": {
+        "en": "daily reminder of what is still due (default 21:00), or off",
+        "ru": "ежедневное напоминание о невыполненном (по умолчанию 21:00) или выключить",
+        "fr": "rappel quotidien de ce qui reste à faire (21:00 par défaut), ou off",
+    },
+    "remind_current": {
+        "en": "The daily reminder is at {time}. /remind HH:MM to change it, /remind off to stop "
+        "it.",
+        "ru": "Ежедневное напоминание в {time}. /remind ЧЧ:ММ — изменить, /remind off — выключить.",
+        "fr": "Le rappel quotidien est à {time}. /remind HH:MM pour le changer, /remind off pour "
+        "l'arrêter.",
+    },
+    "remind_none": {
+        "en": "The daily reminder is off. /remind HH:MM to set one.",
+        "ru": "Ежедневное напоминание выключено. /remind ЧЧ:ММ — включить.",
+        "fr": "Le rappel quotidien est désactivé. /remind HH:MM pour en définir un.",
+    },
+    "remind_set": {
+        "en": "Daily reminder set to {time}.",
+        "ru": "Ежедневное напоминание установлено на {time}.",
+        "fr": "Rappel quotidien réglé à {time}.",
+    },
+    "remind_off": {
+        "en": "Daily reminder off.",
+        "ru": "Ежедневное напоминание выключено.",
+        "fr": "Rappel quotidien désactivé.",
+    },
+    "remind_usage": {
+        "en": "Usage: /remind HH:MM, or /remind off.",
+        "ru": "Использование: /remind ЧЧ:ММ или /remind off.",
+        "fr": "Utilisation : /remind HH:MM, ou /remind off.",
+    },
+    "reminder_dailies": {
+        "en": "Still due today:\n{dailies}",
+        "ru": "Ещё не выполнено сегодня:\n{dailies}",
+        "fr": "Encore à faire aujourd'hui :\n{dailies}",
+    },
+    # ---- gear (P06) ----
+    "help_gear": {
+        "en": "the INT / PER / CON gear sets worn around day start",
+        "ru": "наборы снаряжения INT / PER / CON на начало дня",
+        "fr": "les tenues INT / PER / CON portées autour du début de journée",
+    },
+    "gear_header": {
+        "en": "Gear sets — CON or INT for the cron, PER for the day:",
+        "ru": "Наборы снаряжения — CON или INT на начало дня, PER на день:",
+        "fr": "Tenues — CON ou INT pour le début de journée, PER pour la journée :",
+    },
+    "gear_line": {
+        "en": "{stat} (+{value}){on}: {items}",
+        "ru": "{stat} (+{value}){on}: {items}",
+        "fr": "{stat} (+{value}){on} : {items}",
+    },
+    "gear_on_now": {
+        "en": " — on now",
+        "ru": " — надето",
+        "fr": " — portée",
+    },
+    "gear_unset": {
+        "en": "{stat}: not set — /gear {cmd} auto picks the best owned item per slot",
+        "ru": "{stat}: не задан — /gear {cmd} auto выберет лучший предмет на каждый слот",
+        "fr": "{stat} : non définie — /gear {cmd} auto choisit le meilleur objet par emplacement",
+    },
+    "gear_equipped": {
+        "en": "{stat} set on: {items}",
+        "ru": "Надет набор {stat}: {items}",
+        "fr": "Tenue {stat} portée : {items}",
+    },
+    "gear_already_on": {
+        "en": "The {stat} set is already on.",
+        "ru": "Набор {stat} уже надет.",
+        "fr": "La tenue {stat} est déjà portée.",
+    },
+    "gear_bad_slot": {
+        "en": "Unknown slot {slot}. Slots: {slots}",
+        "ru": "Неизвестный слот {slot}. Слоты: {slots}",
+        "fr": "Emplacement inconnu {slot}. Emplacements : {slots}",
+    },
+    "gear_unknown_item": {
+        "en": "No item with key {item_key} in the game content.",
+        "ru": "В игре нет предмета с ключом {item_key}.",
+        "fr": "Aucun objet avec la clé {item_key} dans le jeu.",
+    },
+    "gear_not_owned": {
+        "en": "You don't own {item}.",
+        "ru": "У вас нет предмета {item}.",
+        "fr": "Vous ne possédez pas {item}.",
+    },
+    "gear_usage": {
+        "en": "Usage: /gear · /gear int|per|con auto · /gear int|per|con <slot> <key> · "
+        "/gear now int|per|con",
+        "ru": "Использование: /gear · /gear int|per|con auto · /gear int|per|con <слот> <ключ> · "
+        "/gear now int|per|con",
+        "fr": "Utilisation : /gear · /gear int|per|con auto · /gear int|per|con <slot> <clé> · "
+        "/gear now int|per|con",
+    },
+    # ---- the new day (P06) ----
+    "new_day": {
+        "en": "New day. HP lost overnight: {hp_lost} (now {hp}/{max_hp}); mana {mp}/{max_mp}.\n"
+        "Due today:\n{dailies}",
+        "ru": "Новый день. Потеряно здоровья за ночь: {hp_lost} (сейчас {hp}/{max_hp}); мана "
+        "{mp}/{max_mp}.\nНа сегодня:\n{dailies}",
+        "fr": "Nouvelle journée. Santé perdue cette nuit : {hp_lost} (maintenant {hp}/{max_hp}) ; "
+        "mana {mp}/{max_mp}.\nÀ faire aujourd'hui :\n{dailies}",
+    },
+    "new_day_nothing_due": {
+        "en": "• nothing — no daily is due today",
+        "ru": "• ничего — сегодня нет ежедневных дел",
+        "fr": "• rien — aucune quotidienne aujourd'hui",
+    },
+    "new_day_gear": {
+        "en": "Gear: {for_cron} for the cron, {now} on now.",
+        "ru": "Снаряжение: {for_cron} на начало дня, сейчас {now}.",
+        "fr": "Équipement : {for_cron} pour le début de journée, {now} maintenant.",
+    },
     # ---- the day-turn window (P05c) ----
     "day_turn_ask": {
         "en": "Before the day turns at {cron_time} — still unticked:\n{dailies}\n"
@@ -365,11 +486,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Хорошо — новый день начнётся в {cron_time}.",
         "fr": "D'accord — la nouvelle journée commence à {cron_time}.",
     },
-    "day_turn_turned": {
-        "en": "The day has turned. HP lost: {hp_lost}, mana now {mp}.",
-        "ru": "Новый день начался. Потеряно здоровья: {hp_lost}, маны сейчас {mp}.",
-        "fr": "Nouvelle journée. Santé perdue : {hp_lost}, mana : {mp}.",
-    },
     "day_turn_too_late": {
         "en": "Too late — the day already turned at {time}. Anything ticked now counts for today.",
         "ru": "Поздно — новый день уже начался в {time}. Всё, что отметить сейчас, зачтётся "
@@ -382,6 +498,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "✅ Давай",
         "fr": "✅ Vas-y",
     },
+    "confirm_do_all": {
+        "en": "✅ Do all {count}",
+        "ru": "✅ Сделать все {count}",
+        "fr": "✅ Faire les {count}",
+    },
+    "action_not_tried": {
+        "en": "Not tried: {action}.",
+        "ru": "Не выполнено: {action}.",
+        "fr": "Pas tenté : {action}.",
+    },
     "confirm_cancel": {
         "en": "❌ Cancel",
         "ru": "❌ Отмена",
@@ -391,6 +517,44 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "delete “{text}”",
         "ru": "удалить «{text}»",
         "fr": "supprimer « {text} »",
+    },
+    "action_cast_skill": {
+        "en": "cast {skill} ({mana} MP)",
+        "ru": "применить {skill} ({mana} MP)",
+        "fr": "lancer {skill} ({mana} PM)",
+    },
+    "action_cast_skill_on": {
+        "en": "cast {skill} on “{text}” ({mana} MP)",
+        "ru": "применить {skill} на «{text}» ({mana} MP)",
+        "fr": "lancer {skill} sur « {text} » ({mana} PM)",
+    },
+    "help_skills": {
+        "en": "the class skills you can cast now, with their mana cost",
+        "ru": "умения класса, доступные сейчас, с ценой в мане",
+        "fr": "les compétences de classe disponibles, avec leur coût en mana",
+    },
+    "skills_header": {
+        "en": "{class_name}, level {lvl}, {mp}/{max_mp} MP:",
+        "ru": "{class_name}, уровень {lvl}, {mp}/{max_mp} MP:",
+        "fr": "{class_name}, niveau {lvl}, {mp}/{max_mp} PM :",
+    },
+    "skills_line": {
+        "en": "{mark} {text} — {mana} MP, {where}",
+        "ru": "{mark} {text} — {mana} MP, {where}",
+        "fr": "{mark} {text} — {mana} PM, {where}",
+    },
+    "skills_none": {
+        "en": "No skills yet — the first one unlocks at level 11.",
+        "ru": "Умений пока нет — первое открывается на 11-м уровне.",
+        "fr": "Pas encore de compétence — la première se débloque au niveau 11.",
+    },
+    "skill_target_task": {"en": "on a task", "ru": "на задачу", "fr": "sur une tâche"},
+    "skill_target_self": {"en": "on yourself", "ru": "на себя", "fr": "sur vous"},
+    "skill_target_party": {"en": "on the party", "ru": "на группу", "fr": "sur le groupe"},
+    "skill_target_tasks": {
+        "en": "on all tasks",
+        "ru": "на все задачи",
+        "fr": "sur toutes les tâches",
     },
     "action_done": {
         "en": "Done: {action}.",

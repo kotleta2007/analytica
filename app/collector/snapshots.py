@@ -336,17 +336,23 @@ def diff_events(
 
 
 def _habit_scored_events(event: Any, before: TaskSnapshot, task: Task) -> list[TaskEvent]:
-    ups = max((task.counter_up or 0) - (before.counter_up or 0), 0)
-    downs = max((task.counter_down or 0) - (before.counter_down or 0), 0)
-    value_change = task.value - before.value
+    """A click is a counter change. The value alone proves nothing: cron halves a
+    one-way habit's value every day, and a skill cast moves it too — neither is
+    a click, and the value-based guess that used to live here wrote a phantom
+    minus for an idle habit at every day turn."""
+    ups = clicks_since(before.counter_up, task.counter_up)
+    downs = clicks_since(before.counter_down, task.counter_down)
     if ups == 0 and downs == 0:
-        # Counters reset daily/weekly/monthly; the value still moves with each score.
-        if value_change == 0:
-            return []
-        direction = "up" if value_change > 0 else "down"
-        return [event("scored", direction=direction, delta=value_change)]
-
-    per_score = value_change / (ups + downs)
+        return []
+    per_score = (task.value - before.value) / (ups + downs)
     return [event("scored", direction="up", delta=per_score) for _ in range(ups)] + [
         event("scored", direction="down", delta=per_score) for _ in range(downs)
     ]
+
+
+def clicks_since(before: int | None, now: int | None) -> int:
+    """Clicks between two snapshots of a habit counter. Counters reset daily, weekly or
+    monthly; a counter that went down was reset, and everything on it now came after."""
+    before = before or 0
+    now = now or 0
+    return now - before if now >= before else now

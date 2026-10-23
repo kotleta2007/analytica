@@ -224,9 +224,16 @@ class TelegramAdapter:
         await send_reply(self.bot, chat_id, reply, keyboard(stored))
 
     async def deliver(self, user: User, reply: Reply) -> None:
-        """Outbound hook: scheduled messages go to every allowlisted chat."""
+        """Outbound hook: scheduled messages go to every allowlisted chat.
+
+        A chat that never pressed Start cannot be messaged; that must not
+        stop the others or crash the job.
+        """
         for chat_id in sorted(self.allowed):
-            await self.send(chat_id, reply)
+            try:
+                await self.send(chat_id, reply)
+            except TelegramAPIError as error:
+                logger.warning("could not deliver to chat %s: %s", chat_id, error)
 
 
 async def store_buttons(buttons: list[Button], user_id: str) -> list[tuple[int, Button]]:

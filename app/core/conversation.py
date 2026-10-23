@@ -7,8 +7,10 @@ the next turn can replay it. A round that changed tasks ends with a
 collection round whose events carry `source=bot`.
 
 The confirm buttons live here too: a destructive tool parks its action in
-`conversation_state`, and only ✅ Do it runs it. ❌ Cancel, or any other
-message, drops it.
+`conversation_state`, and only ✅ Do it runs it. Everything parked in one turn
+waits behind a single pair of buttons and runs in order, with a collection round
+after each action, so the next one's checks (mana) see what the last one did; the
+first failure stops the rest. ❌ Cancel, or any other message, drops them all.
 """
 
 import json
@@ -21,6 +23,7 @@ from app.collector.snapshots import collect, collect_if_stale
 from app.core import sessions
 from app.core.i18n import t
 from app.core.replies import Button, Reply
+from app.core.skills import AvailableSkill, available_skills
 from app.core.state import clear_state
 from app.core.tasks import load_known_tasks, open_tasks
 from app.core.turn import Turn, summarizer
@@ -92,6 +95,11 @@ async def run_model(turn: Turn, llm: LlmClient, chat_session: sessions.ChatSessi
     if not text:
         logger.warning("model %s returned an empty answer", model)
         text = t("llm_empty_reply", turn.language)
+    # Each parked action came back with the pair as it stood then; one pair for all of them.
+    buttons = [button for button in buttons if not tools.is_confirm_button(button)]
+    pending = await tools.pending_action(turn)
+    if pending is not None:
+        buttons += tools.confirm_buttons(pending, turn.language)
     return Reply(text, buttons=buttons)
 
 
@@ -160,8 +168,19 @@ async def system_message(turn: Turn, chat_session: sessions.ChatSession) -> dict
         recent_summaries=await sessions.recent_summaries(turn.session, turn.user.id),
         session_topic=chat_session.topic,
         session_summary=chat_session.collapsed_summary,
+        skills=None if stats is None else await skills_now(turn, stats),
     )
     return {"role": "system", "content": prompt}
+
+
+async def skills_now(turn: Turn, stats: UserStats) -> list[AvailableSkill]:
+    """The cached game content is a file read; a missing one is not worth failing the turn."""
+    try:
+        content = await turn.habitica.get_content()
+    except (HabiticaError, httpx.HTTPError) as error:
+        logger.warning("could not load the game content for the skills: %s", error)
+        return []
+    return available_skills(stats, content)
 
 
 async def fresh_stats(turn: Turn) -> UserStats | None:
@@ -185,15 +204,29 @@ async def confirm(turn: Turn, payload: dict[str, Any]) -> Reply:
         return Reply(t("unknown_button", turn.language))
     await clear_state(turn.session, turn.user.id)
     await record_press(turn, tools.CONFIRM_ACTION)
-    action = tools.describe_pending(pending, turn.language)
-    outcome = await tools.run_pending(turn, pending)
-    if "error" in outcome.content:
-        return Reply(
-            t("action_failed", turn.language, action=action, error=outcome.content["error"])
-        )
-    if outcome.changed_tasks:
-        await record_change(turn)
-    return Reply(t("action_done", turn.language, action=action))
+    actions = pending["actions"]
+    for index, action in enumerate(actions):
+        outcome = await tools.run_action(turn, action)
+        if "error" in outcome.content:
+            return Reply(stopped_at(turn, actions, index, outcome.content["error"]))
+        if outcome.changed_tasks:
+            await record_change(turn)
+    done = tools.describe_actions(actions, turn.language)
+    return Reply(t("action_done", turn.language, action=done))
+
+
+def stopped_at(turn: Turn, actions: list[dict[str, Any]], index: int, error: str) -> str:
+    """What ran, what failed and why, and what was not tried."""
+    lang = turn.language
+    lines = []
+    if index > 0:
+        lines.append(t("action_done", lang, action=tools.describe_actions(actions[:index], lang)))
+    failed = tools.describe_action(actions[index], lang)
+    lines.append(t("action_failed", lang, action=failed, error=error))
+    if index + 1 < len(actions):
+        rest = tools.describe_actions(actions[index + 1 :], lang)
+        lines.append(t("action_not_tried", lang, action=rest))
+    return "\n".join(lines)
 
 
 async def cancel(turn: Turn, payload: dict[str, Any]) -> Reply:

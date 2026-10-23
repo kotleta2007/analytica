@@ -217,7 +217,7 @@ async def test_the_last_tick_after_day_start_turns_the_day_at_once(
     assert client.calls.index(("score_task", ("daily-glass-of-milk", "up"))) < client.calls.index(
         ("run_cron", None)
     )
-    assert reply.text.startswith("✅ Glass of milk — ticked.\nThe day has turned.")
+    assert reply.text.startswith("✅ Glass of milk — ticked.\nNew day. HP lost overnight: 0")
     assert (await records_for(ENDING))["Glass of milk"] is True
     assert await records_for(date(2026, 9, 12)) == {}
     async with session_scope() as session:
@@ -235,7 +235,8 @@ async def test_nothing_else_after_day_start_turns_the_day_at_once(
 
     assert client.called("score_task") == []
     assert client.called("run_cron") == [None]
-    assert reply.text.startswith("The day has turned.")
+    assert reply.text.startswith("New day. HP lost overnight: 0 (now 49/50); mana 242/438.")
+    assert "Due today:\n• Glass of milk\n• Evening supplements\n• Floss\n• Journal" in reply.text
     assert (await records_for(ENDING))["Glass of milk"] is False
 
 

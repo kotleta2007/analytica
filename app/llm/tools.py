@@ -27,6 +27,7 @@ from app.collector.snapshots import collect_if_stale, remember_list_order
 from app.core import glossary
 from app.core.i18n import format_day, format_moment, parse_day, t
 from app.core.replies import Button
+from app.core.skills import available_skills, find_skill
 from app.core.state import get_state, set_state
 from app.core.tasks import (
     KnownTask,
@@ -129,52 +130,97 @@ def schemas() -> list[dict[str, Any]]:
 async def request_confirmation(
     turn: Turn, tool_name: str, arguments: dict[str, Any], describe_key: str, **values: str
 ) -> ToolResult:
-    """Park the action in `conversation_state`; the buttons carry a token so a
-    stale button from an earlier offer cannot trigger a newer one."""
-    token = uuid.uuid4().hex[:12]
-    await set_state(
-        turn.session,
-        turn.user.id,
-        PENDING_CONFIRM,
-        {
-            "tool": tool_name,
-            "arguments": arguments,
-            "describe": {"key": describe_key, "values": values},
-            "token": token,
-        },
-        turn.now,
-    )
+    """Park the action in `conversation_state`, behind whatever this turn parked already.
+
+    A turn starts by dropping any earlier parked action (`conversation.answer`), so a
+    pending entry seen here was parked by this turn: "cast it 5 times" is five calls and
+    one ✅ Do all 5. The buttons carry a token, so a stale button from an earlier offer
+    cannot trigger a newer one.
+    """
+    action = {
+        "tool": tool_name,
+        "arguments": arguments,
+        "describe": {"key": describe_key, "values": values},
+    }
+    pending = await pending_action(turn) or {"actions": [], "token": uuid.uuid4().hex[:12]}
+    pending["actions"] = [*pending["actions"], action]
+    await set_state(turn.session, turn.user.id, PENDING_CONFIRM, pending, turn.now)
     return ToolResult(
         content={
             "status": "needs_confirmation",
             "action": t(describe_key, "en", **values),
-            "instructions": "The user now sees Do it / Cancel buttons. Tell them in one short "
-            "sentence what will happen if they confirm, then stop; do not call the tool again.",
+            "waiting_for_the_button": len(pending["actions"]),
+            "instructions": "Nothing has run yet. The user sees one Do it / Cancel pair for "
+            "every action waiting in this turn; one press runs them all, in order. Call the "
+            "tool once per action (five casts = five calls), then tell them in one short "
+            "sentence what one press will do, and stop; do not call it again for an action "
+            "already waiting.",
         },
-        buttons=[
-            Button(t("confirm_do_it", turn.language), CONFIRM_ACTION, {"token": token}),
-            Button(t("confirm_cancel", turn.language), CANCEL_ACTION, {"token": token}),
-        ],
+        buttons=confirm_buttons(pending, turn.language),
     )
 
 
+def confirm_buttons(pending: dict[str, Any], lang: str) -> list[Button]:
+    count = len(pending["actions"])
+    label = t("confirm_do_it", lang) if count == 1 else t("confirm_do_all", lang, count=count)
+    return [
+        Button(label, CONFIRM_ACTION, {"token": pending["token"]}),
+        Button(t("confirm_cancel", lang), CANCEL_ACTION, {"token": pending["token"]}),
+    ]
+
+
+def is_confirm_button(button: Button) -> bool:
+    return button.action in (CONFIRM_ACTION, CANCEL_ACTION)
+
+
 async def pending_action(turn: Turn) -> dict[str, Any] | None:
+    """`{"actions": [{tool, arguments, describe}, …], "token": …}`, or None."""
     state = await get_state(turn.session, turn.user.id)
     if state is None or state.state != PENDING_CONFIRM:
         return None
-    return state.payload
+    payload = dict(state.payload)
+    if "actions" not in payload:
+        # Parked by the bot before P06, one action at the top level; still pressable.
+        action = {key: payload[key] for key in ("tool", "arguments", "describe")}
+        payload = {"actions": [action], "token": payload["token"]}
+    return payload
 
 
-async def run_pending(turn: Turn, pending: dict[str, Any]) -> ToolResult:
-    """The user pressed Do it: run the parked action for real."""
-    tool = TOOLS[pending["tool"]]
-    logger.info("confirmed %s(%s)", tool.name, compact(pending["arguments"]))
-    return await run_tool(turn, tool, pending["arguments"], confirmed=True)
+async def run_action(turn: Turn, action: dict[str, Any]) -> ToolResult:
+    """The user pressed Do it: run one parked action for real, with every check again."""
+    tool = TOOLS[action["tool"]]
+    logger.info("confirmed %s(%s)", tool.name, compact(action["arguments"]))
+    return await run_tool(turn, tool, action["arguments"], confirmed=True)
+
+
+def describe_action(action: dict[str, Any], lang: str) -> str:
+    describe = action["describe"]
+    return t(describe["key"], lang, **describe["values"])
+
+
+def describe_actions(actions: list[dict[str, Any]], lang: str) -> str:
+    """Each distinct action once, in order; a repeated one gets `×5`."""
+    counts: dict[str, int] = {}
+    for action in actions:
+        text = describe_action(action, lang)
+        counts[text] = counts.get(text, 0) + 1
+    return "; ".join(text if n == 1 else f"{text} ×{n}" for text, n in counts.items())
 
 
 def describe_pending(pending: dict[str, Any], lang: str) -> str:
-    describe = pending["describe"]
-    return t(describe["key"], lang, **describe["values"])
+    return describe_actions(pending["actions"], lang)
+
+
+async def mana_waiting(turn: Turn) -> int:
+    """Mana already promised to the casts parked in this turn."""
+    pending = await pending_action(turn)
+    if pending is None:
+        return 0
+    return sum(
+        int(action["describe"]["values"]["mana"])
+        for action in pending["actions"]
+        if action["tool"] == "cast_skill"
+    )
 
 
 # ---- the tools ----
@@ -265,6 +311,64 @@ async def delete_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> Tool
         )
     await turn.habitica.delete_task(known.row.habitica_id)
     return ToolResult({"deleted": known.task.text}, changed_tasks=True)
+
+
+async def cast_skill(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
+    """A class skill by name or key; task skills need `task_id`, the others refuse one.
+
+    Always confirmed first: mana is spent and the app shows it. The cast itself
+    is followed by a collection round — stats change, and a task skill changes
+    the task's value.
+    """
+    reference = required(args, "skill")
+    stats = user_stats_from_json(
+        (
+            await collect_if_stale(
+                turn.habitica, turn.session, turn.user.id, turn.now, STATS_MAX_AGE
+            )
+        ).raw
+    )
+    available = find_skill(available_skills(stats, await turn.habitica.get_content()), reference)
+    if available is None:
+        raise ToolArgumentError(
+            f"no skill {reference!r} for a level {stats.lvl} {class_label(stats.class_name)}; "
+            "the unlocked ones are listed in the system prompt"
+        )
+    skill = available.skill
+    task_reference = args.get("task_id")
+    if available.needs_task and not task_reference:
+        raise ToolArgumentError(f"{skill.text} acts on a task; pass task_id")
+    if not available.needs_task and task_reference:
+        raise ToolArgumentError(f"{skill.text} does not take a task; call it without task_id")
+    if not available.castable:
+        raise ToolArgumentError(f"{skill.text} costs {skill.mana} MP and the user has {stats.mp:g}")
+    waiting = 0 if confirmed else await mana_waiting(turn)
+    if waiting and stats.mp < waiting + skill.mana:
+        raise ToolArgumentError(
+            f"{skill.text} costs {skill.mana} MP; the casts already waiting for the button "
+            f"take {waiting} of the user's {stats.mp:g}, so this one does not fit"
+        )
+    known = (
+        None
+        if task_reference is None
+        else await resolve_task(turn.session, turn.user.id, task_reference)
+    )
+    target = "" if known is None else known.task.text
+    if not confirmed:
+        return await request_confirmation(
+            turn,
+            "cast_skill",
+            {"skill": skill.key, "task_id": None if known is None else known.row.habitica_id},
+            "action_cast_skill" if known is None else "action_cast_skill_on",
+            skill=skill.text,
+            mana=str(skill.mana),
+            text=target,
+        )
+    await turn.habitica.cast_skill(skill.key, None if known is None else known.row.habitica_id)
+    return ToolResult(
+        {"cast": skill.text, "mana_spent": skill.mana, "target": target or skill.target},
+        changed_tasks=True,
+    )
 
 
 async def move_task(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolResult:
@@ -556,6 +660,22 @@ TOOLS: dict[str, Tool] = {
             description="Delete a task. The user must confirm with a button first.",
             parameters={"properties": {"task_id": TASK_ID}, "required": ["task_id"]},
             run=delete_task,
+            destructive=True,
+        ),
+        Tool(
+            name="cast_skill",
+            description="Cast one of the user's class skills (listed in the system prompt with "
+            "their mana cost). Task skills — Burst of Flames, Brutal Smash, Pickpocket, Backstab "
+            "— need task_id; the others must not get one. To cast several times, call it once "
+            "per cast, all in the same response: one button then confirms them all.",
+            parameters={
+                "properties": {
+                    "skill": {"type": "string", "description": "Skill name or key."},
+                    "task_id": TASK_ID,
+                },
+                "required": ["skill"],
+            },
+            run=cast_skill,
             destructive=True,
         ),
         Tool(

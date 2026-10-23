@@ -1,9 +1,11 @@
-"""APScheduler wiring for the collector and the day turn.
+"""APScheduler wiring for the collector, the day turn and the reminders.
 
     every 30 min        snapshot_job:       collect(), then re-plan the day jobs
+    every minute        reminder_job:       the daily reminder, once it is the user's time
     dayStart − 30 min   ask_unticked_job:   "still unticked: X, Y?" with buttons; holds our cron
     dayStart − 2 min    close_day_job:      close_day()
-    dayStart + 1 min    run_cron_job:       turn_day() — or wait, while the question is open
+    dayStart + 1 min    run_cron_job:       gear, cron, gear, the new-day message — or wait,
+                                            while the question is open
 
 The day jobs are one-shot `date` triggers, re-planned after every collection
 round from the `dayStart` and `timezoneOffset` in the freshest `/user`
@@ -37,7 +39,6 @@ from app.collector.day_close import (
     close_day,
     cron_hold,
     set_cron_hold,
-    turn_day,
 )
 from app.collector.snapshots import CollectOutcome, collect, latest_user_snapshot
 from app.config import get_settings
@@ -47,14 +48,17 @@ from app.core.tasks import load_known_tasks
 from app.core.turn import load_settings
 from app.db.engine import session_scope
 from app.habitica.client import HabiticaClient
+from app.jobs import reminders
 
 logger = logging.getLogger(__name__)
 
 SNAPSHOT_EVERY = timedelta(minutes=30)
+REMINDER_CHECK_EVERY = timedelta(minutes=1)
 # A date job that could not run on time (busy loop, brief outage) still runs within this.
 DAY_JOB_GRACE = timedelta(minutes=10)
 
 SNAPSHOT_JOB = "snapshot"
+REMINDER_JOB = "reminder"
 ASK_JOB = "ask_unticked"
 CLOSE_DAY_JOB = "close_day"
 RUN_CRON_JOB = "run_cron"
@@ -99,6 +103,13 @@ class CollectorJobs:
             id=SNAPSHOT_JOB,
             replace_existing=True,
         )
+        self.scheduler.add_job(
+            self.reminder_job,
+            "interval",
+            seconds=REMINDER_CHECK_EVERY.total_seconds(),
+            id=REMINDER_JOB,
+            replace_existing=True,
+        )
         if not self.scheduler.running:
             self.scheduler.start()
         logger.info("collector scheduled: snapshots every %s", SNAPSHOT_EVERY)
@@ -116,6 +127,14 @@ class CollectorJobs:
             outcome = await collect(self.client, session, self.user_id, at)
             hold = await cron_hold(session, self.user_id)
         self.plan_day_jobs(outcome.user.raw, hold, at)
+
+    async def reminder_job(self) -> None:
+        async with session_scope() as session:
+            reply = await reminders.reminder_reply(
+                self.client, session, self.user_id, now(), self.tz
+            )
+        if reply is not None:
+            await outbound.send_to_user(User(self.user_id), reply)
 
     async def ask_unticked_job(self) -> None:
         at = now()
@@ -152,7 +171,10 @@ class CollectorJobs:
             self.arm(RUN_CRON_JOB, self.run_cron_job, hold)
             return
         async with session_scope() as session:
-            await turn_day(self.client, session, self.user_id, at)
+            settings = await load_settings(session, self.user_id)
+            turned = await day_turn.turn_day(self.client, session, self.user_id, at, settings)
+            message = day_turn.new_day_message(turned, settings.language)
+        await outbound.send_to_user(User(self.user_id), Reply(message))
         await self.replan_from_latest_snapshot()
 
     async def question(
