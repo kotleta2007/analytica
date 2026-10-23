@@ -447,7 +447,7 @@ Every response is parsed into dataclasses in `habitica/types.py`. **Raw JSON is 
 | `set_task_duration(task_id, minutes)` | "this takes 10 minutes" — used by the calendar planner | |
 | `list_calendar_events(days)`, `propose_schedule(days)`, `create_calendar_events(proposal_id)` | | create: **yes** |
 
-**Destructive or externally visible actions always require a confirm button**, even when the user's message was explicit. The tool returns `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. The prompt is never trusted to enforce this.
+**Destructive or externally visible actions always require a confirm button**, even when the user's message was explicit. The tool returns `needs_confirmation`; the core stores the pending action in `conversation_state` and shows **✅ Do it / ❌ Cancel**. Every action parked in one turn waits in the same list behind one pair (**✅ Do all N**) and runs in order on the press, a collection round after each; the first failure stops the rest. The prompt is never trusted to enforce this.
 
 ### F6 — Analytics (statistics, not AI)
 

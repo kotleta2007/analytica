@@ -443,18 +443,18 @@ async def test_delete_task_asks_for_confirmation_and_parks_the_action(
     token = result.buttons[0].payload["token"]
     assert result.buttons[1].payload == {"token": token}
     assert pending is not None
-    assert pending["tool"] == "delete_task"
-    assert pending["arguments"] == {"task_id": HABIT.id}
+    assert pending["actions"][0]["tool"] == "delete_task"
+    assert pending["actions"][0]["arguments"] == {"task_id": HABIT.id}
     assert pending["token"] == token
     assert tools.describe_pending(pending, "fr") == "supprimer « Workout »"
 
 
-async def test_run_pending_deletes_for_real(seeded: FakeHabiticaClient) -> None:
+async def test_run_action_deletes_for_real(seeded: FakeHabiticaClient) -> None:
     async with TurnScope(seeded) as turn:
         await tools.dispatch(turn, call("delete_task", task_id="ab1a2b3c"))
         pending = await tools.pending_action(turn)
         assert pending is not None
-        result = await tools.run_pending(turn, pending)
+        result = await tools.run_action(turn, pending["actions"][0])
 
     assert seeded.called("delete_task") == [HABIT.id]
     assert result.content == {"deleted": "Workout"}
@@ -527,3 +527,24 @@ def test_fixture_tasks_have_no_short_id_collisions() -> None:
     ids = [task_from_json(item).id for item in load_data("tasks")]
 
     assert len({short_id(i) for i in ids}) == len(ids)
+
+
+async def test_an_action_parked_in_the_old_flat_shape_is_still_pressable(
+    seeded: FakeHabiticaClient,
+) -> None:
+    from app.core.state import set_state
+
+    flat = {
+        "tool": "delete_task",
+        "arguments": {"task_id": HABIT.id},
+        "describe": {"key": "action_delete_task", "values": {"text": "Workout"}},
+        "token": "0123456789ab",
+    }
+    async with TurnScope(seeded) as turn:
+        await set_state(turn.session, USER.id, tools.PENDING_CONFIRM, flat, turn.now)
+        pending = await tools.pending_action(turn)
+
+    assert pending == {
+        "actions": [{k: flat[k] for k in ("tool", "arguments", "describe")}],
+        "token": "0123456789ab",
+    }

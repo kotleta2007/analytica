@@ -130,52 +130,97 @@ def schemas() -> list[dict[str, Any]]:
 async def request_confirmation(
     turn: Turn, tool_name: str, arguments: dict[str, Any], describe_key: str, **values: str
 ) -> ToolResult:
-    """Park the action in `conversation_state`; the buttons carry a token so a
-    stale button from an earlier offer cannot trigger a newer one."""
-    token = uuid.uuid4().hex[:12]
-    await set_state(
-        turn.session,
-        turn.user.id,
-        PENDING_CONFIRM,
-        {
-            "tool": tool_name,
-            "arguments": arguments,
-            "describe": {"key": describe_key, "values": values},
-            "token": token,
-        },
-        turn.now,
-    )
+    """Park the action in `conversation_state`, behind whatever this turn parked already.
+
+    A turn starts by dropping any earlier parked action (`conversation.answer`), so a
+    pending entry seen here was parked by this turn: "cast it 5 times" is five calls and
+    one ✅ Do all 5. The buttons carry a token, so a stale button from an earlier offer
+    cannot trigger a newer one.
+    """
+    action = {
+        "tool": tool_name,
+        "arguments": arguments,
+        "describe": {"key": describe_key, "values": values},
+    }
+    pending = await pending_action(turn) or {"actions": [], "token": uuid.uuid4().hex[:12]}
+    pending["actions"] = [*pending["actions"], action]
+    await set_state(turn.session, turn.user.id, PENDING_CONFIRM, pending, turn.now)
     return ToolResult(
         content={
             "status": "needs_confirmation",
             "action": t(describe_key, "en", **values),
-            "instructions": "The user now sees Do it / Cancel buttons. Tell them in one short "
-            "sentence what will happen if they confirm, then stop; do not call the tool again.",
+            "waiting_for_the_button": len(pending["actions"]),
+            "instructions": "Nothing has run yet. The user sees one Do it / Cancel pair for "
+            "every action waiting in this turn; one press runs them all, in order. Call the "
+            "tool once per action (five casts = five calls), then tell them in one short "
+            "sentence what one press will do, and stop; do not call it again for an action "
+            "already waiting.",
         },
-        buttons=[
-            Button(t("confirm_do_it", turn.language), CONFIRM_ACTION, {"token": token}),
-            Button(t("confirm_cancel", turn.language), CANCEL_ACTION, {"token": token}),
-        ],
+        buttons=confirm_buttons(pending, turn.language),
     )
 
 
+def confirm_buttons(pending: dict[str, Any], lang: str) -> list[Button]:
+    count = len(pending["actions"])
+    label = t("confirm_do_it", lang) if count == 1 else t("confirm_do_all", lang, count=count)
+    return [
+        Button(label, CONFIRM_ACTION, {"token": pending["token"]}),
+        Button(t("confirm_cancel", lang), CANCEL_ACTION, {"token": pending["token"]}),
+    ]
+
+
+def is_confirm_button(button: Button) -> bool:
+    return button.action in (CONFIRM_ACTION, CANCEL_ACTION)
+
+
 async def pending_action(turn: Turn) -> dict[str, Any] | None:
+    """`{"actions": [{tool, arguments, describe}, …], "token": …}`, or None."""
     state = await get_state(turn.session, turn.user.id)
     if state is None or state.state != PENDING_CONFIRM:
         return None
-    return state.payload
+    payload = dict(state.payload)
+    if "actions" not in payload:
+        # Parked by the bot before P06, one action at the top level; still pressable.
+        action = {key: payload[key] for key in ("tool", "arguments", "describe")}
+        payload = {"actions": [action], "token": payload["token"]}
+    return payload
 
 
-async def run_pending(turn: Turn, pending: dict[str, Any]) -> ToolResult:
-    """The user pressed Do it: run the parked action for real."""
-    tool = TOOLS[pending["tool"]]
-    logger.info("confirmed %s(%s)", tool.name, compact(pending["arguments"]))
-    return await run_tool(turn, tool, pending["arguments"], confirmed=True)
+async def run_action(turn: Turn, action: dict[str, Any]) -> ToolResult:
+    """The user pressed Do it: run one parked action for real, with every check again."""
+    tool = TOOLS[action["tool"]]
+    logger.info("confirmed %s(%s)", tool.name, compact(action["arguments"]))
+    return await run_tool(turn, tool, action["arguments"], confirmed=True)
+
+
+def describe_action(action: dict[str, Any], lang: str) -> str:
+    describe = action["describe"]
+    return t(describe["key"], lang, **describe["values"])
+
+
+def describe_actions(actions: list[dict[str, Any]], lang: str) -> str:
+    """Each distinct action once, in order; a repeated one gets `×5`."""
+    counts: dict[str, int] = {}
+    for action in actions:
+        text = describe_action(action, lang)
+        counts[text] = counts.get(text, 0) + 1
+    return "; ".join(text if n == 1 else f"{text} ×{n}" for text, n in counts.items())
 
 
 def describe_pending(pending: dict[str, Any], lang: str) -> str:
-    describe = pending["describe"]
-    return t(describe["key"], lang, **describe["values"])
+    return describe_actions(pending["actions"], lang)
+
+
+async def mana_waiting(turn: Turn) -> int:
+    """Mana already promised to the casts parked in this turn."""
+    pending = await pending_action(turn)
+    if pending is None:
+        return 0
+    return sum(
+        int(action["describe"]["values"]["mana"])
+        for action in pending["actions"]
+        if action["tool"] == "cast_skill"
+    )
 
 
 # ---- the tools ----
@@ -297,6 +342,12 @@ async def cast_skill(turn: Turn, args: dict[str, Any], confirmed: bool) -> ToolR
         raise ToolArgumentError(f"{skill.text} does not take a task; call it without task_id")
     if not available.castable:
         raise ToolArgumentError(f"{skill.text} costs {skill.mana} MP and the user has {stats.mp:g}")
+    waiting = 0 if confirmed else await mana_waiting(turn)
+    if waiting and stats.mp < waiting + skill.mana:
+        raise ToolArgumentError(
+            f"{skill.text} costs {skill.mana} MP; the casts already waiting for the button "
+            f"take {waiting} of the user's {stats.mp:g}, so this one does not fit"
+        )
     known = (
         None
         if task_reference is None
@@ -615,7 +666,8 @@ TOOLS: dict[str, Tool] = {
             name="cast_skill",
             description="Cast one of the user's class skills (listed in the system prompt with "
             "their mana cost). Task skills — Burst of Flames, Brutal Smash, Pickpocket, Backstab "
-            "— need task_id; the others must not get one. The user confirms with a button first.",
+            "— need task_id; the others must not get one. To cast several times, call it once "
+            "per cast, all in the same response: one button then confirms them all.",
             parameters={
                 "properties": {
                     "skill": {"type": "string", "description": "Skill name or key."},

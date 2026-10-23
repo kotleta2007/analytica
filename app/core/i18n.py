@@ -498,6 +498,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "✅ Давай",
         "fr": "✅ Vas-y",
     },
+    "confirm_do_all": {
+        "en": "✅ Do all {count}",
+        "ru": "✅ Сделать все {count}",
+        "fr": "✅ Faire les {count}",
+    },
+    "action_not_tried": {
+        "en": "Not tried: {action}.",
+        "ru": "Не выполнено: {action}.",
+        "fr": "Pas tenté : {action}.",
+    },
     "confirm_cancel": {
         "en": "❌ Cancel",
         "ru": "❌ Отмена",

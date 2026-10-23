@@ -311,6 +311,29 @@ async def test_delete_asks_then_the_button_deletes(
     assert await bot_events() == [("Workout", "deleted")]
 
 
+async def test_two_deletes_in_one_round_get_one_pair_of_buttons(
+    harness: Harness, habitica: FakeHabiticaClient, llm: FakeLlm
+) -> None:
+    llm.queue(
+        calls_tools(
+            [
+                ToolCall("c1", "delete_task", {"task_id": "ab1a2b3c"}),
+                ToolCall("c2", "delete_task", {"task_id": "d1a2b3c4"}),
+            ]
+        ),
+        says("Both go if you confirm."),
+    )
+
+    asked = await harness.text_message_received(USER, "delete workout and the vacuum daily")
+
+    assert [b.label for b in asked.buttons] == ["✅ Do all 2", "❌ Cancel"]
+    done = await harness.button_pressed(USER, "confirm", asked.buttons[0].payload)
+
+    assert habitica.called("delete_task") == [HABIT.id, DAILY.id]
+    assert done.text == "Done: delete “Workout”; delete “Vacuum the floors”."
+    assert await bot_events() == [("Workout", "deleted"), ("Vacuum the floors", "deleted")]
+
+
 async def test_cancel_drops_the_action(
     harness: Harness, habitica: FakeHabiticaClient, llm: FakeLlm
 ) -> None:

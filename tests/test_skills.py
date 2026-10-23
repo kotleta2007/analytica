@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from app.collector.snapshots import collect
+from app.core import conversation
 from app.core.harness import Harness
 from app.core.replies import User
 from app.core.skills import available_skills, find_skill, skill_line
@@ -203,7 +204,7 @@ async def test_a_cast_asks_for_confirmation_then_casts_on_the_task(
             "lancer Burst of Flames sur « Essay draft » (10 PM)"
         )
 
-        done = await tools.run_pending(turn, pending)
+        done = await tools.run_action(turn, pending["actions"][0])
 
     assert seeded.called("cast_skill") == [("fireball", ESSAY.id)]
     assert done.content == {"cast": "Burst of Flames", "mana_spent": 10, "target": "Essay draft"}
@@ -216,7 +217,7 @@ async def test_a_self_skill_is_cast_without_a_target(seeded: FakeHabiticaClient)
         pending = await tools.pending_action(turn)
         assert pending is not None
         assert offer.content["action"] == "cast Ethereal Surge (30 MP)"
-        await tools.run_pending(turn, pending)
+        await tools.run_action(turn, pending["actions"][0])
 
     assert seeded.called("cast_skill") == [("mpheal", None)]
 
@@ -244,3 +245,66 @@ async def test_skills_command_before_level_11(db_path: Path) -> None:
     reply = await harness.command_received(USER, "skills", "")
 
     assert reply.text.endswith("No skills yet — the first one unlocks at level 11.")
+
+
+# ---- several casts in one turn: one button, run in order ----
+
+
+def calls(count: int) -> list[ToolCall]:
+    return [
+        ToolCall(
+            id=f"call_{n}",
+            name="cast_skill",
+            arguments={"skill": "fireball", "task_id": "e55a7000"},
+        )
+        for n in range(count)
+    ]
+
+
+async def test_casts_in_one_turn_wait_behind_one_button_and_add_up_their_mana(
+    seeded: FakeHabiticaClient,
+) -> None:
+    async with TurnScope(seeded) as turn:  # 30 MP: three Bursts of Flames fit, a fourth does not
+        offers = [await tools.dispatch(turn, one) for one in calls(4)]
+        pending = await tools.pending_action(turn)
+
+    assert [o.content.get("waiting_for_the_button") for o in offers[:3]] == [1, 2, 3]
+    assert offers[3].content == {
+        "error": "Burst of Flames costs 10 MP; the casts already waiting for the button "
+        "take 30 of the user's 30, so this one does not fit"
+    }
+    assert pending is not None and len(pending["actions"]) == 3
+    assert {o.buttons[0].payload["token"] for o in offers[:3]} == {pending["token"]}
+    assert [b.label for b in offers[2].buttons] == ["✅ Do all 3", "❌ Cancel"]
+    assert tools.describe_pending(pending, "en") == (
+        "cast Burst of Flames on “Essay draft” (10 MP) ×3"
+    )
+    assert seeded.called("cast_skill") == []
+
+
+class SpendsMana(FakeHabiticaClient):
+    async def cast_skill(self, key: str, target_id: str | None = None) -> None:
+        await super().cast_skill(key, target_id)
+        self.user = user_stats_from_json(mage(mp=self.user.mp - 10))
+
+
+async def test_the_button_casts_in_order_and_stops_when_the_mana_runs_out(db_path: Path) -> None:
+    client = SpendsMana(user=user_stats_from_json(mage(mp=30)), tasks=[ESSAY])
+    async with session_scope() as session:
+        await collect(client, session, USER.id, NOW)
+    async with TurnScope(client) as turn:
+        offers = [await tools.dispatch(turn, one) for one in calls(3)]
+    client.user = user_stats_from_json(mage(mp=15))  # mana spent in the app before the press
+    client.calls.clear()
+
+    async with TurnScope(client) as turn:
+        reply = await conversation.confirm(turn, offers[-1].buttons[0].payload)
+
+    # The first cast leaves 5 MP; the snapshot after it is what the second one is checked on.
+    assert client.called("cast_skill") == [("fireball", ESSAY.id)]
+    assert reply.text == (
+        "Done: cast Burst of Flames on “Essay draft” (10 MP).\n"
+        "Couldn't cast Burst of Flames on “Essay draft” (10 MP): "
+        "Burst of Flames costs 10 MP and the user has 5\n"
+        "Not tried: cast Burst of Flames on “Essay draft” (10 MP)."
+    )
