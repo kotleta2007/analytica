@@ -3,6 +3,8 @@ name = "analytica"
 version = "0.1.0"
 description = "Telemetry, analytics and coaching for Habitica, through a Telegram bot you can talk to"
 readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "aiogram>=3.15",

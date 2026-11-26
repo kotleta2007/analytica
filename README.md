@@ -193,3 +193,8 @@ Tests never touch the network: external services are covered by fakes in
 
 `CLAUDE.md` is the specification — architecture, feature specs, conventions.
 `GAMEPLAN.md` is the phase-by-phase plan and its current state.
+
+## License
+
+GNU Affero General Public License v3.0 or later — see `LICENSE`. If you run a modified copy as
+a service for other people, the AGPL asks you to offer them its source.
